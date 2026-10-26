@@ -37,7 +37,7 @@ export default function PaymentTracker() {
     <div className="space-y-6">
       <Card className="p-4">
         <h2 className="text-semibold mb-4">Payment Tracking</h2>
-
+        
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <label className="block text-sm text-muted-foreground mb-2">Search</label>
@@ -83,10 +83,10 @@ export default function PaymentTracker() {
 
       <Card className="p-4">
         <h2 className="text-semibold mb-4">Payment Records</h2>
-
+        
         {payments.length === 0 && (
           <p className="text-muted-foreground text-center py-8">
-            No payment records found.
+            No payment records found. <Button variant="secondary" className="mt-2">Record First Payment</Button>
           </p>
         )}
 
@@ -94,29 +94,29 @@ export default function PaymentTracker() {
           <table className="w-full min-w-full rounded-md border bg-card text-card-foreground">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-sm font-semibold px-6 py-3">Date</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Member</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Amount</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Method</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Reference</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Status</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Date</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Member</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Amount</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Method</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Reference</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Status</th>
               </tr>
             </thead>
             <tbody>
               {filteredPayments.map((payment) => (
-                <tr key={payment.id} className="border-b border-border">
-                  <td className="text-sm px-6 py-3">{payment.date}</td>
-                  <td className="text-sm font-medium px-6 py-3">{payment.memberName}</td>
-                  <td className="text-sm font-semibold px-6 py-3">₹{payment.amount}</td>
-                  <td className="text-sm px-6 py-3">{payment.method}</td>
-                  <td className="text-sm px-6 py-3">{payment.reference || "—"}</td>
-                  <td className="text-sm px-6 py-3">
+                <tr key={payment.id} className="transition-colors dur-300 hover:bg-muted/5">
+                  <td className="text-xs px-6 py-3">{payment.date}</td>
+                  <td className="text-xs font-medium px-6 py-3">{payment.memberName}</td>
+                  <td className="text-xs font-semibold px-6 py-3">₹{payment.amount}</td>
+                  <td className="text-xs px-6 py-3">{payment.method}</td>
+                  <td className="text-xs px-6 py-3">{payment.reference || "—"}</td>
+                  <td className="text-xs px-6 py-3">
                     <span className={
                       payment.status === "paid"
-                        ? "inline-flex items-center rounded bg-primary/10 text-primary"
+                        ? "inline-flex items-center rounded bg-primary/10 text-primary text-xs"
                         : payment.status === "pending"
-                        ? "inline-flex items-center rounded bg-secondary/10 text-secondary"
-                        : "inline-flex items-center rounded bg-destructive/10 text-destructive"
+                        ? "inline-flex items-center rounded bg-secondary/10 text-secondary text-xs"
+                        : "inline-flex items-center rounded bg-destructive/10 text-destructive text-xs"
                     }>
                       {payment.status}
                     </span>

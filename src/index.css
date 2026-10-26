@@ -1,3 +1,75 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Improve readability and text rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'rlig' 'calt';
+  }
+
+  /* Avoid templated default widths and container patterns */
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Structural devices - encode information, don't just decorate */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Avoid the 'all-caps eyebrow' templated default */
+  .no-ebravey {
+    text-transform: none !important;
+    text-wrap: pretty !important;
+  }
+
+  /* Meaningful uppercase with tracking only when semantically appropriate */
+  .uppercase-tracked {
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  /* Focus-visible states - always visible, never vague */
+  .focus-visible:ring-2:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+
+  /* Card hover elevation - purposeful, not default */
+  .hover-lift {
+    transition: box-shadow 0.2s ease;
+  }
+  .hover-lift:hover {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 3px 10px -5px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Empty state invitation */
+  .empty-state-invitation {
+    color: var(--muted);
+  }
+}

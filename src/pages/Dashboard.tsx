@@ -29,14 +29,16 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">GymOS — Gym Management Platform</h1>
+      <header className="border-b border-border bg-card p-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-3xl display-font font-normal tracking-[-0.5px]">
+            GymOS — Gym Management Platform
+          </h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="flex items-center gap-2">
                 <svg
-                  className="h-5 w-5"
+                  className="h-4 w-4"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                   aria-hidden="true"
@@ -55,7 +57,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="p-6">
+      <main className="p-6 max-w-7xl mx-auto">
         <div className="mb-6">
           <Input
             placeholder="Search metrics..."
@@ -67,11 +69,14 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredMetrics.map((metric) => (
-            <Card key={metric.id} className="p-4">
+            <Card
+              key={metric.id}
+              className="p-6 hover-lift transition-colors dur-300 hover:shadow-lg hover:bg-card/50 transition-shadow dur-300"
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">{metric.label}</p>
-                  <p className="text-xl font-semibold">{metric.value}</p>
+                  <p className="text-sm uppercase tracked text-muted-foreground truncate">{metric.label}</p>
+                  <p className="text-2xl font-semibold leading-none">{metric.value}</p>
                 </div>
                 <svg
                   className={`h-6 w-6 ${metric.color === "destructive" ? "text-destructive" : metric.color === "primary" ? "text-primary" : "text-secondary"}`}
@@ -82,7 +87,7 @@ export default function Dashboard() {
                   <path d="M3 9l9 6 9-6v2H3v-2z" />
                 </svg>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-2">
                 {metric.trend}
               </p>
             </Card>
@@ -91,15 +96,15 @@ export default function Dashboard() {
 
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
-            <h2 className="text-semibold mb-4">New Enquiry</h2>
-            <Input placeholder="Enter enquiry name" className="w-full" />
-            <Button className="mt-2">Assign Follow-up</Button>
+            <h2 className="text-semibold mb-3 uppercase-tracked text-muted-foreground">New Enquiry</h2>
+            <Input placeholder="Enter enquiry name" className="w-full mb-3" />
+            <Button className="w-full">Assign Follow-up</Button>
           </Card>
 
           <Card>
-            <h2 className="text-semibold mb-4">Record Attendance</h2>
-            <Input placeholder="Member ID or name" className="w-full" />
-            <Button className="mt-2">Check-in</Button>
+            <h2 className="text-semibold mb-3 uppercase-tracked text-muted-foreground">Record Attendance</h2>
+            <Input placeholder="Member ID or name" className="w-full mb-3" />
+            <Button className="w-full">Check-in</Button>
           </Card>
         </div>
       </main>

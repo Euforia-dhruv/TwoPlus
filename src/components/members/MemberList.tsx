@@ -84,7 +84,7 @@ export default function MemberList() {
         
         {members.length === 0 && (
           <p className="text-muted-foreground text-center py-8">
-            No members found. Add your first member to get started.
+            No members found. <Button variant="secondary" className="mt-2">Add Your First Member</Button>
           </p>
         )}
 
@@ -92,31 +92,31 @@ export default function MemberList() {
           <table className="w-full min-w-full rounded-md border bg-card text-card-foreground">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-sm font-semibold px-6 py-3">Member ID</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Name</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Phone</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Email</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Status</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Assigned Trainer</th>
-                <th className="text-left text-sm font-semibold px-6 py-3">Actions</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Member ID</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Name</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Phone</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Email</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Status</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Assigned Trainer</th>
+                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredMembers.map((member) => (
-                <tr key={member.memberId} className="border-b border-border">
-                  <td className="text-sm font-medium px-6 py-3">{member.memberId}</td>
-                  <td className="text-sm font-medium px-6 py-3">{member.name}</td>
-                  <td className="text-sm px-6 py-3">{member.phone}</td>
-                  <td className="text-sm px-6 py-3">{member.email || "—"}</td>
-                  <td className="text-sm px-6 py-3">
-                    <span className={`inline-flex items-center rounded bg-${member.status === "active" ? "primary" : member.status === "expired" ? "destructive" : "secondary"}/10 text-${member.status === "active" ? "primary" : member.status === "expired" ? "destructive" : "secondary"}`}>
+                <tr key={member.memberId} className="border-b transition-colors dur-300 hover:bg-muted/5">
+                  <td className="text-xs font-medium px-6 py-3">{member.memberId}</td>
+                  <td className="text-xs font-medium px-6 py-3">{member.name}</td>
+                  <td className="text-xs px-6 py-3">{member.phone}</td>
+                  <td className="text-xs px-6 py-3">{member.email || "—"}</td>
+                  <td className="text-xs px-6 py-3">
+                    <span className="inline-flex items-center rounded bg-primary/10 text-primary text-xs">
                       {member.status}
                     </span>
                   </td>
-                  <td className="text-sm px-6 py-3">{member.assignedTrainer || "Unassigned"}</td>
-                  <td className="text-sm font-medium px-6 py-3">
+                  <td className="text-xs px-6 py-3">{member.assignedTrainer || "Unassigned"}</td>
+                  <td className="text-xs font-medium px-6 py-3">
                     <Button variant="ghost" size="sm">View</Button>
-                    <Button variant="ghost" size="sm" className="text-destructive">Delete</Button>
+                    <Button variant="ghost" size="sm" className="text-destructive ml-2">Delete</Button>
                   </td>
                 </tr>
               ))}
