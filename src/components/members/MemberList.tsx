@@ -6,12 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 
+const seedMembers: Member[] = [
+  { memberId: "M-0034", name: "Aarav Mehta", phone: "+91 98200 11223", email: "aarav.mehta@example.com", status: "active", assignedTrainer: "trainer-1" },
+  { memberId: "M-0058", name: "Priya Sharma", phone: "+91 98765 44321", email: "priya.s@example.com", status: "active", assignedTrainer: "trainer-2" },
+  { memberId: "M-0072", name: "Rohan Das", phone: "+91 90045 88127", status: "suspended", assignedTrainer: "unassigned" },
+  { memberId: "M-0019", name: "Sneha Iyer", phone: "+91 91234 55667", email: "sneha.iyer@example.com", status: "expired", assignedTrainer: "trainer-1" },
+  { memberId: "M-0090", name: "Vikram Rao", phone: "+91 99887 22110", status: "active", assignedTrainer: "trainer-2" },
+];
+
 export default function MemberList() {
   const [search, setSearch] = useState("");
-  const [members, setMembers] = useState<Member[]>([]);
-
+  const [members] = useState<Member[]>(seedMembers);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "expired" | "suspended">("all");
   const [assignedFilter, setAssignedFilter] = useState<"all" | "trainer-1" | "trainer-2" | "unassigned">("all");
+
 
   const filteredMembers = members.filter((member) => {
     const matchesSearch = member.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -26,11 +34,11 @@ export default function MemberList() {
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value);
+    setStatusFilter(e.target.value as "all" | "active" | "expired" | "suspended");
   };
 
   const handleAssignedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setAssignedFilter(e.target.value);
+    setAssignedFilter(e.target.value as "all" | "trainer-1" | "trainer-2" | "unassigned");
   };
 
   return (
@@ -80,56 +88,69 @@ export default function MemberList() {
       </Card>
 
       <Card className="p-4">
-        <h2 className="text-semibold mb-4">Member List</h2>
-        
-        {members.length === 0 && (
-          <p className="text-muted-foreground text-center py-8">
-            No members found. <Button variant="secondary" className="mt-2">Add Your First Member</Button>
-          </p>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-semibold">Member List</h2>
+          <Button variant="primary">Add New Member</Button>
+        </div>
+
+        {filteredMembers.length === 0 && (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">
+              {members.length === 0
+                ? "No members yet. Add your first member to get started."
+                : "No members match your search and filters."}
+            </p>
+          </div>
         )}
 
+        {filteredMembers.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-full rounded-md border bg-card text-card-foreground">
+          <table className="w-full min-w-full whitespace-nowrap rounded-md border bg-card text-card-foreground">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Member ID</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Name</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Phone</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Email</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Status</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Assigned Trainer</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground px-6 py-3">Actions</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-6 py-3">Member ID</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-6 py-3">Name</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-6 py-3">Phone</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-6 py-3">Email</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-6 py-3">Status</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-6 py-3">Assigned Trainer</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-6 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredMembers.map((member) => (
-                <tr key={member.memberId} className="border-b transition-colors dur-300 hover:bg-muted/5">
+                <tr key={member.memberId} className="border-b transition-colors hover:bg-muted/60">
                   <td className="text-xs font-medium px-6 py-3">{member.memberId}</td>
                   <td className="text-xs font-medium px-6 py-3">{member.name}</td>
                   <td className="text-xs px-6 py-3">{member.phone}</td>
                   <td className="text-xs px-6 py-3">{member.email || "—"}</td>
                   <td className="text-xs px-6 py-3">
-                    <span className="inline-flex items-center rounded bg-primary/10 text-primary text-xs">
+                    <span
+                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+                        member.status === "active"
+                          ? "bg-success/10 text-success"
+                          : member.status === "expired"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
                       {member.status}
                     </span>
                   </td>
                   <td className="text-xs px-6 py-3">{member.assignedTrainer || "Unassigned"}</td>
                   <td className="text-xs font-medium px-6 py-3">
-                    <Button variant="ghost" size="sm">View</Button>
-                    <Button variant="ghost" size="sm" className="text-destructive ml-2">Delete</Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm">View</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive">Delete</Button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        )}
       </Card>
-
-      <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-        <Button variant="primary" className="w-full md:w-auto">
-          Add New Member
-        </Button>
-      </div>
     </div>
   );
 }

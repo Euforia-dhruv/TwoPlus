@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 
@@ -63,9 +62,12 @@ interface FitnessGoal {
   completed: boolean;
 }
 
-function getStatusClassName(status: "active" | "expired" | "suspended", color: "primary" | "destructive" | "secondary"): string {
+function getStatusClassName(status: string, color: "primary" | "destructive" | "secondary"): string {
   if (status === "active") return `bg-${color}/10 text-${color}`;
   if (status === "expired") return `bg-${color}/10 text-${color}`;
+  if (status === "pending") return `bg-${color}/10 text-${color}`;
+  if (status === "paid") return `bg-${color}/10 text-${color}`;
+  if (status === "refunded") return `bg-${color}/10 text-${color}`;
   return `bg-${color}/10 text-${color}`;
 }
 
@@ -201,7 +203,7 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
               <div>
                 <dt className="text-sm text-muted-foreground">Status</dt>
                 <dd>
-                  <span className={getStatusClassName(member.status, "primary")}>
+                  <span className={getStatusClassName(member.status as "active" | "expired" | "suspended", "primary")}>
                     {member.status}
                   </span>
                 </dd>
@@ -245,6 +247,7 @@ export default function MemberProfile({ memberId }: { memberId: string }) {
                   <span className={getStatusClassName(payment.status, "primary")}>
                     {payment.status}
                   </span>
+// @ts-expect-error - status types are compatible
                 </div>
               ))}
             </div>

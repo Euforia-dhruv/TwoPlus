@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useDashboardMetricsAnimation } from "@/utils/animations";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -19,7 +18,7 @@ const mockMetrics = [
 export default function MetricsWithAnimation() {
   const [search, setSearch] = useState("");
 
-  const refs = React.useRef<(React.RefObject<HTMLDivElement> | null)[]>([]);
+  const refs = React.useRef<React.RefObject<HTMLDivElement>[]>([]);
 
   // Register refs after render
   React.useEffect(() => {

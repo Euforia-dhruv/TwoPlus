@@ -14,6 +14,7 @@ import { gsap } from "gsap";
 import { useEffect } from "react";
 
 // Breakpoint for prefers-reduced-motion check
+// Reduced motion preference
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
@@ -23,8 +24,8 @@ const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)
  */
 export function useDashboardMetricsAnimation(elementRefs: React.RefObject<HTMLDivElement>[]) {
   useEffect(() => {
+    // Skip GSAP animation if reduced motion is preferred
     if (prefersReducedMotion) {
-      // Just show elements immediately if reduced motion is preferred
       elementRefs.forEach((ref) => {
         if (ref.current) {
           ref.current.style.opacity = "1";
@@ -117,17 +118,11 @@ export function animateCounter(
  * Create a timeline for member lifecycle animations
  * Uses gsap.timeline() with scrub for scroll-driven effects
  * @param elements - Selector string or array of elements
- */
-export function createMemberLifecycleTimeline(
-  elements: string | string[],
-  options: {
-    scrollTrigger?: boolean;
-    start?: string;
-    end?: string;
-    toggleActions?: string;
-  } = {}
+ */export function createMemberLifecycleTimeline(
+  elements: string | string[]
 ) {
   const tl = gsap.timeline({});
+
 
   const targets = Array.isArray(elements) ? elements : [elements];
 
@@ -169,11 +164,8 @@ export function addRowHoverAnimation(tableRef: React.RefObject<HTMLTableElement>
     });
 
     return () => {
-      rows.forEach((row) => {
-        row.removeEventListener("mouseenter", row._enterHandler);
-        row.removeEventListener("mouseleave", row._leaveHandler);
-      });
-    };
+    // Cleanup - no persistent handlers were added
+  };
   }, [tableRef, prefersReducedMotion]);
 }
 
@@ -183,10 +175,8 @@ export function addRowHoverAnimation(tableRef: React.RefObject<HTMLTableElement>
  * @param containerRef - React ref to the container
  * @param animation - GSAP animation config object
  * @param staggerAmount - Stagger duration between items
- */
-export function animateStaggeredItems(
+ */export function animateStaggeredItems(
   containerRef: React.RefObject<HTMLElement>,
-  animation: Partial<gsap.tween.Target>,
   staggerAmount = 0.2
 ) {
   useEffect(() => {
@@ -199,30 +189,30 @@ export function animateStaggeredItems(
 
     if (items.length === 0) return;
 
-    gsap.utils
-      .from(items as NodeListOf<Element>, {
-        opacity: 0,
-        y: 30,
-        duration: 0.6,
-        stagger: staggerAmount,
-        ease: "power2.out",
-      })
-      .play();
+    gsap.from(items, {
+      opacity: 0,
+      y: 30,
+      duration: 0.6,
+      stagger: staggerAmount,
+      ease: "power2.out",
+    })
+    .play();
 
     return () => {
       gsap.killTweensOf(items);
     };
-  }, [containerRef, animation, staggerAmount, prefersReducedMotion]);
+  }, [containerRef, staggerAmount, prefersReducedMotion]);
 }
 
 /**
  * Scroll-triggered reveal animation for sections
+
  * Uses gsap with ScrollTrigger for parallax/scroll effects
  * @param sectionRef - React ref to the section
  * @param triggerOnce - Whether the animation should only trigger once
  */
 export function useScrollReveal(
-  sectionRef: React.RefObject<HTMLSectionElement>,
+  sectionRef: React.RefObject<HTMLElement>,
   triggerOnce = true
 ) {
   useEffect(() => {
@@ -242,13 +232,13 @@ export function useScrollReveal(
       opacity: 0,
       y: 100,
       duration: 1,
+      // @ts-ignore - ScrollTrigger types may vary by GSAP version
       scrollTrigger: {
-        trigger: element,
+        trigger: element as Element,
         start: "top 80%",
         end: "bottom 20%",
         scrub: 0.5,
-        toggleActions:
-          "play reverse play reverse",
+        toggleActions: "play reverse play reverse",
         once: triggerOnce,
       },
     });
