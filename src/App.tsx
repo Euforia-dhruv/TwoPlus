@@ -1,5 +1,10 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
+import gsap from "gsap"
 import { Icon, type IconName } from "./icons"
+import AnimatedButton from "@/components/ui/animated-button"
+import AsciiGlitchRipple from "@/components/ui/ascii-glitch-ripple"
+import MorphText from "@/components/ui/morph-text"
+import { RadialGlowButton } from "@/components/ui/radial-glow-button"
 
 const groups = [
   [
@@ -334,6 +339,7 @@ const modules: Record<string, Module> = {
 }
 
 export default function App() {
+  const mainRef = useRef<HTMLElement>(null)
   const [active, setActive] = useState("Overview")
   const [members, setMembers] = useState(initialMembers)
   const [tab, setTab] = useState("All members")
@@ -355,6 +361,33 @@ export default function App() {
     setQuery("")
     setSelected([])
   }
+  useEffect(() => {
+    const main = mainRef.current
+    if (!main) return
+
+    const motion = gsap.matchMedia(main)
+    motion.add("(prefers-reduced-motion: no-preference)", () => {
+      const elements = main.querySelectorAll<HTMLElement>(
+        ".page-heading:not([hidden]), .stats, .panel, .directory",
+      )
+      if (!elements.length) return
+
+      gsap.fromTo(
+        elements,
+        { autoAlpha: 0, y: 12 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.42,
+          stagger: 0.06,
+          ease: "power3.out",
+          clearProps: "all",
+        },
+      )
+    })
+
+    return () => motion.revert()
+  }, [active])
   const filtered = members.filter(
     (m) =>
       (tab === "All members" || m.status === tab) &&
@@ -409,7 +442,7 @@ export default function App() {
       </nav>
       <div className="main-shell">
         <header className="topbar">
-          <button className="glass-brand" onClick={() => go("Overview")} aria-label="HeyGym home"><Icon name="activity" size={25} /><span>HeyGym</span></button>
+          <button className="glass-brand" onClick={() => go("Overview")} aria-label="HeyGym home"><Icon name="activity" size={25} /><AsciiGlitchRipple as="span" className="brand-glitch">HeyGym</AsciiGlitchRipple></button>
           <div className="summary-tabs">{[["Overview", "Gym Summary"], ["Members", "Members"], ["Reports", "Revenue Analysis"], ["Classes & PT", "Class Schedule"]].map(([key, label]) => <button key={key} className={active === key ? "is-selected" : ""} onClick={() => go(key)}>{label}</button>)}</div>
           <div className="breadcrumb">
             <Icon name="shop" size={15} />
@@ -430,8 +463,8 @@ export default function App() {
             <Avatar name="Your account" small />
           </div>
         </header>
-        <main>
-          {active === "Overview" && <><div className="page-heading"><div><div className="eyebrow">YOUR WORKSPACE</div><h1>Gym Summary</h1><p>Your business overview will fill in as you add records.</p></div><Button onClick={() => setModal("Add member")}><Icon name="plus" size={16} />Add member</Button></div><Stats items={[["Members", String(members.length), "Added in this session"], ["Active memberships", String(members.filter(m => m.status === "Active").length), "From your member directory"], ["Recorded payments", String((records.Payments || []).length), "Added in this session"], ["Enquiries", String((records.Enquiries || []).length), "Added in this session"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><Button secondary onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></Button></section></>}
+        <main ref={mainRef}>
+          {active === "Overview" && <><div className="page-heading"><div><MorphText words={["YOUR WORKSPACE", "GYM SUMMARY", "BUSINESS OVERVIEW"]} interval={4200} fontSize="9px" className="summary-morph" textClassName="summary-morph-text" /><h1>Gym Summary</h1><p>Your business overview will fill in as you add records.</p></div><RadialGlowButton className="overview-radial-cta" onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</RadialGlowButton></div><Stats items={[["Members", String(members.length), "Added in this session"], ["Active memberships", String(members.filter(m => m.status === "Active").length), "From your member directory"], ["Recorded payments", String((records.Payments || []).length), "Added in this session"], ["Enquiries", String((records.Enquiries || []).length), "Added in this session"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><AnimatedButton className="animated-glass-button" onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></AnimatedButton></section></>}
 
           <div className="page-heading" hidden={active === "Overview"}>
             <div>
