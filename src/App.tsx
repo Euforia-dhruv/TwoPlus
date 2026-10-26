@@ -367,23 +367,84 @@ export default function App() {
 
     const motion = gsap.matchMedia(main)
     motion.add("(prefers-reduced-motion: no-preference)", () => {
-      const elements = main.querySelectorAll<HTMLElement>(
-        ".page-heading:not([hidden]), .stats, .panel, .directory",
+      const heading = main.querySelector<HTMLElement>(
+        ".page-heading:not([hidden])",
       )
-      if (!elements.length) return
+      const statCards = gsap.utils.toArray<HTMLElement>(
+        ".stats > .stat",
+        main,
+      )
+      const sections = gsap.utils.toArray<HTMLElement>(
+        ".panel, .directory, .attention, .integration-note",
+        main,
+      )
+      const rows = gsap.utils.toArray<HTMLElement>(
+        ".directory tbody tr",
+        main,
+      )
+      const timeline = gsap.timeline({
+        defaults: { ease: "power3.out" },
+      })
 
-      gsap.fromTo(
-        elements,
-        { autoAlpha: 0, y: 12 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.42,
-          stagger: 0.06,
-          ease: "power3.out",
-          clearProps: "all",
-        },
-      )
+      if (heading) {
+        timeline.fromTo(
+          heading,
+          { autoAlpha: 0, y: 14 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.4,
+            clearProps: "opacity,visibility,transform",
+          },
+          0,
+        )
+      }
+
+      if (statCards.length) {
+        timeline.fromTo(
+          statCards,
+          { autoAlpha: 0, y: 16, scale: 0.98 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.42,
+            stagger: 0.07,
+            clearProps: "opacity,visibility,transform",
+          },
+          0.08,
+        )
+      }
+
+      if (sections.length) {
+        timeline.fromTo(
+          sections,
+          { autoAlpha: 0, y: 16 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.45,
+            stagger: 0.08,
+            clearProps: "opacity,visibility,transform",
+          },
+          statCards.length ? 0.2 : 0.1,
+        )
+      }
+
+      if (rows.length) {
+        timeline.fromTo(
+          rows,
+          { autoAlpha: 0, y: 8 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.28,
+            stagger: 0.035,
+            clearProps: "opacity,visibility,transform",
+          },
+          0.35,
+        )
+      }
     })
 
     return () => motion.revert()

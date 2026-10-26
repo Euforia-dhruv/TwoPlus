@@ -233,3 +233,54 @@ body:before {
 }
 
 @tailwind utilities;
+
+.stat,
+.summary-card,
+.micro-metrics>div {
+  transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s ease,border-color .24s ease;
+}
+.stat:hover {
+  transform:translateY(-3px);
+  border-color:rgba(255,255,255,.72);
+  box-shadow:0 14px 28px rgba(36,42,28,.12),inset 0 1px 0 rgba(255,255,255,.65);
+}
+.summary-card:hover {
+  transform:translateY(-3px);
+  box-shadow:0 14px 30px rgba(28,31,22,.13),inset 0 1px 0 rgba(255,255,255,.18);
+}
+.micro-metrics>div:hover { transform:translateY(-2px); }
+.floating-rail button {
+  transition:transform .18s ease,background-color .18s ease,color .18s ease,box-shadow .18s ease;
+}
+.floating-rail button:hover {
+  transform:scale(1.08);
+  box-shadow:0 4px 12px rgba(24,29,17,.12);
+}
+.floating-rail .rail-active svg { animation:nav-icon-arrive .3s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes nav-icon-arrive {
+  from { transform:scale(.76) rotate(-10deg); }
+  to { transform:scale(1) rotate(0); }
+}
+.summary-tabs button {
+  transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .2s ease;
+}
+.summary-tabs button:hover { transform:translateY(-1px); }
+.btn:not(:disabled),.icon-button {
+  transition:transform .18s ease,background-color .18s ease,box-shadow .18s ease;
+}
+.btn:not(:disabled):hover,.icon-button:hover { transform:translateY(-1px); }
+.btn:not(:disabled):active,.icon-button:active { transform:translateY(0) scale(.98); }
+tbody tr { transition:background-color .18s ease; }
+tbody tr:hover { background:rgba(255,255,255,.14); }
+.member-cell { transition:transform .18s ease; }
+.member-cell:hover { transform:translateX(2px); }
+
+@media(prefers-reduced-motion:reduce) {
+  .stat,.summary-card,.micro-metrics>div,.floating-rail button,
+  .summary-tabs button,.btn:not(:disabled),.icon-button,.member-cell,
+  tbody tr {
+    transition:none!important;
+    animation:none!important;
+    transform:none!important;
+  }
+}
