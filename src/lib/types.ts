@@ -13,6 +13,8 @@ export type Profile = {
   phone: string | null;
 };
 
+export type OrganizationStatus = "active" | "trial" | "suspended" | "cancelled";
+
 export type Organization = {
   id: string;
   owner_id: string;
@@ -21,6 +23,8 @@ export type Organization = {
   address: string | null;
   timezone: string;
   currency: string;
+  /** Absent until migration 0002 is applied. */
+  status?: OrganizationStatus;
 };
 
 export type Branch = {

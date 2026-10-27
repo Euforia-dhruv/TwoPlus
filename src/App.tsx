@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { Icon, type IconName } from "./icons"
 import AnimatedButton from "@/components/ui/animated-button"
 import AsciiGlitchRipple from "@/components/ui/ascii-glitch-ripple"
 import MorphText from "@/components/ui/morph-text"
 import { RadialGlowButton } from "@/components/ui/radial-glow-button"
+import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
+import { usePlatformAdmin } from "@/lib/use-platform-admin"
 import * as api from "@/lib/api"
 import {
   ageFromDob,
@@ -106,95 +108,6 @@ type Member = {
   trainer: string
   memberId?: string
   membershipId?: string
-}
-function Button({
-  children,
-  secondary,
-  className = "",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { secondary?: boolean }) {
-  return (
-    <button
-      className={`btn ${secondary ? "secondary" : ""} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  )
-}
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`input ${props.className || ""}`} />
-}
-function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className="input" />
-}
-function Title({
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 {...props}>{children}</h2>
-}
-function Badge({ children }: { children: ReactNode }) {
-  return (
-    <span
-      className={`badge ${
-        ["Active", "Paid", "Completed", "Resolved", "In stock"].includes(
-          String(children),
-        )
-          ? "green"
-          : ["Expired", "Overdue", "Low stock"].includes(String(children))
-            ? "red"
-            : ["Expiring soon", "Pending", "Due", "Open"].includes(
-                  String(children),
-                )
-              ? "amber"
-              : ""
-      }`}
-    >
-      <i />
-      {children}
-    </span>
-  )
-}
-function Avatar({ name, small }: { name: string; small?: boolean }) {
-  return (
-    <span
-      className={`avatar tone-${name.charCodeAt(0) % 5} ${
-        small ? "small" : ""
-      }`}
-    >
-      {name
-        .split(" ")
-        .map((x) => x[0])
-        .slice(0, 2)
-        .join("")}
-    </span>
-  )
-}
-function Stats({ items }: { items: string[][] }) {
-  return (
-    <div className="stats">
-      {items.map(([label, value, detail], i) => (
-        <section key={label} className="stat">
-          <div className="stat-label">
-            {label}
-            <Icon
-              name={
-                (["members", "check", "calendar", "wallet"] as const)[i % 4]
-              }
-              size={16}
-            />
-          </div>
-          <strong>{value}</strong>
-          <span>
-            <span className={detail.startsWith("+") ? "positive" : ""}>
-              {detail}
-            </span>
-          </span>
-        </section>
-      ))}
-    </div>
-  )
 }
 
 type Module = {
@@ -351,10 +264,24 @@ const modules: Record<string, Module> = {
   },
 }
 
+// Modules whose tables exist in the database. Everything else is UI-only
+// until a migration adds storage for it.
+const dbModules = [
+  "Attendance",
+  "Classes & PT",
+  "Enquiries",
+  "Payments",
+  "Trainers & staff",
+  "Expenses",
+] as const
+const hasDbStorage = (name: string) =>
+  (dbModules as readonly string[]).includes(name)
+
 export default function App() {
   const mainRef = useRef<HTMLElement>(null)
   const { signOut } = useAuth()
   const { org } = useOrg()
+  const { role: platformRole } = usePlatformAdmin()
   const [active, setActive] = useState("Overview")
   const [members, setMembers] = useState<Member[]>([])
   const [tab, setTab] = useState("All members")
@@ -738,7 +665,7 @@ export default function App() {
     )
     const link = document.createElement("a")
     link.href = url
-    link.download = `heygym-${active.toLowerCase()}.csv`
+    link.download = `twoplus-${active.toLowerCase()}.csv`
     link.click()
     URL.revokeObjectURL(url)
     notify("CSV exported")
@@ -755,7 +682,7 @@ export default function App() {
       </nav>
       <div className="main-shell">
         <header className="topbar">
-          <button className="glass-brand" onClick={() => go("Overview")} aria-label="HeyGym home"><Icon name="activity" size={25} /><AsciiGlitchRipple as="span" className="brand-glitch">HeyGym</AsciiGlitchRipple></button>
+          <button className="glass-brand" onClick={() => go("Overview")} aria-label="TwoPlus home"><Icon name="activity" size={25} /><AsciiGlitchRipple as="span" className="brand-glitch">TwoPlus</AsciiGlitchRipple></button>
           <div className="summary-tabs">{[["Overview", "Gym Summary"], ["Members", "Members"], ["Reports", "Revenue Analysis"], ["Classes & PT", "Class Schedule"]].map(([key, label]) => <button key={key} className={active === key ? "is-selected" : ""} onClick={() => go(key)}>{label}</button>)}</div>
           <div className="breadcrumb">
             <Icon name="shop" size={15} />
@@ -765,6 +692,7 @@ export default function App() {
           </div>
           <div className="top-actions">
             <span className="demo-label">{org?.role ?? "Owner"}</span>
+            {platformRole === "super_admin" && <a className="platform-admin-link" href="/super-admin">Platform admin</a>}
             <button
               aria-label="View reminders"
               className="icon-button notification"
@@ -783,6 +711,24 @@ export default function App() {
             </button>
           </div>
         </header>
+        {org?.organization.status &&
+          org.organization.status !== "active" &&
+          org.organization.status !== "trial" && (
+            <div className="workspace-locked" role="status">
+              <Icon name="shield" size={15} />
+              <div>
+                <strong>
+                  {org.organization.status === "suspended"
+                    ? "This workspace is suspended"
+                    : "This workspace is closed"}
+                </strong>
+                <span>
+                  Your records are safe and remain viewable, but changes are
+                  disabled. Contact TwoPlus support to restore access.
+                </span>
+              </div>
+            </div>
+          )}
         <main ref={mainRef}>
           {active === "Overview" && <><div className="page-heading"><div><MorphText words={["YOUR WORKSPACE", "GYM SUMMARY", "BUSINESS OVERVIEW"]} interval={4200} fontSize="9px" className="summary-morph" textClassName="summary-morph-text" /><h1>Gym Summary</h1><p>{stats ? "Live figures from your workspace." : loadingData ? "Loading your workspace…" : "Your business overview will fill in as you add records."}</p></div><RadialGlowButton className="overview-radial-cta" onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</RadialGlowButton></div><Stats items={[["Members", stats ? String(stats.totalMembers) : "—", stats ? `${stats.activeMembers} active` : "Loading"], ["Active memberships", stats ? String(stats.activeMemberships) : "—", stats ? `${stats.expiringSoon} expiring within 7 days` : "Loading"], ["Recorded payments", stats ? formatMoney(stats.monthCollectionsMinor, org?.organization.currency) : "—", "Collected this month"], ["Enquiries", stats ? String(stats.newEnquiries) : "—", "Received this month"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><AnimatedButton className="animated-glass-button" onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></AnimatedButton></section></>}
 
@@ -806,6 +752,12 @@ export default function App() {
                 </Button>
               )}
               <Button
+                disabled={!!module && !hasDbStorage(active)}
+                title={
+                  !!module && !hasDbStorage(active)
+                    ? "This module has no database storage yet"
+                    : undefined
+                }
                 onClick={() =>
                   active === "Community"
                     ? setModal("Create group")
@@ -1236,14 +1188,14 @@ export default function App() {
                         ))}
                     </tbody>
                   </table>
-                  {!(records[active] || []).length && <div className="empty">No records yet. Use the add button to create your first entry.</div>}
+                  {!(records[active] || []).length && <div className="empty">{["Attendance", "Classes & PT", "Enquiries", "Payments", "Trainers & staff", "Expenses"].includes(active) ? "No records yet. Use the add button to create your first entry." : "This module is not connected to the database yet, so no records can be stored here."}</div>}
                 </div>
                 <div className="table-footer">
                   <span>All records · {branch}</span>
                   <span>
                     {["Attendance", "Classes & PT", "Enquiries", "Payments", "Trainers & staff", "Expenses"].includes(active)
                       ? "Saved to your workspace"
-                      : "Session-only records"}
+                      : "Not available — no database storage yet"}
                   </span>
                 </div>
               </section>
@@ -1255,7 +1207,7 @@ export default function App() {
           {active === "Member app" && <section className="panel workspace-empty"><Icon name="members" size={32} /><Title>No member app connected</Title><p>Connect member accounts to show their memberships, workouts, classes, and payments here.</p></section>}
 
           <footer className="page-footer">
-            <span>HeyGym · A little less admin. A lot more progress.</span>
+            <span>TwoPlus · A little less admin. A lot more progress.</span>
             <button onClick={() => go("Customer support")}>Need a hand?</button>
           </footer>
         </main>
@@ -1450,7 +1402,7 @@ export default function App() {
                 onSubmit={(e) => {
                   e.preventDefault()
                   setModal("")
-                  notify("Reminder saved as a demo draft — no message was sent")
+                  notify("Delivery provider not connected — nothing was sent or saved")
                 }}
               >
                 <label>
@@ -1485,36 +1437,19 @@ export default function App() {
                 <Button type="submit">Save reminder draft</Button>
               </form>
             ) : modal === "Online class" ? (
-              <form
-                className="modal-body"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  setModal("")
-                  notify("Online class saved as a local demo draft")
-                }}
-              >
-                <label>
-                  Class title
-                  <Input required placeholder="Morning mobility" />
-                </label>
-                <label>
-                  Meeting link
-                  <Input
-                    required
-                    type="url"
-                    placeholder="https://meet.google.com/..."
-                  />
-                </label>
-                <label>
-                  Starts at
-                  <Input required type="datetime-local" />
-                </label>
-                <div className="integration-note">
-                  Use an existing meeting link. In-app video hosting is not
-                  connected.
+              <div className="modal-body">
+                <p>
+                  Online classes need a video provider to create and host the
+                  meeting. None is connected, so nothing can be scheduled here
+                  yet. Use <strong>Schedule class</strong> to create an in-person
+                  session.
+                </p>
+                <div className="modal-footer">
+                  <Button type="button" onClick={() => setModal("")}>
+                    Close
+                  </Button>
                 </div>
-                <Button type="submit">Save class draft</Button>
-              </form>
+              </div>
             ) : modal.startsWith("Details:") ? (
               <div className="modal-body">
                 {[...(module?.rows || []), ...(records[active] || [])]
@@ -1762,18 +1697,16 @@ export default function App() {
                       notify("Enquiry converted to a member")
                       setModuleTick((t) => t + 1)
                       reload()
-                    } else if (module) {
-                      setRecords({
-                        ...records,
-                        [active]: [
-                          ...(records[active] || []),
-                          module.columns.map((_, i) =>
-                            String(data.get(`field${i}`) || "Pending"),
-                          ),
-                        ],
-                      })
+                    } else if (modal === "Create group") {
                       setModal("")
-                      notify("Saved to this session")
+                      notify(
+                        "Community groups need a messaging service — nothing was created",
+                      )
+                    } else if (module) {
+                      setModal("")
+                      notify(
+                        "This module has no database storage yet — the entry was not saved",
+                      )
                     } else {
                       setModal("")
                     }

@@ -8,6 +8,7 @@ import Signup from "@/pages/Signup";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Onboarding from "@/pages/Onboarding";
+import SuperAdmin from "@/pages/SuperAdmin";
 
 function Splash({ text }: { text: string }) {
   return (
@@ -52,6 +53,9 @@ export default function AppRoutes() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/super-admin" element={<SuperAdmin />} />
+      {/* Spec name for the same control center. */}
+      <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
       <Route
         path="/onboarding"
         element={

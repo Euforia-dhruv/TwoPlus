@@ -5,14 +5,17 @@ import "./index.css";
 import AppRoutes from "./router";
 import { AuthProvider } from "./lib/auth";
 import { OrgProvider } from "./lib/org";
+import { PlatformAdminProvider } from "./lib/platform";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <OrgProvider>
-          <AppRoutes />
-        </OrgProvider>
+        <PlatformAdminProvider>
+          <OrgProvider>
+            <AppRoutes />
+          </OrgProvider>
+        </PlatformAdminProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

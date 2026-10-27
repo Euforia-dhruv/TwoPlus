@@ -20,7 +20,7 @@ export function AuthLayout({
       <aside className="auth-brand" aria-hidden="true">
         <div className="auth-brand-logo">
           <Icon name="activity" size={24} />
-          HeyGym
+          TwoPlus
         </div>
         <div className="auth-brand-copy">
           <h2>
@@ -42,13 +42,13 @@ export function AuthLayout({
             </li>
           </ul>
         </div>
-        <div className="auth-brand-footer">HEYGYM · A LITTLE LESS ADMIN</div>
+        <div className="auth-brand-footer">TWOPLUS · A LITTLE LESS ADMIN</div>
       </aside>
       <main className="auth-panel">
         <div className="auth-card">
           <div className="auth-mobile-brand">
             <Icon name="activity" size={20} />
-            HeyGym
+            TwoPlus
           </div>
           <header>
             <h1>{title}</h1>

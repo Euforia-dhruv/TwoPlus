@@ -54,7 +54,7 @@ export default function Login() {
       subtitle="Sign in to your gym workspace."
       footer={
         <>
-          New to HeyGym? <Link className="auth-link" to="/signup">Create an account</Link>
+          New to TwoPlus? <Link className="auth-link" to="/signup">Create an account</Link>
         </>
       }
     >

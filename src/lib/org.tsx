@@ -7,7 +7,7 @@ import {
 } from "react";
 import { getSupabase } from "./supabase";
 import { useAuth } from "./auth";
-import type { OrgContext, OrgRole } from "./types";
+import type { OrgContext, OrgRole, OrganizationStatus } from "./types";
 
 type OrgState = {
   org: OrgContext | null;
@@ -65,6 +65,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
           address: string | null;
           timezone: string;
           currency: string;
+          status?: OrganizationStatus;
         } | null;
       } | null;
       if (!row?.organizations) {
