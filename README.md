@@ -1,32 +1,66 @@
-# React + TypeScript + Vite
+# TwoPlus.fit — GymOS
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Multi-tenant gym management SaaS. One application serves many independent gyms,
+with strict data isolation enforced by Postgres Row Level Security.
 
-Currently, two official plugins are available:
+- **Frontend:** React 19 + TypeScript + Vite (deployed on Netlify)
+- **Backend:** Supabase (Auth + PostgreSQL + RLS)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Setup
 
-## React Compiler
+1. Install dependencies: `npm install`
+2. Copy `.env.example` to `.env.local` and fill in your Supabase project values.
+3. Apply the database migration (see below).
+4. Run the dev server: `npm run dev`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Environment variables
 
-## Expanding the Oxlint configuration
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | `.env.local` / Netlify env | Supabase project URL (Settings → API) |
+| `VITE_SUPABASE_ANON_KEY` | `.env.local` / Netlify env | Publishable/anon key — safe for the browser; RLS protects the data |
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+The **service-role key must never** appear in frontend code or `.env` files
+committed to git. It belongs only in trusted server-side systems.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+### Database migration
+
+The schema lives in `supabase/migrations/0001_init.sql` (organizations,
+branches, profiles, organization_members, members, membership_plans,
+member_memberships, payments, attendance, enquiries, staff, classes,
+class_bookings, expenses, notifications — with RLS on every table).
+
+Apply it with the Supabase CLI against your project:
+
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Or paste the file into the Supabase Dashboard → SQL Editor and run it once.
+
+### Supabase Auth configuration
+
+- **Redirect URLs:** add your Netlify domain (and `http://localhost:5173` for
+  local dev) to Authentication → URL Configuration → Redirect URLs.
+- Password-reset emails redirect to `/reset-password`; verification emails
+  land on `/`.
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Dev server with HMR |
+| `npm run build` | Type-check + production build |
+| `npm run lint` | Oxlint |
+| `npm run preview` | Preview the production build |
+
+## Architecture notes
+
+- `src/lib/supabase.ts` — lazy Supabase client (typed row shapes in `src/lib/types.ts`)
+- `src/lib/api.ts` — all data access, organization-scoped
+- `src/lib/auth.tsx` / `src/lib/org.tsx` — session + organization context
+- `src/router.tsx` — routes with auth/onboarding guards (`/login`, `/signup`,
+  `/forgot-password`, `/reset-password`, `/onboarding`, `/` dashboard)
+- `supabase/migrations/` — version-controlled schema; org creation happens via
+  a security-definer RPC so owners cannot self-grant roles from the client

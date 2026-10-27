@@ -5,6 +5,18 @@ import AnimatedButton from "@/components/ui/animated-button"
 import AsciiGlitchRipple from "@/components/ui/ascii-glitch-ripple"
 import MorphText from "@/components/ui/morph-text"
 import { RadialGlowButton } from "@/components/ui/radial-glow-button"
+import { useAuth } from "@/lib/auth"
+import { useOrg } from "@/lib/org"
+import * as api from "@/lib/api"
+import {
+  ageFromDob,
+  daysUntil,
+  formatDate,
+  formatMoney,
+  type DashboardStats,
+  type MembershipPlan,
+  type PaymentMethod,
+} from "@/lib/types"
 
 const groups = [
   [
@@ -92,8 +104,9 @@ type Member = {
   expires: string
   due: string
   trainer: string
+  memberId?: string
+  membershipId?: string
 }
-const initialMembers: Member[] = []
 function Button({
   children,
   secondary,
@@ -340,27 +353,257 @@ const modules: Record<string, Module> = {
 
 export default function App() {
   const mainRef = useRef<HTMLElement>(null)
+  const { signOut } = useAuth()
+  const { org } = useOrg()
   const [active, setActive] = useState("Overview")
-  const [members, setMembers] = useState(initialMembers)
+  const [members, setMembers] = useState<Member[]>([])
   const [tab, setTab] = useState("All members")
   const [query, setQuery] = useState("")
   const [plan, setPlan] = useState("All plans")
   const [selected, setSelected] = useState<string[]>([])
   const [profile, setProfile] = useState<Member | null>(null)
   const [modal, setModal] = useState("")
+  const [modalError, setModalError] = useState("")
+  const [modalBusy, setModalBusy] = useState(false)
+  const [page, setPage] = useState(1)
+  const [moduleTick, setModuleTick] = useState(0)
+  const [openCheckins, setOpenCheckins] = useState<{ id: string; name: string }[]>([])
+  const [convertible, setConvertible] = useState<{ id: string; name: string; phone: string }[]>([])
   const [notice, setNotice] = useState("")
-  const branch = "Main branch"
+  const [plans, setPlans] = useState<MembershipPlan[]>([])
+  const [staffNames, setStaffNames] = useState<Record<string, string>>({})
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loadingData, setLoadingData] = useState(true)
+  const [dbError, setDbError] = useState("")
+  const branch = org?.branch?.name ?? "Main branch"
   const [records, setRecords] = useState<Record<string, string[][]>>({})
   const [cart, setCart] = useState<string[]>([])
   const notify = (text: string) => {
     setNotice(text)
     window.setTimeout(() => setNotice(""), 4000)
   }
+  useEffect(() => {
+    setModalError("")
+  }, [modal])
   const go = (name: string) => {
     setActive(name)
     setQuery("")
     setSelected([])
+    setPage(1)
   }
+
+  // ---- Real data loading (org-scoped; RLS enforces the same scope) ----
+  const reload = async () => {
+    if (!org) return
+    const orgId = org.organization.id
+    try {
+      setDbError("")
+      const [dbMembers, dbMemberships, dbPlans, pending, dbStats, staff] =
+        await Promise.all([
+          // shortcut: loads up to 500 members and paginates client-side;
+          // switch to server-side offset paging when a gym exceeds that
+          api.listMembers(orgId, { limit: 500 }),
+          api.listMemberships(orgId),
+          api.listPlans(orgId),
+          api.listPayments(orgId, { status: "pending" }),
+          api.loadDashboardStats(org),
+          api.listStaff(orgId),
+        ])
+
+      // Latest membership per member (greatest end date wins)
+      const membershipByMember = new Map<
+        string,
+        { plan_name: string; status: string; end_date: string; id: string }
+      >()
+      for (const m of dbMemberships) {
+        const prev = membershipByMember.get(m.member_id)
+        if (!prev || m.end_date > prev.end_date) {
+          membershipByMember.set(m.member_id, {
+            plan_name: m.plan_name,
+            status: m.status,
+            end_date: m.end_date,
+            id: m.id,
+          })
+        }
+      }
+      const dueByMember = new Map<string, number>()
+      for (const p of pending) {
+        dueByMember.set(p.member_id, (dueByMember.get(p.member_id) ?? 0) + p.amount_minor)
+      }
+      const staffMap: Record<string, string> = {}
+      for (const s of staff) staffMap[s.id] = s.name
+      setStaffNames(staffMap)
+
+      const rows: Member[] = dbMembers.map((row) => {
+        const ms = membershipByMember.get(row.id)
+        const days = ms ? daysUntil(ms.end_date) : null
+        const status =
+          row.status === "suspended" || ms?.status === "frozen"
+            ? "Frozen"
+            : row.status === "archived"
+              ? "Archived"
+              : ms && ms.status === "expired" || (days !== null && days < 0)
+                ? "Expired"
+                : days !== null && days <= 7
+                  ? "Expiring soon"
+                  : "Active"
+        const due = dueByMember.get(row.id) ?? 0
+        return {
+          name: `${row.first_name} ${row.last_name}`.trim(),
+          email: row.email ?? "—",
+          phone: row.phone,
+          age: ageFromDob(row.date_of_birth) ?? 0,
+          plan: ms?.plan_name ?? "Unassigned",
+          status,
+          joined: formatDate(row.joined_on),
+          expires: ms ? formatDate(ms.end_date) : "—",
+          due: due > 0 ? formatMoney(due) : "₹0",
+          trainer: row.trainer_id ? (staffMap[row.trainer_id] ?? "Unassigned") : "Unassigned",
+          memberId: row.id,
+          membershipId: ms?.id,
+        }
+      })
+      setMembers(rows)
+      setPlans(dbPlans)
+      setStats(dbStats)
+      // Seed the Memberships view rows from real plans (name · price·duration)
+      setRecords((prev) => ({
+        ...prev,
+        Memberships: dbPlans.map((p) => [
+          p.name,
+          `${p.duration_days} days · ${formatMoney(p.price_minor, org.organization.currency)}`,
+        ]),
+      }))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not load data"
+      setDbError(message)
+      notify(message)
+    } finally {
+      setLoadingData(false)
+    }
+  }
+
+  useEffect(() => {
+    if (org) {
+      setLoadingData(true)
+      reload()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [org])
+
+  // Module tables backed by the database load their rows when opened.
+  useEffect(() => {
+    if (!org) return
+    const orgId = org.organization.id
+    const loadModule = async () => {
+      try {
+        if (active === "Attendance") {
+          const rows = await api.listAttendance(orgId, { limit: 100 })
+          const nameOf = new Map(members.map((m) => [m.memberId, m.name]))
+          setOpenCheckins(
+            rows
+              .filter((r) => !r.check_out)
+              .map((r) => ({ id: r.id, name: nameOf.get(r.member_id) ?? "Member" })),
+          )
+          const fmt = (iso: string) =>
+            new Date(iso).toLocaleString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          setRecords((prev) => ({
+            ...prev,
+            Attendance: rows.map((r) => [
+              nameOf.get(r.member_id) ?? "Member",
+              fmt(r.check_in),
+              r.check_out ? fmt(r.check_out) : "—",
+              r.method === "manual" ? "Front desk" : r.method,
+              r.check_out ? "Completed" : "Open",
+            ]),
+          }))
+        } else if (active === "Classes & PT") {
+          const rows = await api.listClasses(orgId)
+          const fmt = (iso: string) =>
+            new Date(iso).toLocaleString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          setRecords((prev) => ({
+            ...prev,
+            "Classes & PT": rows.map((r) => [
+              r.name,
+              r.trainer_id ? (staffNames[r.trainer_id] ?? "Unassigned") : "Unassigned",
+              fmt(r.starts_at),
+              `${r.capacity} seats`,
+              r.status.charAt(0).toUpperCase() + r.status.slice(1),
+            ]),
+          }))
+        } else if (active === "Enquiries") {
+          const rows = await api.listEnquiries(orgId)
+          setConvertible(
+            rows
+              .filter((r) => r.status !== "converted" && r.status !== "lost")
+              .map((r) => ({ id: r.id, name: r.name, phone: r.phone })),
+          )
+          const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace("_", " ")
+          setRecords((prev) => ({
+            ...prev,
+            Enquiries: rows.map((r) => [
+              r.name,
+              r.phone,
+              r.interest || "—",
+              cap(r.source),
+              cap(r.status),
+            ]),
+          }))
+        } else if (active === "Payments") {
+          const rows = await api.listPayments(orgId, { limit: 100 })
+          const nameOf = new Map(members.map((m) => [m.memberId, m.name]))
+          setRecords((prev) => ({
+            ...prev,
+            Payments: rows.map((r) => [
+              nameOf.get(r.member_id) ?? "Member",
+              r.description || "Membership payment",
+              formatDate(r.paid_on),
+              formatMoney(r.amount_minor, r.currency),
+              r.status.charAt(0).toUpperCase() + r.status.slice(1),
+            ]),
+          }))
+        } else if (active === "Trainers & staff") {
+          const rows = await api.listStaff(orgId)
+          setRecords((prev) => ({
+            ...prev,
+            "Trainers & staff": rows.map((r) => [
+              r.name,
+              r.job_role,
+              "—",
+              formatDate(r.joined_on),
+              "—",
+            ]),
+          }))
+        } else if (active === "Expenses") {
+          const rows = await api.listExpenses(orgId)
+          setRecords((prev) => ({
+            ...prev,
+            Expenses: rows.map((r) => [
+              r.description || r.category,
+              r.category,
+              formatDate(r.expense_date),
+              formatMoney(r.amount_minor),
+              "Recorded",
+            ]),
+          }))
+        }
+      } catch (err) {
+        notify(err instanceof Error ? err.message : `Could not load ${active}`)
+      }
+    }
+    loadModule()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, org, members.length, moduleTick])
   useEffect(() => {
     const main = mainRef.current
     if (!main) return
@@ -457,6 +700,13 @@ export default function App() {
         .toLowerCase()
         .includes(query.toLowerCase()),
   )
+  const PAGE_SIZE = 10
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pageCount)
+  const paged = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  )
   const exportData = () => {
     const rows =
       active === "Members"
@@ -512,7 +762,7 @@ export default function App() {
             <strong>{active}</strong>
           </div>
           <div className="top-actions">
-            <span className="demo-label">Session only</span>
+            <span className="demo-label">{org?.role ?? "Owner"}</span>
             <button
               aria-label="View reminders"
               className="icon-button notification"
@@ -521,16 +771,23 @@ export default function App() {
               <Icon name="bell" size={18} />
             </button>
             <span className="header-divider" />
-            <Avatar name="Your account" small />
+            <button
+              aria-label="Sign out"
+              title="Sign out"
+              style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }}
+              onClick={() => signOut()}
+            >
+              <Avatar name="Your account" small />
+            </button>
           </div>
         </header>
         <main ref={mainRef}>
-          {active === "Overview" && <><div className="page-heading"><div><MorphText words={["YOUR WORKSPACE", "GYM SUMMARY", "BUSINESS OVERVIEW"]} interval={4200} fontSize="9px" className="summary-morph" textClassName="summary-morph-text" /><h1>Gym Summary</h1><p>Your business overview will fill in as you add records.</p></div><RadialGlowButton className="overview-radial-cta" onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</RadialGlowButton></div><Stats items={[["Members", String(members.length), "Added in this session"], ["Active memberships", String(members.filter(m => m.status === "Active").length), "From your member directory"], ["Recorded payments", String((records.Payments || []).length), "Added in this session"], ["Enquiries", String((records.Enquiries || []).length), "Added in this session"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><AnimatedButton className="animated-glass-button" onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></AnimatedButton></section></>}
+          {active === "Overview" && <><div className="page-heading"><div><MorphText words={["YOUR WORKSPACE", "GYM SUMMARY", "BUSINESS OVERVIEW"]} interval={4200} fontSize="9px" className="summary-morph" textClassName="summary-morph-text" /><h1>Gym Summary</h1><p>{stats ? "Live figures from your workspace." : loadingData ? "Loading your workspace…" : "Your business overview will fill in as you add records."}</p></div><RadialGlowButton className="overview-radial-cta" onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</RadialGlowButton></div><Stats items={[["Members", stats ? String(stats.totalMembers) : "—", stats ? `${stats.activeMembers} active` : "Loading"], ["Active memberships", stats ? String(stats.activeMemberships) : "—", stats ? `${stats.expiringSoon} expiring within 7 days` : "Loading"], ["Recorded payments", stats ? formatMoney(stats.monthCollectionsMinor, org?.organization.currency) : "—", "Collected this month"], ["Enquiries", stats ? String(stats.newEnquiries) : "—", "Received this month"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><AnimatedButton className="animated-glass-button" onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></AnimatedButton></section></>}
 
           <div className="page-heading" hidden={active === "Overview"}>
             <div>
               <div className="eyebrow">
-                COREFIT STUDIO <span>/</span> {branch.toUpperCase()}
+                {(org?.organization.name ?? "YOUR GYM").toUpperCase()} <span>/</span> {branch.toUpperCase()}
               </div>
               <h1>{active === "Members" ? "Your members" : active}</h1>
               <p>
@@ -584,7 +841,7 @@ export default function App() {
                   [
                     "Total members",
                     String(members.length),
-                    "Added in this session",
+                    "In your directory",
                   ],
                   [
                     "Active members",
@@ -599,7 +856,7 @@ export default function App() {
                     ),
                     "Within the next 7 days",
                   ],
-                  ["Members with dues", String(members.filter(m => m.due !== "₹0").length), "From your member directory"],
+                  ["Members with dues", String(members.filter(m => m.due !== "₹0").length), "Pending payments"],
                 ]}
               />
               <section className="directory">
@@ -617,6 +874,7 @@ export default function App() {
                       onClick={() => {
                         setTab(t)
                         setSelected([])
+                        setPage(1)
                       }}
                     >
                       {t}
@@ -635,7 +893,10 @@ export default function App() {
                       aria-label="Search members"
                       placeholder="Search by name, phone, or email..."
                       value={query}
-                      onChange={(e) => setQuery(e.target.value)}
+                      onChange={(e) => {
+                        setQuery(e.target.value)
+                        setPage(1)
+                      }}
                     />
                     <kbd>⌘ K</kbd>
                   </div>
@@ -643,10 +904,15 @@ export default function App() {
                     <Select
                       aria-label="Filter membership plan"
                       value={plan}
-                      onChange={(e) => setPlan(e.target.value)}
+                      onChange={(e) => {
+                        setPlan(e.target.value)
+                        setPage(1)
+                      }}
                     >
                       <option>All plans</option>
-                      {(records.Memberships || []).map((r, i) => <option key={i}>{r[0]}</option>)}
+                      {plans.map((p) => (
+                        <option key={p.id}>{p.name}</option>
+                      ))}
                     </Select>
                     <Button
                       secondary
@@ -665,16 +931,7 @@ export default function App() {
                     </Button>
                     <Button
                       secondary
-                      onClick={() => {
-                        setMembers((ms) =>
-                          ms.map((m) =>
-                            selected.includes(m.name)
-                              ? { ...m, status: "Frozen" }
-                              : m,
-                          ),
-                        )
-                        setSelected([])
-                      }}
+                      onClick={() => setModal("Freeze memberships")}
                     >
                       Freeze memberships
                     </Button>
@@ -712,8 +969,8 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((m) => (
-                        <tr key={m.email}>
+                      {paged.map((m) => (
+                        <tr key={m.memberId ?? m.email}>
                           <td>
                             <input
                               type="checkbox"
@@ -781,7 +1038,16 @@ export default function App() {
                       ))}
                     </tbody>
                   </table>
-                  {!filtered.length && (
+                  {loadingData ? (
+                    <div className="empty">Loading members…</div>
+                  ) : dbError ? (
+                    <div className="empty">
+                      {dbError}
+                      <Button secondary onClick={() => reload()}>
+                        Retry
+                      </Button>
+                    </div>
+                  ) : !filtered.length && (
                     <div className="empty">
                       {members.length ? "No members match your filters." : "No members yet. Add your first member to get started."}
                       <Button
@@ -801,19 +1067,32 @@ export default function App() {
                   <span>
                     Showing{" "}
                     <strong>
-                      {filtered.length ? 1 : 0}–{filtered.length}
+                      {filtered.length
+                        ? (currentPage - 1) * PAGE_SIZE + 1
+                        : 0}
+                      –{Math.min(currentPage * PAGE_SIZE, filtered.length)}
                     </strong>{" "}
                     of <strong>{filtered.length}</strong> members
                   </span>
                   <div>
-                    <span>10 per page</span>
-                    <Button secondary disabled>
+                    <span>{PAGE_SIZE} per page</span>
+                    <Button
+                      secondary
+                      disabled={currentPage <= 1}
+                      aria-label="Previous page"
+                      onClick={() => setPage(currentPage - 1)}
+                    >
                       ‹
                     </Button>
-                    <Button secondary className="current-page">
-                      1
+                    <Button secondary className="current-page" disabled>
+                      {currentPage}
                     </Button>
-                    <Button secondary disabled>
+                    <Button
+                      secondary
+                      disabled={currentPage >= pageCount}
+                      aria-label="Next page"
+                      onClick={() => setPage(currentPage + 1)}
+                    >
                       ›
                     </Button>
                   </div>
@@ -844,7 +1123,7 @@ export default function App() {
                 <div className="integration-note">
                   <Icon name="settings" size={15} />
                   {active === "Payments"
-                    ? "Payment gateway not connected. Manual entries do not collect or verify real payments."
+                    ? "Payments are saved to your workspace. Online gateway collection is not connected — record only payments you have actually received."
                     : active === "Reminders"
                       ? "Configure an SMS provider and member app delivery before enabling live reminders."
                       : "Role settings and device access are visual previews. Server-side authorization is not connected."}
@@ -860,9 +1139,31 @@ export default function App() {
                     </Title>
                     <p>{module.sub}</p>
                   </div>
-                  <Badge>
-                    {"Session only"}
-                  </Badge>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Badge>
+                      {["Attendance", "Classes & PT", "Enquiries", "Payments", "Trainers & staff", "Expenses"].includes(active)
+                        ? "Saved"
+                        : "Session only"}
+                    </Badge>
+                    {active === "Attendance" && (
+                      <Button
+                        secondary
+                        disabled={!openCheckins.length}
+                        onClick={() => setModal("Check out member")}
+                      >
+                        Check out member
+                      </Button>
+                    )}
+                    {active === "Enquiries" && (
+                      <Button
+                        secondary
+                        disabled={!convertible.length}
+                        onClick={() => setModal("Convert enquiry")}
+                      >
+                        Convert to member
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="table-toolbar">
                   <div className="search-field">
@@ -871,7 +1172,10 @@ export default function App() {
                       placeholder={`Search ${active.toLowerCase()}...`}
                       aria-label={`Search ${active}`}
                       value={query}
-                      onChange={(e) => setQuery(e.target.value)}
+                      onChange={(e) => {
+                        setQuery(e.target.value)
+                        setPage(1)
+                      }}
                     />
                   </div>
                   <span className="muted">
@@ -934,7 +1238,11 @@ export default function App() {
                 </div>
                 <div className="table-footer">
                   <span>All records · {branch}</span>
-                  <span>Session-only records</span>
+                  <span>
+                    {["Attendance", "Classes & PT", "Enquiries", "Payments", "Trainers & staff", "Expenses"].includes(active)
+                      ? "Saved to your workspace"
+                      : "Session-only records"}
+                  </span>
                 </div>
               </section>
             </>
@@ -979,7 +1287,7 @@ export default function App() {
               <Title>Personal details</Title>
               {[
                 ["Phone number", profile.phone],
-                ["Age", `${profile.age} years`],
+                ["Age", profile.age ? `${profile.age} years` : "—"],
                 ["Member since", profile.joined],
                 ["Assigned trainer", profile.trainer],
               ].map(([k, v]) => (
@@ -1003,24 +1311,45 @@ export default function App() {
                 <Button onClick={() => setModal("Renew membership")}>
                   Renew membership
                 </Button>
+                <Button secondary onClick={() => setModal("Edit member")}>
+                  Edit details
+                </Button>
                 <Button secondary onClick={() => setModal("Send reminder")}>
                   Send reminder
+                </Button>
+                <Button
+                  secondary
+                  onClick={() =>
+                    setModal(
+                      profile.status === "Archived"
+                        ? "Restore member"
+                        : "Archive member",
+                    )
+                  }
+                >
+                  {profile.status === "Archived"
+                    ? "Restore member"
+                    : "Archive member"}
                 </Button>
               </div>
               <Title>Attendance history</Title>
               <p className="muted">No attendance recorded for this member.</p>
               <Button
                 secondary
-                onClick={() => {
-                  const updated = {
-                    ...profile,
-                    status: profile.status === "Frozen" ? "Active" : "Frozen",
+                onClick={async () => {
+                  if (!profile?.membershipId) return
+                  try {
+                    await api.setMembershipStatus(
+                      profile.membershipId,
+                      profile.status === "Frozen" ? "active" : "frozen",
+                    )
+                    notify("Membership status updated")
+                    reload()
+                  } catch (err) {
+                    notify(
+                      err instanceof Error ? err.message : "Could not update membership",
+                    )
                   }
-                  setMembers((ms) =>
-                    ms.map((m) => (m.email === profile.email ? updated : m)),
-                  )
-                  setProfile(updated)
-                  notify("Membership status updated in this session")
                 }}
               >
                 {profile.status === "Frozen" ? "Unfreeze" : "Freeze"} membership
@@ -1046,8 +1375,10 @@ export default function App() {
                 <Title>{modal}</Title>
                 <p>
                   {modal.startsWith("Details:")
-                    ? "Record details · Session only"
-                    : "Changes stay in this session. Reloading clears them."}
+                    ? "Record details"
+                    : modal === "Member filters" || modal === "Review order"
+                      ? "Changes stay in this session. Reloading clears them."
+                      : "Saved securely to your gym workspace."}
                 </p>
               </div>
               <Button
@@ -1206,67 +1537,250 @@ export default function App() {
             ) : (
               <form
                 className="modal-body"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault()
+                  if (!org) return
                   const data = new FormData(e.currentTarget)
-                  if (modal === "Add member") {
-                    setMembers([
-                      ...members,
-                      {
-                        name: String(data.get("name")),
-                        email: String(data.get("email")),
-                        phone: String(data.get("phone")),
-                        age: Number(data.get("age")),
-                        plan: String(data.get("plan")),
-                        status: "Active",
-                        joined: String(data.get("joined")),
-                        expires: String(data.get("expires")),
-                        due: "₹0",
-                        trainer: "Unassigned",
-                      },
-                    ])
-                    setTab("All members")
-                    setQuery("")
-                    setPlan("All plans")
-                    go("Members")
-                  } else if (modal === "Renew membership" && profile) {
-                    const updated = {
-                      ...profile,
-                      status: "Active",
-                      expires: String(data.get("expires")),
-                    }
-                    setMembers((ms) =>
-                      ms.map((m) => (m.email === profile.email ? updated : m)),
-                    )
-                    setProfile(updated)
-                  } else if (module) {
-                    setRecords({
-                      ...records,
-                      [active]: [
-                        ...(records[active] || []),
-                        module.columns.map((_, i) =>
-                          String(data.get(`field${i}`) || "Pending"),
+                  const orgId = org.organization.id
+                  setModalError("")
+                  setModalBusy(true)
+                  try {
+                    if (modal === "Add member") {
+                      const rawName = String(data.get("name") || "").trim()
+                      const [first, ...rest] = rawName.split(/\s+/)
+                      const planName = String(data.get("plan") || "Unassigned")
+                      const chosen = plans.find((p) => p.name === planName)
+                      const created = await api.createMember(orgId, {
+                        first_name: first || rawName,
+                        last_name: rest.join(" "),
+                        email: String(data.get("email") || "") || undefined,
+                        phone: String(data.get("phone") || ""),
+                        date_of_birth: String(data.get("dob") || "") || undefined,
+                        joined_on: String(data.get("joined") || "") || undefined,
+                      })
+                      if (chosen) {
+                        const start = String(data.get("joined") || "") ||
+                          new Date().toISOString().slice(0, 10)
+                        const end = String(data.get("expires") || "") || start
+                        await api.assignMembership(orgId, {
+                          member_id: created.id,
+                          plan_id: chosen.id,
+                          plan_name: chosen.name,
+                          price_minor: chosen.price_minor,
+                          start_date: start,
+                          end_date: end,
+                        })
+                      }
+                      setModal("")
+                      notify("Member saved to your workspace")
+                      reload()
+                    } else if (modal === "Renew membership" && profile?.membershipId) {
+                      await api.updateMembershipExpiry(
+                        profile.membershipId,
+                        String(data.get("expires") || ""),
+                      )
+                      setModal("")
+                      notify("Membership renewed")
+                      reload()
+                    } else if (modal === "Freeze memberships") {
+                      const ids = members
+                        .filter((m) => selected.includes(m.name) && m.membershipId)
+                        .map((m) => m.membershipId as string)
+                      await Promise.all(
+                        ids.map((id) =>
+                          api.setMembershipStatus(
+                            id,
+                            profile?.status === "Frozen" ? "active" : "frozen",
+                          ),
                         ),
-                      ],
-                    })
-                  } else if (active === "Memberships") {
-                    setRecords({
-                      ...records,
-                      Memberships: [
-                        ...(records.Memberships || []),
-                        [
-                          String(data.get("name")),
-                          String(data.get("description")),
+                      )
+                      setModal("")
+                      setSelected([])
+                      notify(`${ids.length} membership(s) updated`)
+                      reload()
+                    } else if (modal === "Record payment") {
+                      const name = String(data.get("member") || "")
+                      const target = members.find((m) => m.name === name)
+                      if (!target?.memberId) throw new Error("Select a member")
+                      const rupees = Number(String(data.get("amount") || "0"))
+                      if (!(rupees > 0)) throw new Error("Enter a valid amount")
+                      await api.recordPayment(orgId, {
+                        member_id: target.memberId,
+                        membership_id: target.membershipId ?? null,
+                        amount_minor: Math.round(rupees * 100),
+                        method: String(data.get("method") || "cash") as PaymentMethod,
+                        status: String(data.get("status") || "paid") as "paid" | "pending",
+                        description: String(data.get("description") || "") || undefined,
+                      })
+                      setModal("")
+                      notify("Payment recorded")
+                      reload()
+                    } else if (modal === "Check in member") {
+                      const name = String(data.get("member") || "")
+                      const target = members.find((m) => m.name === name)
+                      if (!target?.memberId) throw new Error("Select a member")
+                      await api.checkInMember(orgId, target.memberId, org.branch?.id)
+                      setModal("")
+                      notify("Check-in recorded")
+                      go("Attendance")
+                    } else if (modal === "Add enquiry") {
+                      await api.createEnquiry(orgId, {
+                        name: String(data.get("name") || ""),
+                        phone: String(data.get("phone") || ""),
+                        interest: String(data.get("interest") || "") || undefined,
+                        source: String(data.get("source") || "walk_in") as
+                          | "walk_in"
+                          | "referral"
+                          | "social"
+                          | "website"
+                          | "phone"
+                          | "other",
+                      })
+                      setModal("")
+                      notify("Enquiry added")
+                      go("Enquiries")
+                    } else if (modal === "Add employee") {
+                      await api.createStaffMember(orgId, {
+                        name: String(data.get("name") || ""),
+                        phone: String(data.get("phone") || ""),
+                        email: String(data.get("email") || "") || undefined,
+                        job_role: String(data.get("role") || "Trainer"),
+                      })
+                      setModal("")
+                      notify("Team member added")
+                      go("Trainers & staff")
+                    } else if (modal === "Add expense") {
+                      const rupees = Number(String(data.get("amount") || "0"))
+                      if (!(rupees > 0)) throw new Error("Enter a valid amount")
+                      await api.createExpense(orgId, {
+                        category: String(data.get("category") || ""),
+                        amount_minor: Math.round(rupees * 100),
+                        expense_date: String(data.get("date") || "") || undefined,
+                        description: String(data.get("description") || "") || undefined,
+                      })
+                      setModal("")
+                      notify("Expense recorded")
+                      go("Expenses")
+                    } else if (modal === "Schedule class") {
+                      const startsAt = String(data.get("starts") || "")
+                      if (!startsAt) throw new Error("Pick a start time")
+                      await api.createClass(orgId, {
+                        name: String(data.get("name") || ""),
+                        starts_at: new Date(startsAt).toISOString(),
+                        capacity: Number(String(data.get("capacity") || "20")) || 20,
+                        duration_minutes:
+                          Number(String(data.get("duration") || "60")) || 60,
+                      })
+                      setModal("")
+                      notify("Class scheduled")
+                      go("Classes & PT")
+                    } else if (modal === "Create plan") {
+                      const priceRupees = Number(String(data.get("price") || "0"))
+                      const duration = Number(String(data.get("duration") || "0"))
+                      if (!(priceRupees >= 0)) throw new Error("Enter a valid price")
+                      if (!(duration > 0)) throw new Error("Enter a valid duration")
+                      await api.createPlan(orgId, {
+                        name: String(data.get("name") || ""),
+                        description: String(data.get("description") || "") || undefined,
+                        duration_days: duration,
+                        price_minor: Math.round(priceRupees * 100),
+                      })
+                      setModal("")
+                      notify("Plan created")
+                      reload()
+                    } else if (modal === "Edit member" && profile?.memberId) {
+                      const rawName = String(data.get("name") || "").trim()
+                      const [first, ...rest] = rawName.split(/\s+/)
+                      await api.updateMember(profile.memberId, {
+                        first_name: first || rawName,
+                        last_name: rest.join(" "),
+                        email: String(data.get("email") || "") || null,
+                        phone: String(data.get("phone") || ""),
+                        date_of_birth: String(data.get("dob") || "") || null,
+                      })
+                      setModal("")
+                      setProfile(null)
+                      notify("Member details updated")
+                      reload()
+                    } else if (
+                      (modal === "Archive member" || modal === "Restore member") &&
+                      profile?.memberId
+                    ) {
+                      await api.updateMember(profile.memberId, {
+                        status: modal === "Archive member" ? "archived" : "active",
+                      })
+                      setModal("")
+                      setProfile(null)
+                      notify(
+                        modal === "Archive member"
+                          ? "Member archived"
+                          : "Member restored",
+                      )
+                      reload()
+                    } else if (modal === "Check out member") {
+                      const attendanceId = String(data.get("attendance") || "")
+                      if (!attendanceId) throw new Error("Select a member to check out")
+                      await api.checkOutMember(attendanceId)
+                      setModal("")
+                      notify("Check-out recorded")
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Convert enquiry") {
+                      const enquiryId = String(data.get("enquiry") || "")
+                      const enquiry = convertible.find((e) => e.id === enquiryId)
+                      if (!enquiry) throw new Error("Select an enquiry to convert")
+                      const [first, ...rest] = enquiry.name.trim().split(/\s+/)
+                      const created = await api.createMember(orgId, {
+                        first_name: first || enquiry.name,
+                        last_name: rest.join(" "),
+                        phone: enquiry.phone,
+                      })
+                      const chosen = plans.find(
+                        (p) => p.name === String(data.get("plan") || "Unassigned"),
+                      )
+                      if (chosen) {
+                        const start =
+                          String(data.get("joined") || "") ||
+                          new Date().toISOString().slice(0, 10)
+                        const end = String(data.get("expires") || "") || start
+                        await api.assignMembership(orgId, {
+                          member_id: created.id,
+                          plan_id: chosen.id,
+                          plan_name: chosen.name,
+                          price_minor: chosen.price_minor,
+                          start_date: start,
+                          end_date: end,
+                        })
+                      }
+                      await api.updateEnquiry(enquiryId, {
+                        status: "converted",
+                        converted_member_id: created.id,
+                      })
+                      setModal("")
+                      notify("Enquiry converted to a member")
+                      setModuleTick((t) => t + 1)
+                      reload()
+                    } else if (module) {
+                      setRecords({
+                        ...records,
+                        [active]: [
+                          ...(records[active] || []),
+                          module.columns.map((_, i) =>
+                            String(data.get(`field${i}`) || "Pending"),
+                          ),
                         ],
-                      ],
-                    })
+                      })
+                      setModal("")
+                      notify("Saved to this session")
+                    } else {
+                      setModal("")
+                    }
+                  } catch (err) {
+                    setModalError(
+                      err instanceof Error ? err.message : "Could not save. Try again.",
+                    )
+                  } finally {
+                    setModalBusy(false)
                   }
-                  setModal("")
-                  notify(
-                    modal === "Create group"
-                      ? "Group draft saved — live groups require a backend"
-                      : "Saved to this session",
-                  )
                 }}
               >
                 {modal === "Add member" ? (
@@ -1300,25 +1814,19 @@ export default function App() {
                         />
                       </label>
                     </div>
-                    <div className="form-row">
-                      <label>
-                        Age
-                        <Input
-                          name="age"
-                          type="number"
-                          min="16"
-                          max="100"
-                          required
-                          placeholder="28"
-                        />
-                      </label>
-                      <label>
-                        Membership plan
-                        <Select name="plan">
-                          <option>Unassigned</option>{(records.Memberships || []).map((r, i) => <option key={i}>{r[0]}</option>)}
-                        </Select>
-                      </label>
-                    </div>
+                    <label>
+                      Date of birth
+                      <Input type="date" name="dob" />
+                    </label>
+                    <label>
+                      Membership plan
+                      <Select name="plan">
+                        <option>Unassigned</option>
+                        {plans.map((p) => (
+                          <option key={p.id}>{p.name}</option>
+                        ))}
+                      </Select>
+                    </label>
                     <div className="form-row"><label>Start date<Input type="date" name="joined" required defaultValue={new Date().toISOString().slice(0,10)} /></label><label>Expiry date<Input type="date" name="expires" required /></label></div>
                   </>
                 ) : modal === "Renew membership" ? (
@@ -1332,6 +1840,301 @@ export default function App() {
                       <strong>{profile?.plan}</strong>
                     </div>
                     <label>New expiry date<Input name="expires" type="date" required /></label><p>This updates the membership date only. No payment will be collected and outstanding dues are unchanged.</p>
+                  </>
+                ) : modal === "Record payment" ? (
+                  <>
+                    <label>
+                      Member
+                      <Select name="member" required>
+                        <option value="">Select a member…</option>
+                        {members.map((m) => (
+                          <option key={m.memberId} value={m.name}>{m.name}</option>
+                        ))}
+                      </Select>
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Amount (₹)
+                        <Input name="amount" type="number" min="1" step="1" required placeholder="1500" />
+                      </label>
+                      <label>
+                        Method
+                        <Select name="method" defaultValue="cash">
+                          <option value="cash">Cash</option>
+                          <option value="upi">UPI</option>
+                          <option value="card">Card</option>
+                          <option value="bank_transfer">Bank transfer</option>
+                          <option value="other">Other</option>
+                        </Select>
+                      </label>
+                    </div>
+                    <label>
+                      Status
+                      <Select name="status" defaultValue="paid">
+                        <option value="paid">Paid — collected and verified</option>
+                        <option value="pending">Pending — not yet received</option>
+                      </Select>
+                    </label>
+                    <label>
+                      Description
+                      <Input name="description" placeholder="e.g. Monthly membership fee" />
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="settings" size={15} />
+                      Online payment gateway is not connected. Record only payments
+                      you have actually collected. Card details are never stored.
+                    </div>
+                  </>
+                ) : modal === "Check in member" ? (
+                  <label>
+                    Member
+                    <Select name="member" required>
+                      <option value="">Select a member…</option>
+                      {members.map((m) => (
+                        <option key={m.memberId} value={m.name}>{m.name}</option>
+                      ))}
+                    </Select>
+                  </label>
+                ) : modal === "Add enquiry" ? (
+                  <>
+                    <div className="form-row">
+                      <label>
+                        Lead name
+                        <Input name="name" required placeholder="Full name" autoFocus />
+                      </label>
+                      <label>
+                        Phone
+                        <Input name="phone" type="tel" required placeholder="+91" />
+                      </label>
+                    </div>
+                    <label>
+                      Interested in
+                      <Select name="interest">
+                        <option>Not sure yet</option>
+                        {plans.map((p) => (
+                          <option key={p.id}>{p.name}</option>
+                        ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Source
+                      <Select name="source" defaultValue="walk_in">
+                        <option value="walk_in">Walk-in</option>
+                        <option value="referral">Referral</option>
+                        <option value="social">Social media</option>
+                        <option value="website">Website</option>
+                        <option value="phone">Phone</option>
+                        <option value="other">Other</option>
+                      </Select>
+                    </label>
+                  </>
+                ) : modal === "Add employee" ? (
+                  <>
+                    <label>
+                      Name
+                      <Input name="name" required placeholder="Full name" autoFocus />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Phone
+                        <Input name="phone" type="tel" required placeholder="+91" />
+                      </label>
+                      <label>
+                        Email
+                        <Input name="email" type="email" placeholder="Optional" />
+                      </label>
+                    </div>
+                    <label>
+                      Role
+                      <Select name="role" defaultValue="Trainer">
+                        <option>Trainer</option>
+                        <option>Front desk</option>
+                        <option>Manager</option>
+                        <option>Cleaner</option>
+                        <option>Other</option>
+                      </Select>
+                    </label>
+                  </>
+                ) : modal === "Add expense" ? (
+                  <>
+                    <div className="form-row">
+                      <label>
+                        Category
+                        <Select name="category" defaultValue="Rent">
+                          <option>Rent</option>
+                          <option>Utilities</option>
+                          <option>Equipment</option>
+                          <option>Salaries</option>
+                          <option>Marketing</option>
+                          <option>Maintenance</option>
+                          <option>Other</option>
+                        </Select>
+                      </label>
+                      <label>
+                        Amount (₹)
+                        <Input name="amount" type="number" min="1" step="1" required placeholder="5000" />
+                      </label>
+                    </div>
+                    <label>
+                      Date
+                      <Input name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+                    </label>
+                    <label>
+                      Description
+                      <Input name="description" placeholder="e.g. Treadmill belt replacement" />
+                    </label>
+                  </>
+                ) : modal === "Schedule class" ? (
+                  <>
+                    <label>
+                      Class title
+                      <Input name="name" required placeholder="Morning yoga" autoFocus />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Starts at
+                        <Input name="starts" type="datetime-local" required />
+                      </label>
+                      <label>
+                        Capacity
+                        <Input name="capacity" type="number" min="1" required defaultValue={20} />
+                      </label>
+                    </div>
+                    <label>
+                      Duration (minutes)
+                      <Input name="duration" type="number" min="15" step="15" required defaultValue={60} />
+                    </label>
+                  </>
+                ) : modal === "Create plan" ? (
+                  <>
+                    <label>
+                      Plan name
+                      <Input name="name" required placeholder="e.g. Annual Unlimited" autoFocus />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Duration (days)
+                        <Input name="duration" type="number" min="1" required placeholder="365" />
+                      </label>
+                      <label>
+                        Price (₹)
+                        <Input name="price" type="number" min="0" step="1" required placeholder="12000" />
+                      </label>
+                    </div>
+                    <label>
+                      Description
+                      <textarea name="description" placeholder="What does this plan include?" />
+                    </label>
+                  </>
+                ) : modal === "Freeze memberships" ? (
+                  <p>
+                    Freeze {selected.length} selected membership(s)? Frozen
+                    members keep their remaining days and can be unfrozen any
+                    time.
+                  </p>
+                ) : modal === "Edit member" ? (
+                  <>
+                    <label>
+                      Full name
+                      <Input
+                        name="name"
+                        required
+                        defaultValue={profile?.name}
+                        autoFocus
+                      />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Email address
+                        <Input
+                          name="email"
+                          type="email"
+                          defaultValue={profile?.email === "—" ? "" : profile?.email}
+                          placeholder="member@email.com"
+                        />
+                      </label>
+                      <label>
+                        Phone number
+                        <Input
+                          name="phone"
+                          type="tel"
+                          required
+                          defaultValue={profile?.phone}
+                        />
+                      </label>
+                    </div>
+                    <label>
+                      Date of birth
+                      <Input type="date" name="dob" />
+                    </label>
+                    <p>
+                      Plan changes are handled through renewals. This edits
+                      contact details only.
+                    </p>
+                  </>
+                ) : modal === "Archive member" ? (
+                  <p>
+                    Archive {profile?.name}? They leave your active list, but
+                    their history, payments and attendance stay intact. You can
+                    restore them any time.
+                  </p>
+                ) : modal === "Restore member" ? (
+                  <p>
+                    Restore {profile?.name} to your active member list?
+                  </p>
+                ) : modal === "Check out member" ? (
+                  <label>
+                    Member with an open check-in
+                    <Select name="attendance" required>
+                      <option value="">Select a member…</option>
+                      {openCheckins.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+                ) : modal === "Convert enquiry" ? (
+                  <>
+                    <label>
+                      Enquiry
+                      <Select name="enquiry" required>
+                        <option value="">Select an enquiry…</option>
+                        {convertible.map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.name} · {e.phone}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Membership plan
+                      <Select name="plan">
+                        <option>Unassigned</option>
+                        {plans.map((p) => (
+                          <option key={p.id}>{p.name}</option>
+                        ))}
+                      </Select>
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Start date
+                        <Input
+                          type="date"
+                          name="joined"
+                          required
+                          defaultValue={new Date().toISOString().slice(0, 10)}
+                        />
+                      </label>
+                      <label>
+                        Expiry date
+                        <Input type="date" name="expires" required />
+                      </label>
+                    </div>
+                    <div className="integration-note">
+                      <Icon name="check" size={15} />
+                      The enquiry stays in your history, marked as converted.
+                    </div>
                   </>
                 ) : module ? (
                   module.columns.map((c, i) => (
@@ -1368,14 +2171,33 @@ export default function App() {
                     </label>
                   </>
                 )}
+                {modalError && (
+                  <div className="auth-alert" role="alert" style={{ margin: 0 }}>
+                    {modalError}
+                  </div>
+                )}
                 <div className="modal-footer">
                   <Button secondary type="button" onClick={() => setModal("")}>
                     Cancel
                   </Button>
-                  <Button type="submit">
-                    {modal === "Add member"
-                      ? "Add member"
-                      : "Save changes"}
+                  <Button type="submit" disabled={modalBusy}>
+                    {modalBusy
+                      ? "Saving…"
+                      : modal === "Add member"
+                        ? "Add member"
+                        : modal === "Create plan"
+                          ? "Create plan"
+                          : modal === "Freeze memberships"
+                            ? "Freeze memberships"
+                            : modal === "Archive member"
+                              ? "Archive member"
+                              : modal === "Restore member"
+                                ? "Restore member"
+                                : modal === "Check out member"
+                                  ? "Check out"
+                                  : modal === "Convert enquiry"
+                                    ? "Convert to member"
+                                    : "Save changes"}
                   </Button>
                 </div>
               </form>

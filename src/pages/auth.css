@@ -1,0 +1,342 @@
+/* Auth & onboarding surfaces. Additive styles only — reuses the design
+   tokens from index.css (:root --lime, --foreground, --border, glass
+   gradients). Nothing in index.css is modified. */
+
+.auth-page {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+}
+
+.auth-brand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 56px;
+  color: #f4f6ec;
+  background:
+    linear-gradient(150deg, rgba(74, 82, 62, 0.88), rgba(58, 66, 50, 0.82) 55%, rgba(44, 52, 40, 0.9));
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.auth-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 45% at 15% 10%, rgba(195, 255, 56, 0.16), transparent 70%),
+    radial-gradient(45% 40% at 85% 90%, rgba(182, 160, 250, 0.14), transparent 70%);
+  pointer-events: none;
+}
+
+.auth-brand > * {
+  position: relative;
+}
+
+.auth-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+}
+
+.auth-brand-logo svg {
+  color: var(--lime);
+}
+
+.auth-brand-copy {
+  max-width: 420px;
+}
+
+.auth-brand-copy h2 {
+  font-size: clamp(30px, 3.2vw, 44px);
+  line-height: 1.15;
+  letter-spacing: -1.4px;
+  font-weight: 600;
+}
+
+.auth-brand-copy h2 em {
+  font-style: normal;
+  color: var(--lime);
+}
+
+.auth-brand-copy p {
+  margin-top: 18px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #d9dfc9;
+}
+
+.auth-brand-points {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-brand-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #e6ebd8;
+}
+
+.auth-brand-points svg {
+  color: var(--lime);
+  flex-shrink: 0;
+}
+
+.auth-brand-footer {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: #b9c2ab;
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 410px;
+  padding: 38px 36px;
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(246, 248, 241, 0.5));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  box-shadow: 0 24px 60px rgba(50, 58, 43, 0.18), inset 0 1px 0 #fff;
+  color: var(--foreground);
+}
+
+.auth-card > header h1 {
+  font-size: 25px;
+  letter-spacing: -0.9px;
+  font-weight: 600;
+  color: #2f362d;
+}
+
+.auth-card > header p {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.auth-form {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 550;
+  color: #5d6a51;
+}
+
+.auth-field .input {
+  height: 40px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #37402f;
+}
+
+.auth-field .input:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 1px;
+}
+
+.auth-field-error {
+  font-size: 10px;
+  color: #b26a55;
+  font-weight: 500;
+}
+
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+}
+
+.auth-input-wrap .input {
+  padding-right: 64px;
+}
+
+.auth-reveal {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: #67745a;
+  padding: 5px 7px;
+  border-radius: 6px;
+}
+
+.auth-reveal:hover {
+  background: rgba(195, 255, 56, 0.18);
+}
+
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.auth-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #5d6a51;
+}
+
+.auth-check input {
+  margin-top: 2px;
+  accent-color: #47613b;
+  width: 13px;
+  height: 13px;
+}
+
+.auth-link {
+  color: #4d6438;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-link:hover {
+  color: #38492b;
+}
+
+.auth-submit {
+  height: 42px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--lime);
+  border: 1px solid var(--lime);
+  color: #2c3323;
+  box-shadow: 0 6px 18px rgba(146, 190, 40, 0.35);
+}
+
+.auth-submit:hover {
+  background: #d2ff6b;
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-alt {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.auth-alert {
+  margin-top: 18px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  border: 1px solid rgba(255, 179, 153, 0.5);
+  background: rgba(252, 236, 229, 0.75);
+  color: #8d5644;
+}
+
+.auth-alert.success {
+  border-color: rgba(180, 214, 140, 0.55);
+  background: rgba(240, 248, 226, 0.8);
+  color: #4f6636;
+}
+
+.auth-mobile-brand {
+  display: none;
+}
+
+/* Onboarding reuses .auth-page but centers a wider card */
+.onboarding-card {
+  max-width: 480px;
+}
+
+.onboarding-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  font-size: 9px;
+  letter-spacing: 1.1px;
+  color: #8a9381;
+}
+
+.onboarding-steps i {
+  width: 22px;
+  height: 2px;
+  background: var(--lime);
+  border-radius: 2px;
+}
+
+@media (max-width: 900px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-brand {
+    display: none;
+  }
+
+  .auth-mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    justify-content: center;
+    padding: 26px 0 4px;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    color: #38402f;
+  }
+
+  .auth-mobile-brand svg {
+    color: #5f7a3d;
+  }
+
+  .auth-panel {
+    padding: 20px 18px 44px;
+    align-items: flex-start;
+  }
+
+  .auth-card {
+    padding: 30px 24px;
+  }
+}
