@@ -1,28 +1,62 @@
 -- TwoPlus.fit — platform admin authorization tests
 --
--- Run (against a DEV project only — it creates and discards fixtures):
+-- Run against a DEV project (it creates fixtures inside a transaction and
+-- rolls everything back at the end):
 --   psql "$DB_URL" -f supabase/tests/platform_admin_auth.sql
 --
--- Everything runs inside one transaction and is rolled back at the end,
--- so no fixture ever persists. The script aborts with a non-zero exit on
--- the first failed assertion (each starts with "FAIL").
+-- It can also be run through the Management API (no psql/Docker needed):
+--   POST /v1/projects/<ref>/database/query  { "query": "<file contents>" }
+-- (strip the \set line first).
+--
+-- Design notes:
+--   * Platform tables (platform_admins, platform_plans, org_subscriptions,
+--     subscription_invoices, subscription_payments, admin_audit_log,
+--     support_tickets) have RLS enabled with NO policies. Even an admin
+--     sees zero rows from a direct SELECT. Therefore every admin assertion
+--     below goes through the SECURITY DEFINER RPCs, which is the only
+--     supported access path — and the one the UI uses.
+--   * Assertions are NULL-safe: a missing key or hidden row must FAIL, not
+--     silently skip. That is why checks use coalesce(...) or explicit
+--     `is null` guards rather than `if <expr> <> 'x' then raise`.
+--   * The suite runs against a database that already contains real data,
+--     so counts are asserted as deltas over a baseline captured before the
+--     fixtures are inserted.
 --
 -- Covered:
---   T1-T9    gym user (authenticated, non-admin) is denied platform data,
---            admin RPCs, and the bootstrap function
+--   T1-T9    gym user (non-admin) denied platform data, admin RPCs, bootstrap
 --   T10      trial org can still write (suspension must not affect normal use)
---   T11-T15  suspended org: reads preserved, writes blocked, cannot
---            self-reactivate, still denied admin RPCs
---   T16-T26  admin: metrics/list/details work; suspend+audit; full billing
---            state machine; fake payment providers rejected; plans/tickets/
---            audit RPCs work
+--   T11-T15  suspended org: reads preserved, writes blocked, no self-reactivation
+--   T16-T19  admin metrics/list/details work; suspend + audit
+--   T20-T26  admin billing state machine, fake provider rejected,
+--            plans/tickets/audit RPCs
 
 \set ON_ERROR_STOP on
 
 begin;
 
 -- ---------------------------------------------------------------------------
--- Fixtures (created as postgres = table owner, bypasses RLS; rolled back)
+-- Baseline (before fixtures) — the database has real rows.
+-- ---------------------------------------------------------------------------
+
+-- Baseline values are stashed in session GUCs because a temp table created
+-- as the owner is not readable once SET ROLE authenticated is in effect.
+select set_config('test.base_orgs', (
+         select count(*)::text from public.organizations), true),
+       set_config('test.base_members', (
+         select count(*)::text from public.members), true),
+       set_config('test.base_mrr', (
+         select coalesce(sum(
+                  case p.billing_interval
+                    when 'monthly' then p.price_minor
+                    when 'quarterly' then round(p.price_minor / 3.0)::integer
+                    else round(p.price_minor / 12.0)::integer
+                  end), 0)::text
+         from public.org_subscriptions s
+         join public.platform_plans p on p.id = s.plan_id
+         where s.status = 'active'), true);
+
+-- ---------------------------------------------------------------------------
+-- Fixtures (created as table owner, bypasses RLS; rolled back at the end)
 -- ---------------------------------------------------------------------------
 
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password,
@@ -75,7 +109,7 @@ values ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-0000000
         'M-001', 'Beta', '9000000002');
 
 -- ---------------------------------------------------------------------------
--- Phase 1 — admin suspends Gym B (audited)
+-- Phase 1 — admin reads metrics, suspends Gym B (audited)
 -- ---------------------------------------------------------------------------
 
 reset role;
@@ -83,18 +117,30 @@ set local request.jwt.claims = '{"sub":"33333333-3333-3333-3333-333333333333","r
 set local role authenticated;
 
 do $$
-declare v jsonb;
+declare
+  v jsonb;
+  v_rows jsonb;
+  v_base_orgs integer;
+  v_base_mrr integer;
 begin
+  v_base_orgs := current_setting('test.base_orgs')::integer;
+  v_base_mrr := current_setting('test.base_mrr')::integer;
+
   -- T16: admin reads platform metrics (real, computed)
   v := public.admin_platform_metrics();
-  if (v->>'total_orgs')::integer < 2 then
-    raise exception 'FAIL T16: total_orgs %', v->>'total_orgs';
+  if v is null then
+    raise exception 'FAIL T16: metrics returned null';
   end if;
-  if v->'orgs_by_status'->>'trial' is null then
+  if (v->>'total_orgs')::integer < v_base_orgs + 2 then
+    raise exception 'FAIL T16: total_orgs % (expected >= %)',
+      v->>'total_orgs', v_base_orgs + 2;
+  end if;
+  if coalesce(v->'orgs_by_status'->>'trial', '') = '' then
     raise exception 'FAIL T16: orgs_by_status missing trial';
   end if;
-  if (v->>'mrr_minor')::integer <> 450000 then
-    raise exception 'FAIL T16: mrr_minor % (expected 450000)', v->>'mrr_minor';
+  if (v->>'mrr_minor')::integer < v_base_mrr + 450000 then
+    raise exception 'FAIL T16: mrr_minor % (expected >= %)',
+      v->>'mrr_minor', v_base_mrr + 450000;
   end if;
 
   -- T17: admin lists all organizations across tenants
@@ -102,23 +148,41 @@ begin
   if (v->>'total')::integer <> 2 then
     raise exception 'FAIL T17: org list total %', v->>'total';
   end if;
+  if jsonb_array_length(v->'rows') <> 2 then
+    raise exception 'FAIL T17: org list returned % rows', jsonb_array_length(v->'rows');
+  end if;
 
   -- T18: admin reads full org detail (cross-tenant)
   v := public.admin_org_details('aaaaaaaa-0000-0000-0000-000000000002');
-  if v->>'name' <> 'RLS Gym B' then
-    raise exception 'FAIL T18: org details %', v->>'name';
+  if coalesce(v->>'name', '') <> 'RLS Gym B' then
+    raise exception 'FAIL T18: org details name %', coalesce(v->>'name', '<null>');
+  end if;
+  if coalesce(v->>'owner_email', '') <> 'rls-test-gym-b@twoplus.test' then
+    raise exception 'FAIL T18: owner_email %', coalesce(v->>'owner_email', '<null>');
   end if;
 
-  -- T19: suspend Gym B, audit row written
+  -- T19: suspend Gym B; status must be visible through the RPC and audited
   perform public.admin_set_organization_status(
     'aaaaaaaa-0000-0000-0000-000000000002', 'suspended', 'authorization test');
-  if (select status from public.organizations
-      where id = 'aaaaaaaa-0000-0000-0000-000000000002') <> 'suspended' then
-    raise exception 'FAIL T19: status not applied';
+
+  v := public.admin_org_details('aaaaaaaa-0000-0000-0000-000000000002');
+  if coalesce(v->>'status', '') <> 'suspended' then
+    raise exception 'FAIL T19: status not applied (got %)', coalesce(v->>'status', '<null>');
   end if;
-  if (select count(*) from public.admin_audit_log
-      where action = 'organization.status.suspended') < 1 then
+
+  v_rows := public.admin_list_audit('organization.status.suspended', 20, 0);
+  if (v_rows->>'total')::integer < 1 then
     raise exception 'FAIL T19: no audit row for suspension';
+  end if;
+  v := public.admin_list_audit(null, 100, 0);
+  if not exists (
+    select 1 from jsonb_array_elements(v->'rows') r
+    where r->>'action' = 'organization.status.suspended'
+      and r->>'actor_email' = 'rls-test-admin@twoplus.test'
+      and (r->'metadata'->>'previous') = 'trial'
+      and r->'metadata'->>'reason' = 'authorization test'
+  ) then
+    raise exception 'FAIL T19: audit row missing actor/previous/reason metadata';
   end if;
 end $$;
 
@@ -254,7 +318,9 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
--- Phase 4 — admin billing/plans/tickets/audit state machine
+-- Phase 4 — admin billing/plans/tickets/audit state machine.
+-- All state is read back through admin RPCs (platform tables are invisible
+-- even to admins by design).
 -- ---------------------------------------------------------------------------
 
 reset role;
@@ -264,6 +330,7 @@ set local role authenticated;
 do $$
 declare
   v jsonb;
+  v_inv jsonb;
   v_invoice uuid;
   v_invoice2 uuid;
   v_plan uuid;
@@ -273,47 +340,64 @@ begin
   -- T20: reactivate Gym B, then assign a plan with no trial (invoice now)
   perform public.admin_set_organization_status(
     'aaaaaaaa-0000-0000-0000-000000000002', 'trial', 'resume test');
-  perform public.admin_assign_subscription(
+  v_sub := public.admin_assign_subscription(
     'aaaaaaaa-0000-0000-0000-000000000002', 'test-plan', 0);
-
-  select id into v_sub from public.org_subscriptions
-  where organization_id = 'aaaaaaaa-0000-0000-0000-000000000002';
   if v_sub is null then
     raise exception 'FAIL T20: subscription not created';
   end if;
-  if (select status from public.org_subscriptions where id = v_sub) <> 'past_due' then
-    raise exception 'FAIL T20: expected past_due without trial';
+
+  v := public.admin_org_details('aaaaaaaa-0000-0000-0000-000000000002');
+  if v->'subscription' is null or jsonb_typeof(v->'subscription') = 'null' then
+    raise exception 'FAIL T20: org details has no subscription';
+  end if;
+  if coalesce(v->'subscription'->>'status', '') <> 'past_due' then
+    raise exception 'FAIL T20: expected past_due without trial (got %)',
+      coalesce(v->'subscription'->>'status', '<null>');
   end if;
 
   -- T21: no-trial assignment opened an invoice for the plan price
-  select id into v_invoice from public.subscription_invoices
-  where subscription_id = v_sub and status = 'open'
-  order by created_at desc limit 1;
-  if v_invoice is null then
+  select elem into v_inv
+  from jsonb_array_elements(v->'invoices') elem
+  where elem->>'status' = 'open'
+  limit 1;
+  if v_inv is null then
     raise exception 'FAIL T21: no open invoice';
   end if;
-  if (select amount_minor from public.subscription_invoices where id = v_invoice) <> 450000 then
-    raise exception 'FAIL T21: invoice amount wrong';
+  v_invoice := (v_inv->>'id')::uuid;
+  if (v_inv->>'amount_minor')::integer <> 450000 then
+    raise exception 'FAIL T21: invoice amount % (expected 450000)', v_inv->>'amount_minor';
   end if;
 
   -- T22: verified payment activates invoice + subscription + org
   perform public.admin_record_subscription_payment(v_invoice, 'manual', 'UPI-TEST-1');
-  if (select status from public.subscription_invoices where id = v_invoice) <> 'paid' then
-    raise exception 'FAIL T22: invoice not paid';
+
+  v := public.admin_org_details('aaaaaaaa-0000-0000-0000-000000000002');
+  if coalesce(v->'subscription'->>'status', '') <> 'active' then
+    raise exception 'FAIL T22: subscription not active (got %)',
+      coalesce(v->'subscription'->>'status', '<null>');
   end if;
-  if (select status from public.org_subscriptions where id = v_sub) <> 'active' then
-    raise exception 'FAIL T22: subscription not active';
+  if coalesce(v->>'status', '') <> 'active' then
+    raise exception 'FAIL T22: org did not move trial -> active (got %)',
+      coalesce(v->>'status', '<null>');
   end if;
-  if (select status from public.organizations
-      where id = 'aaaaaaaa-0000-0000-0000-000000000002') <> 'active' then
-    raise exception 'FAIL T22: org did not move trial -> active';
+  if not exists (
+    select 1 from jsonb_array_elements(v->'invoices') i
+    where (i->>'id')::uuid = v_invoice
+      and i->>'status' = 'paid'
+      and i->>'paid_at' is not null
+  ) then
+    raise exception 'FAIL T22: invoice not marked paid with paid_at';
   end if;
-  if (select count(*) from public.subscription_payments where status = 'verified') < 1 then
-    raise exception 'FAIL T22: no verified payment row';
+  -- verified payment recorded and counted as revenue
+  if (public.admin_platform_metrics()->>'verified_revenue_minor')::integer < 450000 then
+    raise exception 'FAIL T22: verified revenue does not include the payment';
   end if;
 
   -- T23: fake payment providers are rejected (no gateway configured)
   v_invoice2 := public.admin_generate_invoice(v_sub);
+  if v_invoice2 is null then
+    raise exception 'FAIL T23: renewal invoice not generated';
+  end if;
   begin
     perform public.admin_record_subscription_payment(v_invoice2, 'razorpay');
     raise exception 'FAIL T23: unverified provider accepted';
@@ -336,44 +420,71 @@ begin
         raise exception 'FAIL T24: unexpected error: %', sqlerrm;
       end if;
   end;
+
   perform public.admin_cancel_subscription(v_sub, 'test cancel');
-  if (select status from public.org_subscriptions where id = v_sub) <> 'cancelled' then
-    raise exception 'FAIL T24: subscription not cancelled';
+  v := public.admin_org_details('aaaaaaaa-0000-0000-0000-000000000002');
+  if coalesce(v->'subscription'->>'status', '') <> 'cancelled' then
+    raise exception 'FAIL T24: subscription not cancelled (got %)',
+      coalesce(v->'subscription'->>'status', '<null>');
   end if;
-  if (select count(*) from public.subscription_invoices
-      where subscription_id = v_sub and status = 'open') <> 0 then
+  if exists (
+    select 1 from jsonb_array_elements(v->'invoices') i
+    where (i->>'id')::uuid = v_invoice2 and i->>'status' = 'open'
+  ) then
     raise exception 'FAIL T24: open invoice not voided on cancel';
   end if;
 
   -- T25: plans CRUD + audit/ticket RPCs
   v_plan := public.admin_upsert_plan(null, 'test-plan-2', 'Second Test Plan',
     99900, 'INR', 'annual', 30, 'active', '{"max_members": 10, "class_booking": true}');
-  if (select status from public.platform_plans where id = v_plan) <> 'active' then
+  if v_plan is null then
     raise exception 'FAIL T25: plan not created';
   end if;
+
+  v := public.admin_list_plans();
+  if not exists (
+    select 1 from jsonb_array_elements(v) p
+    where p->>'code' = 'test-plan-2' and p->>'status' = 'active'
+      and (p->'feature_limits'->>'max_members')::integer = 10
+  ) then
+    raise exception 'FAIL T25: created plan not readable via admin_list_plans';
+  end if;
+
   perform public.admin_upsert_plan(v_plan, 'test-plan-2', 'Second Test Plan',
     99900, 'INR', 'annual', 30, 'retired', '{"max_members": 10}');
-  if (select status from public.platform_plans where id = v_plan) <> 'retired' then
-    raise exception 'FAIL T25: plan not updated';
+  v := public.admin_list_plans();
+  if not exists (
+    select 1 from jsonb_array_elements(v) p
+    where p->>'code' = 'test-plan-2' and p->>'status' = 'retired'
+  ) then
+    raise exception 'FAIL T25: plan not updated to retired';
   end if;
 
   v_ticket := public.admin_upsert_ticket(null,
     'aaaaaaaa-0000-0000-0000-000000000001', 'Login issue',
     'Owner cannot sign in', 'open');
+  if v_ticket is null then
+    raise exception 'FAIL T25: ticket not created';
+  end if;
   perform public.admin_upsert_ticket(v_ticket, null, 'Login issue',
     'Owner cannot sign in', 'resolved');
-  if (select status from public.support_tickets where id = v_ticket) <> 'resolved' then
-    raise exception 'FAIL T25: ticket not updated';
+  v := public.admin_list_tickets(null, 'Login issue', 10, 0);
+  if not exists (
+    select 1 from jsonb_array_elements(v->'rows') t
+    where (t->>'id')::uuid = v_ticket and t->>'status' = 'resolved'
+  ) then
+    raise exception 'FAIL T25: ticket not updated to resolved';
   end if;
 
-  v := public.admin_list_audit(null, 20, 0);
+  v := public.admin_list_audit(null, 100, 0);
   if (v->>'total')::integer < 5 then
     raise exception 'FAIL T25: audit total % (expected >= 5)', v->>'total';
   end if;
 
-  v := public.admin_list_subscriptions(null, null, 10, 0);
+  -- T26: billing + support listing RPCs
+  v := public.admin_list_subscriptions('cancelled', 'RLS Gym B', 10, 0);
   if (v->>'total')::integer < 1 then
-    raise exception 'FAIL T26: subscription list empty';
+    raise exception 'FAIL T26: cancelled subscription not listed';
   end if;
   v := public.admin_list_tickets(null, null, 10, 0);
   if (v->>'total')::integer < 1 then

@@ -120,6 +120,27 @@ export async function createMember(
   return data as Member;
 }
 
+// Workspace appearance. The "org update owner" RLS policy already permits this
+// for owners; staff get a silent 0-row update, which we surface as an error.
+export async function saveOrganizationTheme(
+  orgId: string,
+  theme: { preset: string; mode: string; image: string | null },
+): Promise<void> {
+  const { data, error } = await getSupabase()
+    .from("organizations")
+    .update({
+      theme_preset: theme.preset,
+      theme_mode: theme.mode,
+      theme_image: theme.image,
+    })
+    .eq("id", orgId)
+    .select("id");
+  throwIf(error, "Could not save the workspace appearance");
+  if (!data || data.length === 0) {
+    throw err("Only the workspace owner can change its appearance.");
+  }
+}
+
 export async function updateMember(
   memberId: string,
   patch: Partial<

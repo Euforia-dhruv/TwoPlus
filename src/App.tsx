@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { Icon, type IconName } from "./icons"
-import AnimatedButton from "@/components/ui/animated-button"
-import AsciiGlitchRipple from "@/components/ui/ascii-glitch-ripple"
-import MorphText from "@/components/ui/morph-text"
-import { RadialGlowButton } from "@/components/ui/radial-glow-button"
 import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
 import { usePlatformAdmin } from "@/lib/use-platform-admin"
+import {
+  DEFAULT_THEME,
+  THEME_PRESETS,
+  applyTheme,
+  safeImageUrl,
+  themeFromOrg,
+  type ThemeMode,
+  type ThemePreset,
+  type WorkspaceTheme,
+} from "@/lib/theme"
 import * as api from "@/lib/api"
 import {
   ageFromDob,
@@ -55,6 +61,7 @@ const groups = [
     "Marketplace",
     "Branches",
     "Access & roles",
+    "Settings",
   ],
 ]
 const navigationIcons = {
@@ -81,6 +88,7 @@ const navigationIcons = {
   Marketplace: "shop",
   Branches: "building",
   "Access & roles": "shield",
+  Settings: "settings",
   "Member app": "mobile",
   "Customer support": "headset",
 } as const satisfies Record<string, IconName>
@@ -94,6 +102,7 @@ const descriptions: Record<string, string> = {
   "Trainers & staff": "The people who keep your gym moving.",
   Payroll: "Stay on top of salaries, commissions, and incentives.",
   Marketplace: "Equip your next chapter. Sourced for gym owners.",
+  Settings: "Make this workspace feel like your gym, not a template.",
 }
 type Member = {
   name: string
@@ -280,7 +289,7 @@ const hasDbStorage = (name: string) =>
 export default function App() {
   const mainRef = useRef<HTMLElement>(null)
   const { signOut } = useAuth()
-  const { org } = useOrg()
+  const { org, reload: reloadOrg } = useOrg()
   const { role: platformRole } = usePlatformAdmin()
   const [active, setActive] = useState("Overview")
   const [members, setMembers] = useState<Member[]>([])
@@ -419,6 +428,53 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [org])
+
+  // The workspace appearance lives on the organization row, so every member of
+  // the gym sees the owner's choice. Applied on the document root.
+  const [theme, setTheme] = useState<WorkspaceTheme>(DEFAULT_THEME)
+  const [themeBusy, setThemeBusy] = useState(false)
+  const [themeError, setThemeError] = useState("")
+  // Client-side guard for the controls only: the write itself is enforced by the
+  // "org update owner" RLS policy, so staff edits still fail server-side.
+  const isOwner = org?.role === "owner"
+  // Raw text field value; kept separate so a mistyped URL can be corrected
+  // without applying a broken preview.
+  const [imageInput, setImageInput] = useState("")
+  useEffect(() => {
+    const next = org ? themeFromOrg(org.organization) : DEFAULT_THEME
+    setTheme(next)
+    setImageInput(next.image ?? "")
+    applyTheme(next)
+  }, [org])
+
+  // Preview applies instantly; saving persists the choice for the whole gym.
+  const updateTheme = (patch: Partial<WorkspaceTheme>) => {
+    setTheme((current) => {
+      const next = { ...current, ...patch }
+      applyTheme(next)
+      return next
+    })
+  }
+  const saveTheme = async () => {
+    if (!org) return
+    setThemeBusy(true)
+    setThemeError("")
+    try {
+      await api.saveOrganizationTheme(org.organization.id, {
+        preset: theme.preset,
+        mode: theme.mode,
+        image: theme.image,
+      })
+      reloadOrg()
+      notify("Workspace appearance saved")
+    } catch (error) {
+      setThemeError(
+        error instanceof Error ? error.message : "Could not save the appearance",
+      )
+    } finally {
+      setThemeBusy(false)
+    }
+  }
 
   // Module tables backed by the database load their rows when opened.
   useEffect(() => {
@@ -682,7 +738,7 @@ export default function App() {
       </nav>
       <div className="main-shell">
         <header className="topbar">
-          <button className="glass-brand" onClick={() => go("Overview")} aria-label="TwoPlus home"><Icon name="activity" size={25} /><AsciiGlitchRipple as="span" className="brand-glitch">TwoPlus</AsciiGlitchRipple></button>
+          <button className="glass-brand" onClick={() => go("Overview")} aria-label="TwoPlus home"><Icon name="activity" size={25} /><span>TwoPlus</span></button>
           <div className="summary-tabs">{[["Overview", "Gym Summary"], ["Members", "Members"], ["Reports", "Revenue Analysis"], ["Classes & PT", "Class Schedule"]].map(([key, label]) => <button key={key} className={active === key ? "is-selected" : ""} onClick={() => go(key)}>{label}</button>)}</div>
           <div className="breadcrumb">
             <Icon name="shop" size={15} />
@@ -730,7 +786,7 @@ export default function App() {
             </div>
           )}
         <main ref={mainRef}>
-          {active === "Overview" && <><div className="page-heading"><div><MorphText words={["YOUR WORKSPACE", "GYM SUMMARY", "BUSINESS OVERVIEW"]} interval={4200} fontSize="9px" className="summary-morph" textClassName="summary-morph-text" /><h1>Gym Summary</h1><p>{stats ? "Live figures from your workspace." : loadingData ? "Loading your workspace…" : "Your business overview will fill in as you add records."}</p></div><RadialGlowButton className="overview-radial-cta" onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</RadialGlowButton></div><Stats items={[["Members", stats ? String(stats.totalMembers) : "—", stats ? `${stats.activeMembers} active` : "Loading"], ["Active memberships", stats ? String(stats.activeMemberships) : "—", stats ? `${stats.expiringSoon} expiring within 7 days` : "Loading"], ["Recorded payments", stats ? formatMoney(stats.monthCollectionsMinor, org?.organization.currency) : "—", "Collected this month"], ["Enquiries", stats ? String(stats.newEnquiries) : "—", "Received this month"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><AnimatedButton className="animated-glass-button" onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></AnimatedButton></section></>}
+          {active === "Overview" && <><div className="page-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Gym Summary</h1><p>{stats ? "Live figures from your workspace." : loadingData ? "Loading your workspace…" : "Your business overview will fill in as you add records."}</p></div><Button onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</Button></div><Stats items={[["Members", stats ? String(stats.totalMembers) : "—", stats ? `${stats.activeMembers} active` : "Loading"], ["Active memberships", stats ? String(stats.activeMemberships) : "—", stats ? `${stats.expiringSoon} expiring within 7 days` : "Loading"], ["Recorded payments", stats ? formatMoney(stats.monthCollectionsMinor, org?.organization.currency) : "—", "Collected this month"], ["Enquiries", stats ? String(stats.newEnquiries) : "—", "Received this month"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><Button secondary onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></Button></section></>}
 
           <div className="page-heading" hidden={active === "Overview"}>
             <div>
@@ -745,13 +801,16 @@ export default function App() {
               </p>
             </div>
             <div className="heading-actions">
-              {!["Community", "Marketplace", "Member app"].includes(active) && (
+              {!["Community", "Marketplace", "Member app", "Settings"].includes(
+                active,
+              ) && (
                 <Button secondary onClick={exportData}>
                   <Icon name="arrow" size={15} />
                   Export
                 </Button>
               )}
-              <Button
+              {active !== "Settings" && (
+                <Button
                 disabled={!!module && !hasDbStorage(active)}
                 title={
                   !!module && !hasDbStorage(active)
@@ -784,7 +843,8 @@ export default function App() {
                       : active === "Memberships"
                         ? "Create plan"
                         : module?.action || "Add record"}
-              </Button>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1205,6 +1265,160 @@ export default function App() {
           {active === "Marketplace" && <section className="panel workspace-empty"><Icon name="shop" size={32} /><Title>No products available</Title><p>A supplier catalog is not connected. Products, pricing, ratings, and ordering will appear once a real catalog is available.</p></section>}
 
           {active === "Member app" && <section className="panel workspace-empty"><Icon name="members" size={32} /><Title>No member app connected</Title><p>Connect member accounts to show their memberships, workouts, classes, and payments here.</p></section>}
+
+          {active === "Settings" && (
+            <>
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <Title>Workspace appearance</Title>
+                    <p className="muted">
+                      Applies to everyone in this gym. Only the workspace owner
+                      can change it.
+                    </p>
+                  </div>
+                  {org && (
+                    <Badge>{org.role === "owner" ? "Owner" : "View only"}</Badge>
+                  )}
+                </div>
+
+                <div className="theme-preview" aria-hidden="true">
+                  {theme.preset} · {theme.mode}
+                </div>
+
+                <div className="theme-grid" role="group" aria-label="Colour preset">
+                  {THEME_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      disabled={!isOwner}
+                      aria-pressed={theme.preset === preset.id}
+                      className={`theme-option ${
+                        theme.preset === preset.id ? "selected" : ""
+                      }`}
+                      onClick={() =>
+                        updateTheme({ preset: preset.id as ThemePreset })
+                      }
+                    >
+                      <span className={`theme-swatch ${preset.id}`} />
+                      <strong>{preset.label}</strong>
+                      <small>{preset.hint}</small>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="theme-actions">
+                  {(["light", "dark"] as ThemeMode[]).map((mode) => (
+                    <Button
+                      key={mode}
+                      type="button"
+                      disabled={!isOwner}
+                      secondary={theme.mode !== mode}
+                      aria-pressed={theme.mode === mode}
+                      onClick={() => updateTheme({ mode })}
+                    >
+                      <Icon name={mode === "dark" ? "sparkles" : "dashboard"} size={15} />
+                      {mode === "dark" ? "Dark mode" : "Light mode"}
+                    </Button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <Title>Custom background</Title>
+                    <p className="muted">
+                      Optional. A direct image link replaces the preset backdrop;
+                      your colour choice still tints the workspace.
+                    </p>
+                  </div>
+                </div>
+                <div className="modal-body">
+                  <label htmlFor="theme-image">Image URL</label>
+                  <div className="search-field">
+                    <Icon name="search" size={15} />
+                    <input
+                      id="theme-image"
+                      className="input"
+                      type="url"
+                      inputMode="url"
+                      placeholder="https://example.com/background.jpg"
+                      value={imageInput}
+                      disabled={!isOwner}
+                      onChange={(event) => setImageInput(event.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="theme-actions">
+                  <Button
+                    secondary
+                    type="button"
+                    disabled={!isOwner}
+                    onClick={() => {
+                      const next = safeImageUrl(imageInput);
+                      if (imageInput.trim() && !next) {
+                        setThemeError(
+                          "That image link is not valid. Use a full http:// or https:// URL.",
+                        );
+                        return;
+                      }
+                      setThemeError("");
+                      updateTheme({ image: next });
+                    }}
+                  >
+                    Preview image
+                  </Button>
+                  <Button
+                    secondary
+                    type="button"
+                    disabled={!isOwner || !theme.image}
+                    onClick={() => {
+                      setImageInput("");
+                      setThemeError("");
+                      updateTheme({ image: null });
+                    }}
+                  >
+                    Remove image
+                  </Button>
+                </div>
+              </section>
+
+              {themeError && (
+                <div className="attention" role="alert">
+                  <div>
+                    <strong>Could not update the appearance</strong>
+                    <span>{themeError}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="theme-actions">
+                <Button type="button" disabled={!isOwner || themeBusy} onClick={saveTheme}>
+                  {themeBusy ? "Saving…" : "Save appearance"}
+                </Button>
+                <Button
+                  secondary
+                  type="button"
+                  disabled={themeBusy}
+                  onClick={() => {
+                    const saved = org ? themeFromOrg(org.organization) : DEFAULT_THEME;
+                    setTheme(saved);
+                    setImageInput(saved.image ?? "");
+                    setThemeError("");
+                    applyTheme(saved);
+                  }}
+                >
+                  Revert
+                </Button>
+                <span className="theme-note">
+                  {isOwner
+                    ? "Saving stores this appearance for the whole workspace."
+                    : "Only the workspace owner can change the appearance."}
+                </span>
+              </div>
+            </>
+          )}
 
           <footer className="page-footer">
             <span>TwoPlus · A little less admin. A lot more progress.</span>

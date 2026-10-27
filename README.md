@@ -65,6 +65,21 @@ audit log. Subscription payments can only be recorded manually after they have
 actually been verified outside the app; automated payment gateways are not
 configured.
 
+The platform role is checked server-side on every request, so the page cannot be
+opened by editing the URL or by calling the admin RPCs directly: a gym account
+receives `403 Not authorized`. An administrator can open the control center by
+visiting `/super-admin` while signed in; there is no public link to it from the
+gym dashboard.
+
+The authorization suite in `supabase/tests/platform_admin_auth.sql` covers the
+gym-versus-platform boundary (denied admin RPCs, cross-tenant isolation,
+suspension read-only behaviour, and the billing state machine). It runs inside a
+transaction and rolls back, so it leaves no fixtures behind:
+
+```bash
+psql "$DATABASE_URL" -f supabase/tests/platform_admin_auth.sql
+```
+
 ### Organization suspension
 
 Suspending or cancelling an organization never deletes data. The status check
