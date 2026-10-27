@@ -6,50 +6,6 @@
 create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------------------
--- Helpers (SECURITY DEFINER so RLS policies can check membership without
--- recursing into organization_members' own policies)
--- ---------------------------------------------------------------------------
-
-create or replace function public.is_org_member(org uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.organization_members m
-    where m.organization_id = org and m.user_id = auth.uid()
-  );
-$$;
-
-create or replace function public.org_role(org uuid)
-returns text
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select m.role from public.organization_members m
-  where m.organization_id = org and m.user_id = auth.uid();
-$$;
-
-create or replace function public.org_has_role(org uuid, variadic roles text[])
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.organization_members m
-    where m.organization_id = org
-      and m.user_id = auth.uid()
-      and m.role = any(roles)
-  );
-$$;
-
--- ---------------------------------------------------------------------------
 -- Tables
 -- ---------------------------------------------------------------------------
 
@@ -385,6 +341,51 @@ begin
 
   return v_org;
 end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Helpers (SECURITY DEFINER so RLS policies can check membership without
+-- recursing into organization_members' own policies). Defined after the
+-- tables because SQL function bodies are validated at creation time.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.is_org_member(org uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.organization_members m
+    where m.organization_id = org and m.user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.org_role(org uuid)
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select m.role from public.organization_members m
+  where m.organization_id = org and m.user_id = auth.uid();
+$$;
+
+create or replace function public.org_has_role(org uuid, variadic roles text[])
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.organization_members m
+    where m.organization_id = org
+      and m.user_id = auth.uid()
+      and m.role = any(roles)
+  );
 $$;
 
 -- ---------------------------------------------------------------------------
