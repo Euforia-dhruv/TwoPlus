@@ -390,6 +390,8 @@ export default function App() {
     setQuery("")
     setSelected([])
     setPage(1)
+    // Re-run the module loader so tables show fresh rows after same-page writes
+    setModuleTick((t) => t + 1)
   }
 
   // ---- Real data loading (org-scoped; RLS enforces the same scope) ----
@@ -1614,6 +1616,7 @@ export default function App() {
                       })
                       setModal("")
                       notify("Payment recorded")
+                      setModuleTick((t) => t + 1)
                       reload()
                     } else if (modal === "Check in member") {
                       const name = String(data.get("member") || "")
