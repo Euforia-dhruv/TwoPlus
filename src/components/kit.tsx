@@ -3,15 +3,19 @@
 import type { ReactNode } from "react";
 import { Icon } from "../icons";
 
+// type="button" by default: without it every Button inside a <form> silently
+// submits. Form buttons opt in with an explicit type="submit".
 export function Button({
   children,
   secondary,
   className = "",
+  type = "button",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { secondary?: boolean }) {
   return (
     <button
-      className={`btn ${secondary ? "secondary" : ""} ${className}`}
+      type={type}
+      className={`btn ${secondary ? "secondary" : ""} ${className}`.trim()}
       {...props}
     >
       {children}
@@ -20,11 +24,11 @@ export function Button({
 }
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`input ${props.className || ""}`} />;
+  return <input {...props} className={`input ${props.className || ""}`.trim()} />;
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className="input" />;
+  return <select {...props} className={`input ${props.className || ""}`.trim()} />;
 }
 
 export function Title({

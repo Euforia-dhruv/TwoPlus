@@ -1403,7 +1403,7 @@ export default function SuperAdmin() {
                     onChange={(event) => setOrgTrialDays(event.target.value)}
                   />
                 </label>
-                <Button disabled={busy} className="form-submit">
+                <Button type="submit" disabled={busy} className="form-submit">
                   Assign subscription
                 </Button>
               </form>
@@ -1721,7 +1721,7 @@ export default function SuperAdmin() {
                   The owner account must exist and be confirmed. No invitation email
                   is sent — TwoPlus has no mail service connected.
                 </div>
-                <Button disabled={busy}>Create workspace</Button>
+                <Button type="submit" disabled={busy}>Create workspace</Button>
               </form>
             )}
 
@@ -1818,7 +1818,7 @@ export default function SuperAdmin() {
                     <option value="retired">Retired</option>
                   </Select>
                 </label>
-                <Button disabled={busy}>
+                <Button type="submit" disabled={busy}>
                   {planId ? "Save plan" : "Create plan"}
                 </Button>
               </form>
@@ -1858,7 +1858,7 @@ export default function SuperAdmin() {
                     rows={4}
                   />
                 </label>
-                <Button disabled={busy}>Create ticket</Button>
+                <Button type="submit" disabled={busy}>Create ticket</Button>
               </form>
             )}
           </section>

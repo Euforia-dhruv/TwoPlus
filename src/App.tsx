@@ -21,9 +21,17 @@ import {
   daysUntil,
   formatDate,
   formatMoney,
+  type AppNotification,
+  type AttendanceRecord,
   type DashboardStats,
+  type Enquiry,
   type MembershipPlan,
+  type OrgMemberRow,
+  type OrgRole,
+  type Payment,
   type PaymentMethod,
+  type ReportMonth,
+  type StaffMember,
 } from "@/lib/types"
 
 const groups = [
@@ -150,8 +158,8 @@ const modules: Record<string, Module> = {
   },
   "Follow-ups": {
     sub: "The right conversation, at the right time",
-    action: "Create follow-up",
-    columns: ["Member / lead", "Reason", "Assigned to", "Due", "Status"],
+    action: "Log follow-up",
+    columns: ["Lead", "Phone", "Interested in", "Follow-up date", "Status"],
     rows: [],
     stats: [],
   },
@@ -165,13 +173,7 @@ const modules: Record<string, Module> = {
   "Trainers & staff": {
     sub: "Schedules, responsibilities, and the people behind them",
     action: "Add employee",
-    columns: [
-      "Employee",
-      "Role",
-      "Working hours",
-      "Joined",
-      "Assigned members",
-    ],
+    columns: ["Employee", "Role", "Contact", "Joined", "Status"],
     rows: [],
     stats: [],
   },
@@ -226,7 +228,7 @@ const modules: Record<string, Module> = {
   Reminders: {
     sub: "Thoughtful nudges, fewer missed renewals",
     action: "Create reminder",
-    columns: ["Reminder", "Audience", "Channel", "Schedule", "Status"],
+    columns: ["Reminder", "Detail", "Type", "Created", "Status"],
     rows: [],
     stats: [],
   },
@@ -259,7 +261,7 @@ const modules: Record<string, Module> = {
   },
   "Access & roles": {
     sub: "The right access for every role",
-    action: "Add role",
+    action: "Change role",
     columns: ["Role", "People", "Permissions", "Scope", "Status"],
     rows: [],
     stats: [],
@@ -279,16 +281,22 @@ const dbModules = [
   "Attendance",
   "Classes & PT",
   "Enquiries",
+  "Follow-ups",
   "Payments",
   "Trainers & staff",
   "Expenses",
 ] as const
 const hasDbStorage = (name: string) =>
   (dbModules as readonly string[]).includes(name)
+// Tables that already exist, but whose write/read path needs migration 0004:
+// notifications has no INSERT policy and profiles is own-row only, so the
+// team roster comes from a SECURITY DEFINER function.
+const needsMigration = (name: string) =>
+  name === "Reminders" || name === "Access & roles"
 
 export default function App() {
   const mainRef = useRef<HTMLElement>(null)
-  const { signOut } = useAuth()
+  const { session, signOut } = useAuth()
   const { org, reload: reloadOrg } = useOrg()
   const { role: platformRole } = usePlatformAdmin()
   const [active, setActive] = useState("Overview")
@@ -307,11 +315,38 @@ export default function App() {
   const [convertible, setConvertible] = useState<{ id: string; name: string; phone: string }[]>([])
   const [notice, setNotice] = useState("")
   const [plans, setPlans] = useState<MembershipPlan[]>([])
+  const [allPlans, setAllPlans] = useState<MembershipPlan[]>([])
+  const [editPlan, setEditPlan] = useState<MembershipPlan | null>(null)
   const [staffNames, setStaffNames] = useState<Record<string, string>>({})
+  const [staffList, setStaffList] = useState<StaffMember[]>([])
+  const [enquiryList, setEnquiryList] = useState<Enquiry[]>([])
+  const [roster, setRoster] = useState<OrgMemberRow[]>([])
+  const [reminders, setReminders] = useState<AppNotification[]>([])
+  const [reports, setReports] = useState<ReportMonth[]>([])
+  const [pendingPayments, setPendingPayments] = useState<Payment[]>([])
+  const [pendingTarget, setPendingTarget] = useState("")
+  const [profileVisits, setProfileVisits] = useState<AttendanceRecord[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loadingData, setLoadingData] = useState(true)
   const [dbError, setDbError] = useState("")
   const branch = org?.branch?.name ?? "Main branch"
+  const [accountOpen, setAccountOpen] = useState(false)
+  // Signup stores full_name in user metadata; fall back to the email local part.
+  const accountMeta = session?.user?.user_metadata as
+    | { full_name?: string }
+    | undefined
+  const accountName =
+    accountMeta?.full_name?.trim() ||
+    session?.user?.email?.split("@")[0] ||
+    "Your account"
+  useEffect(() => {
+    if (!accountOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountOpen(false)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [accountOpen])
   const [records, setRecords] = useState<Record<string, string[][]>>({})
   const [cart, setCart] = useState<string[]>([])
   const notify = (text: string) => {
@@ -336,17 +371,35 @@ export default function App() {
     const orgId = org.organization.id
     try {
       setDbError("")
-      const [dbMembers, dbMemberships, dbPlans, pending, dbStats, staff] =
-        await Promise.all([
-          // shortcut: loads up to 500 members and paginates client-side;
-          // switch to server-side offset paging when a gym exceeds that
-          api.listMembers(orgId, { limit: 500 }),
-          api.listMemberships(orgId),
-          api.listPlans(orgId),
-          api.listPayments(orgId, { status: "pending" }),
-          api.loadDashboardStats(org),
-          api.listStaff(orgId),
-        ])
+      const [
+        dbMembers,
+        dbMemberships,
+        dbPlans,
+        allDbPlans,
+        pending,
+        dbStats,
+        staff,
+        dbEnquiries,
+        dbRoster,
+        dbReminders,
+        dbReports,
+      ] = await Promise.all([
+        // shortcut: loads up to 500 members and paginates client-side;
+        // switch to server-side offset paging when a gym exceeds that
+        api.listMembers(orgId, { limit: 500 }),
+        api.listMemberships(orgId),
+        api.listPlans(orgId),
+        api.listPlans(orgId, { includeInactive: true }),
+        api.listPayments(orgId, { status: "pending" }),
+        api.loadDashboardStats(org),
+        api.listStaff(orgId),
+        api.listEnquiries(orgId),
+        // Roster and reminders need migration 0004; failing soft keeps the rest
+        // of the workspace usable on a database that has not run it yet.
+        api.listOrgMembers(orgId).catch(() => []),
+        api.listNotifications(orgId).catch(() => []),
+        api.loadMonthlyReports(orgId, 6),
+      ])
 
       // Latest membership per member (greatest end date wins)
       const membershipByMember = new Map<
@@ -403,6 +456,13 @@ export default function App() {
       })
       setMembers(rows)
       setPlans(dbPlans)
+      setAllPlans(allDbPlans)
+      setStaffList(staff)
+      setEnquiryList(dbEnquiries)
+      setRoster(dbRoster)
+      setReminders(dbReminders)
+      setReports(dbReports)
+      setPendingPayments(pending)
       setStats(dbStats)
       // Seed the Memberships view rows from real plans (name · price·duration)
       setRecords((prev) => ({
@@ -428,6 +488,22 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [org])
+
+  // Visits for whoever's drawer is open; cleared so one member's history never
+  // shows while another's is loading.
+  useEffect(() => {
+    const memberId = profile?.memberId
+    if (!org || !memberId) {
+      setProfileVisits([])
+      return
+    }
+    let cancelled = false
+    api
+      .listMemberAttendance(org.organization.id, memberId, 10)
+      .then((visits) => { if (!cancelled) setProfileVisits(visits) })
+      .catch(() => { if (!cancelled) setProfileVisits([]) })
+    return () => { cancelled = true }
+  }, [org, profile?.memberId])
 
   // The workspace appearance lives on the organization row, so every member of
   // the gym sees the owner's choice. Applied on the document root.
@@ -544,6 +620,44 @@ export default function App() {
               cap(r.status),
             ]),
           }))
+        } else if (active === "Follow-ups") {
+          const rows = enquiryList.filter(
+            (r) => r.status === "follow_up" || r.status === "contacted",
+          )
+          const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace("_", " ")
+          setRecords((prev) => ({
+            ...prev,
+            "Follow-ups": rows.map((r) => [
+              r.name,
+              r.phone,
+              r.interest || "—",
+              r.follow_up_date ? formatDate(r.follow_up_date) : "—",
+              cap(r.status),
+            ]),
+          }))
+        } else if (active === "Reminders") {
+          setRecords((prev) => ({
+            ...prev,
+            Reminders: reminders.map((r) => [
+              r.title,
+              r.body || "—",
+              r.type.charAt(0).toUpperCase() + r.type.slice(1),
+              formatDate(r.created_at),
+              r.read_at ? "Read" : "Unread",
+            ]),
+          }))
+        } else if (active === "Access & roles") {
+          const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+          setRecords((prev) => ({
+            ...prev,
+            "Access & roles": roster.map((r) => [
+              cap(r.role),
+              r.full_name,
+              r.email || "—",
+              "Workspace",
+              "Active",
+            ]),
+          }))
         } else if (active === "Payments") {
           const rows = await api.listPayments(orgId, { limit: 100 })
           const nameOf = new Map(members.map((m) => [m.memberId, m.name]))
@@ -564,9 +678,9 @@ export default function App() {
             "Trainers & staff": rows.map((r) => [
               r.name,
               r.job_role,
-              "—",
+              r.email || r.phone || "—",
               formatDate(r.joined_on),
-              "—",
+              r.employment_status === "inactive" ? "Inactive" : "Active",
             ]),
           }))
         } else if (active === "Expenses") {
@@ -588,7 +702,7 @@ export default function App() {
     }
     loadModule()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, org, members.length, moduleTick])
+  }, [active, org, members.length, moduleTick, enquiryList, reminders, roster])
   useEffect(() => {
     const main = mainRef.current
     if (!main) return
@@ -705,10 +819,23 @@ export default function App() {
               m.status,
             ]),
           ]
-        : [
-            modules[active]?.columns || ["Name"],
-            ...(modules[active]?.rows || []),
-          ]
+        : active === "Reports"
+          ? [
+              ["Month", "Collected", "Pending", "Expenses", "Visits", "New members"],
+              ...reports.map((r) => [
+                r.label,
+                formatMoney(r.collectedMinor, org?.organization.currency),
+                formatMoney(r.pendingMinor, org?.organization.currency),
+                formatMoney(r.expensesMinor, org?.organization.currency),
+                String(r.visits),
+                String(r.newMembers),
+              ]),
+            ]
+          : [
+              modules[active]?.columns || ["Name"],
+              ...(modules[active]?.rows || []),
+              ...(records[active] || []),
+            ]
     const url = URL.createObjectURL(
       new Blob(
         [
@@ -727,12 +854,32 @@ export default function App() {
     notify("CSV exported")
   }
   const module = modules[active]
+  // Mirrors the RLS write roles in 0001_init.sql so the UI explains a refusal
+  // before the request fails. The database stays the real boundary.
+  const writeRoles: Record<string, OrgRole[]> = {
+    Overview: ["owner", "manager", "receptionist"],
+    Members: ["owner", "manager", "receptionist"],
+    Memberships: ["owner", "manager"],
+    Attendance: ["owner", "manager", "receptionist", "trainer"],
+    "Classes & PT": ["owner", "manager", "trainer"],
+    Enquiries: ["owner", "manager", "receptionist"],
+    "Follow-ups": ["owner", "manager", "receptionist"],
+    Payments: ["owner", "manager", "receptionist", "finance"],
+    "Trainers & staff": ["owner", "manager"],
+    Expenses: ["owner", "manager", "finance"],
+    // Every role may file their own in-app reminder (migration 0004).
+    Reminders: ["owner", "manager", "trainer", "receptionist", "finance"],
+    "Access & roles": ["owner"],
+  }
+  const canWrite = !!org && (writeRoles[active]?.includes(org.role) ?? false)
+  const addBlocked = !!module && !hasDbStorage(active) && !needsMigration(active)
   return (
     <div className={`app ${active === "Overview" ? "summary-view" : ""}`}>
       <nav className="floating-rail compact-module-rail" aria-label="Main navigation">
         {[...groups.flatMap(([, ...items]) => items), "Member app", "Customer support"].map((item) => (
           <button key={item} title={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
             <Icon name={navigationIcons[item as keyof typeof navigationIcons]} size={19} />
+            <span className="rail-label" aria-hidden="true">{item}</span>
           </button>
         ))}
       </nav>
@@ -757,14 +904,72 @@ export default function App() {
               <Icon name="bell" size={18} />
             </button>
             <span className="header-divider" />
-            <button
-              aria-label="Sign out"
-              title="Sign out"
-              style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }}
-              onClick={() => signOut()}
-            >
-              <Avatar name="Your account" small />
-            </button>
+            <div className="account-menu">
+              <button
+                aria-label="Account menu"
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
+                className="account-trigger"
+                onClick={() => setAccountOpen((open) => !open)}
+              >
+                <Avatar name={accountName} small />
+                <span className="account-name" title={accountName}>
+                  {accountName}
+                </span>
+              </button>
+              {accountOpen && (
+                <>
+                  <div
+                    className="account-backdrop"
+                    onClick={() => setAccountOpen(false)}
+                  />
+                  <div className="account-panel" role="menu">
+                    <div className="account-panel-head">
+                      <Avatar name={accountName} small />
+                      <div>
+                        <strong>{accountName}</strong>
+                        <span>{session?.user?.email ?? "Signed in"}</span>
+                      </div>
+                    </div>
+                    <div className="account-role">
+                      <span>{org?.organization.name ?? "Workspace"}</span>
+                      <Badge>{org?.role ?? "owner"}</Badge>
+                    </div>
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setAccountOpen(false)
+                        go("Settings")
+                      }}
+                    >
+                      <Icon name="settings" size={15} />
+                      Workspace settings
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setAccountOpen(false)
+                        go("Access & roles")
+                      }}
+                    >
+                      <Icon name="shield" size={15} />
+                      Access & roles
+                    </button>
+                    <button
+                      role="menuitem"
+                      className="account-signout"
+                      onClick={() => {
+                        setAccountOpen(false)
+                        void signOut()
+                      }}
+                    >
+                      <Icon name="arrow" size={15} />
+                      Sign out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
         {org?.organization.status &&
@@ -786,7 +991,33 @@ export default function App() {
             </div>
           )}
         <main ref={mainRef}>
-          {active === "Overview" && <><div className="page-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Gym Summary</h1><p>{stats ? "Live figures from your workspace." : loadingData ? "Loading your workspace…" : "Your business overview will fill in as you add records."}</p></div><Button onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</Button></div><Stats items={[["Members", stats ? String(stats.totalMembers) : "—", stats ? `${stats.activeMembers} active` : "Loading"], ["Active memberships", stats ? String(stats.activeMemberships) : "—", stats ? `${stats.expiringSoon} expiring within 7 days` : "Loading"], ["Recorded payments", stats ? formatMoney(stats.monthCollectionsMinor, org?.organization.currency) : "—", "Collected this month"], ["Enquiries", stats ? String(stats.newEnquiries) : "—", "Received this month"]]} /><section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Revenue, attendance, retention, and growth charts will appear when there is enough recorded activity. No sample figures are shown.</p><Button secondary onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></Button></section></>}
+          {active === "Overview" && <><div className="page-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Gym Summary</h1><p>{stats ? "Live figures from your workspace." : loadingData ? "Loading your workspace…" : "Your business overview will fill in as you add records."}</p></div><Button onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</Button></div><Stats items={[["Members", stats ? String(stats.totalMembers) : "—", stats ? `${stats.activeMembers} active` : "Loading"], ["Active memberships", stats ? String(stats.activeMemberships) : "—", stats ? `${stats.expiringSoon} expiring within 7 days` : "Loading"], ["Recorded payments", stats ? formatMoney(stats.monthCollectionsMinor, org?.organization.currency) : "—", "Collected this month"], ["Enquiries", stats ? String(stats.newEnquiries) : "—", "Received this month"]]} />{stats && (stats.totalMembers > 0 || stats.attendanceToday > 0 || stats.monthCollectionsMinor > 0) ? (
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <Title>Needs attention today</Title>
+                    <p className="muted">Live counts from your workspace. Nothing here is estimated.</p>
+                  </div>
+                  <Badge>{stats.expiringSoon || stats.expiredMemberships ? "Follow up" : "All clear"}</Badge>
+                </div>
+                {[
+                  ["Memberships expiring within 7 days", String(stats.expiringSoon)],
+                  ["Expired memberships", String(stats.expiredMemberships)],
+                  ["Pending payments", formatMoney(stats.pendingPaymentsMinor, org?.organization.currency)],
+                  ["Check-ins today", String(stats.attendanceToday)],
+                  ["Classes coming up", String(stats.upcomingClasses)],
+                  ["New enquiries this month", String(stats.newEnquiries)],
+                ].map(([label, value]) => (
+                  <div className="detail-line" key={label}>
+                    <span>{label}</span>
+                    <strong>{value}</strong>
+                  </div>
+                ))}
+                <Button secondary onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></Button>
+              </section>
+            ) : (
+              <section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Add your first member to start tracking revenue, attendance and growth. No sample figures are shown.</p><Button secondary onClick={() => setModal("Add member")}>Add your first member <Icon name="arrow" size={15} /></Button></section>
+            )}</>}
 
           <div className="page-heading" hidden={active === "Overview"}>
             <div>
@@ -811,11 +1042,13 @@ export default function App() {
               )}
               {active !== "Settings" && (
                 <Button
-                disabled={!!module && !hasDbStorage(active)}
+                disabled={addBlocked || !canWrite}
                 title={
-                  !!module && !hasDbStorage(active)
+                  addBlocked
                     ? "This module has no database storage yet"
-                    : undefined
+                    : canWrite
+                      ? undefined
+                      : "Your role cannot add records here"
                 }
                 onClick={() =>
                   active === "Community"
@@ -1124,23 +1357,71 @@ export default function App() {
             </>
           )}
 
-          {active === "Reports" && <section className="panel workspace-empty"><Icon name="activity" size={32} /><Title>No reports yet</Title><p>Reports need connected payment and attendance data. No trends or performance figures are available.</p></section>}
+          {active === "Reports" && (
+            <section className="directory">
+              <div className="module-table-heading">
+                <div>
+                  <Title>Monthly performance</Title>
+                  <p>
+                    Last {reports.length} months, from payments, expenses,
+                    attendance and new joiners.
+                  </p>
+                </div>
+                <Badge>{reports.some((r) => r.visits + r.collectedMinor) ? "Saved" : "No data"}</Badge>
+              </div>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th>Collected</th>
+                      <th>Pending</th>
+                      <th>Expenses</th>
+                      <th>Visits</th>
+                      <th>New members</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reports.map((r) => (
+                      <tr key={r.month}>
+                        <td>{r.label}</td>
+                        <td>{formatMoney(r.collectedMinor, org?.organization.currency)}</td>
+                        <td>{formatMoney(r.pendingMinor, org?.organization.currency)}</td>
+                        <td>{formatMoney(r.expensesMinor, org?.organization.currency)}</td>
+                        <td>{r.visits}</td>
+                        <td>{r.newMembers}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {reports.length === 0 && (
+                  <div className="empty">
+                    No payments, expenses, attendance or joins recorded yet.
+                  </div>
+                )}
+              </div>
+              <div className="table-footer">
+                <span>All records · {branch}</span>
+                <span>Counts every payment, expense and check-in on record</span>
+              </div>
+            </section>
+          )}
 
-          {active === "Memberships" && <section className="panel">{records.Memberships?.length ? records.Memberships.map((r, i) => <div className="summary-line" key={i}><strong>{r[0]}</strong><span>{r[1]}</span></div>) : <div className="workspace-empty"><Icon name="calendar" size={32} /><Title>No membership plans yet</Title><p>Create your first plan to get started.</p><Button onClick={() => setModal("Create plan")}>Create plan</Button></div>}</section>}
+          {active === "Memberships" && <section className="panel">{allPlans.length ? allPlans.map((p) => <div className="summary-line" key={p.id}><strong>{p.name}</strong><span>{p.duration_days} days · {formatMoney(p.price_minor, org?.organization.currency)}{p.is_active ? "" : " · Archived"}</span><Button secondary disabled={!canWrite} title={canWrite ? undefined : "Your role cannot edit plans"} onClick={() => { setEditPlan(p); setModal("Edit plan") }}>Edit</Button></div>) : <div className="workspace-empty"><Icon name="calendar" size={32} /><Title>No membership plans yet</Title><p>Create your first plan to get started.</p><Button onClick={() => setModal("Create plan")}>Create plan</Button></div>}</section>}
 
           {active === "Community" && <section className="panel workspace-empty"><Icon name="members" size={32} /><Title>No community conversations yet</Title><p>No groups, members, or messages have been added. Live chat, calls, and encrypted delivery require a connected service.</p><Button secondary onClick={() => setModal("Create group")}>Draft a group</Button></section>}
 
           {module && active !== "Reports" && (
             <>
-              <Stats items={[["Records", String((records[active] || []).length), "Added in this session"]]} />
+              <Stats items={[["Records", String((records[active] || []).length), hasDbStorage(active) ? "Saved to your workspace" : needsMigration(active) ? "Needs migration 0004" : "This session only"]]} />
               {["Payments", "Reminders", "Access & roles"].includes(active) && (
                 <div className="integration-note">
                   <Icon name="settings" size={15} />
                   {active === "Payments"
                     ? "Payments are saved to your workspace. Online gateway collection is not connected — record only payments you have actually received."
                     : active === "Reminders"
-                      ? "Configure an SMS provider and member app delivery before enabling live reminders."
-                      : "Role settings and device access are visual previews. Server-side authorization is not connected."}
+                      ? "Reminders are in-app notifications, visible to whoever they are assigned to. Nothing is sent by SMS, email or push. The table needs migration 0004 to load or save."
+                      : "Roles are enforced by the database. Changing a role takes effect for that person on their next sign-in. The roster needs migration 0004 to load."}
                 </div>
               )}
               <section className="directory">
@@ -1155,14 +1436,23 @@ export default function App() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <Badge>
-                      {["Attendance", "Classes & PT", "Enquiries", "Payments", "Trainers & staff", "Expenses"].includes(active)
+                      {hasDbStorage(active)
                         ? "Saved"
-                        : "Session only"}
+                        : needsMigration(active)
+                          ? "Needs migration"
+                          : "Session only"}
                     </Badge>
                     {active === "Attendance" && (
                       <Button
                         secondary
-                        disabled={!openCheckins.length}
+                        disabled={!openCheckins.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot change attendance"
+                            : openCheckins.length
+                              ? undefined
+                              : "No member is currently checked in"
+                        }
                         onClick={() => setModal("Check out member")}
                       >
                         Check out member
@@ -1171,10 +1461,65 @@ export default function App() {
                     {active === "Enquiries" && (
                       <Button
                         secondary
-                        disabled={!convertible.length}
+                        disabled={!enquiryList.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot update enquiries"
+                            : enquiryList.length
+                              ? undefined
+                              : "No enquiries to update"
+                        }
+                        onClick={() => setModal("Update enquiry")}
+                      >
+                        Update status
+                      </Button>
+                    )}
+                    {active === "Enquiries" && (
+                      <Button
+                        secondary
+                        disabled={!convertible.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot convert enquiries"
+                            : convertible.length
+                              ? undefined
+                              : "No open enquiry to convert"
+                        }
                         onClick={() => setModal("Convert enquiry")}
                       >
                         Convert to member
+                      </Button>
+                    )}
+                    {active === "Trainers & staff" && (
+                      <Button
+                        secondary
+                        disabled={!staffList.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot edit staff"
+                            : staffList.length
+                              ? undefined
+                              : "No staff records to edit"
+                        }
+                        onClick={() => setModal("Edit employee")}
+                      >
+                        Edit employee
+                      </Button>
+                    )}
+                    {active === "Payments" && (
+                      <Button
+                        secondary
+                        disabled={!pendingPayments.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot settle payments"
+                            : pendingPayments.length
+                              ? undefined
+                              : "No pending payments to settle"
+                        }
+                        onClick={() => setModal("Settle payment")}
+                      >
+                        Settle payment
                       </Button>
                     )}
                   </div>
@@ -1248,14 +1593,16 @@ export default function App() {
                         ))}
                     </tbody>
                   </table>
-                  {!(records[active] || []).length && <div className="empty">{["Attendance", "Classes & PT", "Enquiries", "Payments", "Trainers & staff", "Expenses"].includes(active) ? "No records yet. Use the add button to create your first entry." : "This module is not connected to the database yet, so no records can be stored here."}</div>}
+                  {!(records[active] || []).length && <div className="empty">{hasDbStorage(active) ? "No records yet. Use the add button to create your first entry." : needsMigration(active) ? "Run migration 0004 to store this data. Nothing is saved yet." : "This module is not connected to the database yet, so no records can be stored here."}</div>}
                 </div>
                 <div className="table-footer">
                   <span>All records · {branch}</span>
                   <span>
-                    {["Attendance", "Classes & PT", "Enquiries", "Payments", "Trainers & staff", "Expenses"].includes(active)
+                    {hasDbStorage(active)
                       ? "Saved to your workspace"
-                      : "Not available — no database storage yet"}
+                      : needsMigration(active)
+                        ? "Needs migration 0004"
+                        : "Not available — no database storage yet"}
                   </span>
                 </div>
               </section>
@@ -1292,6 +1639,11 @@ export default function App() {
                       key={preset.id}
                       type="button"
                       disabled={!isOwner}
+                      title={
+                        isOwner
+                          ? undefined
+                          : "Only the workspace owner can change the appearance"
+                      }
                       aria-pressed={theme.preset === preset.id}
                       className={`theme-option ${
                         theme.preset === preset.id ? "selected" : ""
@@ -1313,6 +1665,11 @@ export default function App() {
                       key={mode}
                       type="button"
                       disabled={!isOwner}
+                      title={
+                        isOwner
+                          ? undefined
+                          : "Only the workspace owner can change the appearance"
+                      }
                       secondary={theme.mode !== mode}
                       aria-pressed={theme.mode === mode}
                       onClick={() => updateTheme({ mode })}
@@ -1346,6 +1703,11 @@ export default function App() {
                       placeholder="https://example.com/background.jpg"
                       value={imageInput}
                       disabled={!isOwner}
+                      title={
+                        isOwner
+                          ? undefined
+                          : "Only the workspace owner can change the appearance"
+                      }
                       onChange={(event) => setImageInput(event.target.value)}
                     />
                   </div>
@@ -1355,6 +1717,11 @@ export default function App() {
                     secondary
                     type="button"
                     disabled={!isOwner}
+                    title={
+                      isOwner
+                        ? undefined
+                        : "Only the workspace owner can change the appearance"
+                    }
                     onClick={() => {
                       const next = safeImageUrl(imageInput);
                       if (imageInput.trim() && !next) {
@@ -1373,6 +1740,13 @@ export default function App() {
                     secondary
                     type="button"
                     disabled={!isOwner || !theme.image}
+                    title={
+                      !isOwner
+                        ? "Only the workspace owner can change the appearance"
+                        : theme.image
+                          ? undefined
+                          : "No custom background is set"
+                    }
                     onClick={() => {
                       setImageInput("");
                       setThemeError("");
@@ -1475,6 +1849,32 @@ export default function App() {
                   <strong>{v}</strong>
                 </div>
               ))}
+              <Title>Outstanding payments</Title>
+              {[
+                ...pendingPayments.filter((p) => p.member_id === profile.memberId),
+              ].length ? (
+                pendingPayments
+                  .filter((p) => p.member_id === profile.memberId)
+                  .map((p) => (
+                    <div className="detail-line" key={p.id}>
+                      <span>
+                        {formatMoney(p.amount_minor, p.currency)} ·{" "}
+                        {formatDate(p.paid_on)}
+                      </span>
+                      <Button
+                        secondary
+                        onClick={() => {
+                          setPendingTarget(p.id)
+                          setModal("Settle payment")
+                        }}
+                      >
+                        Settle
+                      </Button>
+                    </div>
+                  ))
+              ) : (
+                <p className="muted">Nothing outstanding for this member.</p>
+              )}
               <div className="profile-actions">
                 <Button onClick={() => setModal("Renew membership")}>
                   Renew membership
@@ -1501,7 +1901,27 @@ export default function App() {
                 </Button>
               </div>
               <Title>Attendance history</Title>
-              <p className="muted">No attendance recorded for this member.</p>
+              {profileVisits.length ? (
+                profileVisits.map((v) => (
+                  <div className="detail-line" key={v.id}>
+                    <span>{formatDate(v.check_in)}</span>
+                    <strong>
+                      {new Date(v.check_in).toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {v.check_out
+                        ? ` – ${new Date(v.check_out).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}`
+                        : " · still in"}
+                    </strong>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">No attendance recorded for this member.</p>
+              )}
               <Button
                 secondary
                 onClick={async () => {
@@ -1546,7 +1966,9 @@ export default function App() {
                     ? "Record details"
                     : modal === "Member filters" || modal === "Review order"
                       ? "Changes stay in this session. Reloading clears them."
-                      : "Saved securely to your gym workspace."}
+                      : needsMigration(active)
+                        ? "Saving needs migration 0004 — this will fail until it is run."
+                        : "Saved securely to your gym workspace."}
                 </p>
               </div>
               <Button
@@ -1679,7 +2101,11 @@ export default function App() {
                     </div>
                   ))}
                 <p className="muted">
-                  This record is stored in this session only. Reloading clears it.
+                  {hasDbStorage(active)
+                    ? "Saved to your workspace."
+                    : needsMigration(active)
+                      ? "This table needs migration 0004 before it can store or load rows."
+                      : "This record is stored in this session only. Reloading clears it."}
                 </p>
                 <Button secondary onClick={() => setModal("")}>
                   Done
@@ -1775,6 +2201,17 @@ export default function App() {
                       setModal("")
                       notify("Check-in recorded")
                       go("Attendance")
+                    } else if (modal === "Settle payment") {
+                      const paymentId = String(data.get("payment") || "")
+                      if (!paymentId) throw new Error("Select a pending payment")
+                      await api.settlePayment(paymentId, {
+                        method: String(data.get("method") || "cash") as PaymentMethod,
+                      })
+                      setModal("")
+                      setPendingTarget("")
+                      notify("Payment marked as received")
+                      setModuleTick((t) => t + 1)
+                      reload()
                     } else if (modal === "Add enquiry") {
                       await api.createEnquiry(orgId, {
                         name: String(data.get("name") || ""),
@@ -1911,6 +2348,101 @@ export default function App() {
                       notify("Enquiry converted to a member")
                       setModuleTick((t) => t + 1)
                       reload()
+                    } else if (modal === "Update enquiry") {
+                      const enquiryId = String(data.get("enquiry") || "")
+                      const target = enquiryList.find((e) => e.id === enquiryId)
+                      if (!target) throw new Error("Select an enquiry to update")
+                      await api.updateEnquiry(enquiryId, {
+                        status: String(data.get("status") || "new") as Enquiry["status"],
+                      })
+                      setModal("")
+                      notify("Enquiry status updated")
+                      setModuleTick((t) => t + 1)
+                      reload()
+                    } else if (modal === "Log follow-up") {
+                      const enquiryId = String(data.get("enquiry") || "")
+                      const target = enquiryList.find((e) => e.id === enquiryId)
+                      if (!target) throw new Error("Select an enquiry to follow up")
+                      const date = String(data.get("date") || "")
+                      if (!date) throw new Error("Pick a follow-up date")
+                      await api.updateEnquiry(enquiryId, {
+                        status: "follow_up",
+                        follow_up_date: date,
+                        notes: String(data.get("notes") || "") || target.notes,
+                      })
+                      setModal("")
+                      notify("Follow-up saved to the enquiry")
+                      setModuleTick((t) => t + 1)
+                      reload()
+                    } else if (modal === "Edit plan") {
+                      if (!editPlan) throw new Error("Pick a plan to edit")
+                      const price = Number(String(data.get("price") || "0"))
+                      const duration = Number(String(data.get("duration") || "0"))
+                      if (!(price >= 0)) throw new Error("Enter a valid price")
+                      if (!(duration > 0)) throw new Error("Enter a valid duration")
+                      await api.updatePlan(editPlan.id, {
+                        name: String(data.get("name") || "").trim(),
+                        description: String(data.get("description") || "") || null,
+                        duration_days: duration,
+                        price_minor: Math.round(price * 100),
+                        is_active: String(data.get("active") || "yes") === "yes",
+                      })
+                      setModal("")
+                      setEditPlan(null)
+                      notify("Plan updated")
+                      reload()
+                    } else if (modal === "Edit employee") {
+                      const target = staffList.find(
+                        (s) => s.id === String(data.get("staff") || ""),
+                      )
+                      if (!target) throw new Error("Select an employee")
+                      // Blank fields mean "leave unchanged" rather than "clear".
+                      const patch: Partial<
+                        Pick<
+                          StaffMember,
+                          "name" | "phone" | "email" | "job_role" | "employment_status"
+                        >
+                      > = {}
+                      for (const key of ["name", "phone", "email", "job_role"] as const) {
+                        const value = String(data.get(key) || "").trim()
+                        if (value) patch[key] = value
+                      }
+                      const nextStatus = String(data.get("status") || "")
+                      if (nextStatus === "active" || nextStatus === "inactive") {
+                        patch.employment_status = nextStatus
+                      }
+                      if (!Object.keys(patch).length) {
+                        throw new Error("Change at least one field")
+                      }
+                      await api.updateStaffMember(target.id, patch)
+                      setModal("")
+                      notify("Employee updated")
+                      go("Trainers & staff")
+                    } else if (modal === "Change role") {
+                      const target = roster.find(
+                        (r) => r.user_id === String(data.get("member") || ""),
+                      )
+                      if (!target) throw new Error("Select a team member")
+                      await api.updateOrgMemberRole(
+                        orgId,
+                        target.user_id,
+                        String(data.get("role") || "trainer") as OrgRole,
+                      )
+                      setModal("")
+                      notify("Role updated")
+                      reload()
+                    } else if (modal === "Create reminder") {
+                      const userId = session?.user.id
+                      if (!userId) throw new Error("Sign in again to create a reminder")
+                      await api.createNotification(orgId, {
+                        user_id: userId,
+                        title: String(data.get("title") || ""),
+                        body: String(data.get("body") || "") || undefined,
+                        type: String(data.get("type") || "task") as AppNotification["type"],
+                      })
+                      setModal("")
+                      notify("Reminder saved to your notifications")
+                      reload()
                     } else if (modal === "Create group") {
                       setModal("")
                       notify(
@@ -2045,6 +2577,41 @@ export default function App() {
                       ))}
                     </Select>
                   </label>
+                ) : modal === "Settle payment" ? (
+                  <>
+                    <label>
+                      Pending payment
+                      <Select name="payment" required defaultValue={pendingTarget}>
+                        <option value="">Select a payment…</option>
+                        {pendingPayments.map((p) => {
+                          const who =
+                            members.find((m) => m.memberId === p.member_id)?.name ??
+                            "Member"
+                          return (
+                            <option key={p.id} value={p.id}>
+                              {who} · {formatMoney(p.amount_minor, p.currency)} ·{" "}
+                              {formatDate(p.paid_on)}
+                            </option>
+                          )
+                        })}
+                      </Select>
+                    </label>
+                    <label>
+                      Received by
+                      <Select name="method" defaultValue="cash">
+                        <option value="cash">Cash</option>
+                        <option value="upi">UPI</option>
+                        <option value="card">Card</option>
+                        <option value="bank_transfer">Bank transfer</option>
+                        <option value="other">Other</option>
+                      </Select>
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="settings" size={15} />
+                      No payment gateway is connected. Only mark this once the money
+                      has actually reached you.
+                    </div>
+                  </>
                 ) : modal === "Add enquiry" ? (
                   <>
                     <div className="form-row">
@@ -2286,6 +2853,232 @@ export default function App() {
                       The enquiry stays in your history, marked as converted.
                     </div>
                   </>
+                ) : modal === "Update enquiry" ? (
+                  <>
+                    <label>
+                      Enquiry
+                      <Select name="enquiry" required>
+                        <option value="">Select an enquiry…</option>
+                        {enquiryList.map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.name} · {e.phone} ·{" "}
+                            {e.status.charAt(0).toUpperCase() + e.status.slice(1).replace("_", " ")}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <label>
+                      New status
+                      <Select name="status" defaultValue="contacted" required>
+                        <option value="new">New — not contacted yet</option>
+                        <option value="contacted">Contacted — waiting on a decision</option>
+                        <option value="follow_up">Follow up — needs another call</option>
+                        <option value="lost">Lost — not joining</option>
+                      </Select>
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="settings" size={15} />
+                      This only changes the lead's status in your workspace. No
+                      message is sent to them. Converting a lead into a paying
+                      member is done with Convert to member.
+                    </div>
+                  </>
+                ) : modal === "Log follow-up" ? (
+                  <>
+                    <label>
+                      Enquiry
+                      <Select name="enquiry" required>
+                        <option value="">Select an enquiry…</option>
+                        {enquiryList
+                          .filter((e) => e.status !== "converted")
+                          .map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.name} · {e.phone}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Follow-up date
+                      <Input type="date" name="date" required />
+                    </label>
+                    <label>
+                      Notes
+                      <textarea name="notes" placeholder="What was discussed, and the next step" />
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="check" size={15} />
+                      Saved against the enquiry and marked as follow-up. No
+                      message is sent to the lead.
+                    </div>
+                  </>
+                ) : modal === "Edit plan" ? (
+                  <>
+                    <label>
+                      Plan name
+                      <Input
+                        name="name"
+                        required
+                        defaultValue={editPlan?.name}
+                        autoFocus
+                      />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Duration (days)
+                        <Input
+                          name="duration"
+                          type="number"
+                          min="1"
+                          required
+                          defaultValue={editPlan?.duration_days}
+                        />
+                      </label>
+                      <label>
+                        Price (₹)
+                        <Input
+                          name="price"
+                          type="number"
+                          min="0"
+                          step="1"
+                          required
+                          defaultValue={
+                            editPlan ? editPlan.price_minor / 100 : undefined
+                          }
+                        />
+                      </label>
+                    </div>
+                    <label>
+                      Availability
+                      <Select
+                        name="active"
+                        defaultValue={editPlan?.is_active ? "yes" : "no"}
+                      >
+                        <option value="yes">Active — can be sold</option>
+                        <option value="no">Archived — hidden from new sales</option>
+                      </Select>
+                    </label>
+                    <label>
+                      Description
+                      <textarea
+                        name="description"
+                        defaultValue={editPlan?.description ?? ""}
+                        placeholder="What does this plan include?"
+                      />
+                    </label>
+                    <p>
+                      Existing memberships keep their terms. Archiving only stops
+                      new assignments.
+                    </p>
+                  </>
+                ) : modal === "Edit employee" ? (
+                  <>
+                    <label>
+                      Employee
+                      <Select name="staff" required>
+                        <option value="">Select an employee…</option>
+                        {staffList.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} · {s.job_role}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Name
+                        <Input name="name" placeholder="Leave blank to keep" />
+                      </label>
+                      <label>
+                        Phone
+                        <Input name="phone" type="tel" placeholder="Leave blank to keep" />
+                      </label>
+                    </div>
+                    <label>
+                      Email
+                      <Input name="email" type="email" placeholder="Leave blank to keep" />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Role
+                        <Select name="job_role" defaultValue="">
+                          <option value="">Keep current role</option>
+                          <option>Trainer</option>
+                          <option>Front desk</option>
+                          <option>Manager</option>
+                          <option>Cleaner</option>
+                          <option>Other</option>
+                        </Select>
+                      </label>
+                      <label>
+                        Employment
+                        <Select name="status" defaultValue="">
+                          <option value="">Keep current status</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </Select>
+                      </label>
+                    </div>
+                  </>
+                ) : modal === "Change role" ? (
+                  <>
+                    <label>
+                      Team member
+                      <Select name="member" required>
+                        <option value="">Select a team member…</option>
+                        {roster.map((r) => (
+                          <option key={r.user_id} value={r.user_id}>
+                            {r.full_name} · {r.role}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Role
+                      <Select name="role" defaultValue="trainer" required>
+                        <option value="manager">Manager</option>
+                        <option value="trainer">Trainer</option>
+                        <option value="receptionist">Receptionist</option>
+                        <option value="finance">Finance</option>
+                        <option value="owner">Owner</option>
+                      </Select>
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="settings" size={15} />
+                      Only the workspace owner can change roles. The change takes
+                      effect the next time that person signs in.
+                    </div>
+                  </>
+                ) : modal === "Create reminder" ? (
+                  <>
+                    <label>
+                      Title
+                      <Input
+                        name="title"
+                        required
+                        placeholder="e.g. Call Priya about her renewal"
+                        autoFocus
+                      />
+                    </label>
+                    <label>
+                      Detail
+                      <textarea name="body" placeholder="Optional context" />
+                    </label>
+                    <label>
+                      Type
+                      <Select name="type" defaultValue="task">
+                        <option value="task">Task</option>
+                        <option value="info">Info</option>
+                        <option value="warning">Warning</option>
+                        <option value="success">Success</option>
+                      </Select>
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="settings" size={15} />
+                      Saved to your own in-app notifications. No SMS or email is
+                      sent.
+                    </div>
+                  </>
                 ) : module ? (
                   module.columns.map((c, i) => (
                     <label key={c}>
@@ -2347,7 +3140,19 @@ export default function App() {
                                   ? "Check out"
                                   : modal === "Convert enquiry"
                                     ? "Convert to member"
-                                    : "Save changes"}
+                                    : modal === "Update enquiry"
+                                      ? "Update status"
+                                      : modal === "Log follow-up"
+                                        ? "Save follow-up"
+                                        : modal === "Edit plan"
+                                          ? "Save plan"
+                                          : modal === "Edit employee"
+                                            ? "Save employee"
+                                            : modal === "Change role"
+                                              ? "Change role"
+                                              : modal === "Create reminder"
+                                                ? "Create reminder"
+                                                : "Save changes"}
                   </Button>
                 </div>
               </form>

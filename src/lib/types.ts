@@ -187,6 +187,38 @@ export type DashboardStats = {
   upcomingClasses: number;
 };
 
+export type AppNotification = {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  type: "info" | "warning" | "success" | "task";
+  read_at: string | null;
+  created_at: string;
+};
+
+// Returned by the list_org_members RPC (migration 0004). profiles is not
+// readable across users, so the roster has to come from a definer function.
+export type OrgMemberRow = {
+  user_id: string;
+  role: OrgRole;
+  full_name: string;
+  email: string | null;
+};
+
+// One row per calendar month, built from records that actually exist. No
+// projections or sample figures.
+export type ReportMonth = {
+  month: string;
+  label: string;
+  collectedMinor: number;
+  pendingMinor: number;
+  expensesMinor: number;
+  visits: number;
+  newMembers: number;
+};
+
 // ---------------------------------------------------------------------------
 // Formatting helpers shared by the dashboard views
 // ---------------------------------------------------------------------------

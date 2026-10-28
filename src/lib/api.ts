@@ -2,6 +2,7 @@
 // RLS enforces the same scoping server-side as the security boundary.
 import { getSupabase } from "./supabase";
 import type {
+  AppNotification,
   AttendanceRecord,
   DashboardStats,
   Enquiry,
@@ -11,8 +12,11 @@ import type {
   MemberMembership,
   MembershipPlan,
   OrgContext,
+  OrgMemberRow,
+  OrgRole,
   Payment,
   PaymentMethod,
+  ReportMonth,
   StaffMember,
 } from "./types";
 
@@ -158,13 +162,16 @@ export async function updateMember(
 // Membership plans & member memberships
 // ---------------------------------------------------------------------------
 
-export async function listPlans(orgId: string): Promise<MembershipPlan[]> {
-  const { data, error } = await getSupabase()
+export async function listPlans(
+  orgId: string,
+  options: { includeInactive?: boolean } = {},
+): Promise<MembershipPlan[]> {
+  let q = getSupabase()
     .from("membership_plans")
     .select("*")
-    .eq("organization_id", orgId)
-    .eq("is_active", true)
-    .order("name");
+    .eq("organization_id", orgId);
+  if (!options.includeInactive) q = q.eq("is_active", true);
+  const { data, error } = await q.order("name");
   throwIf(error, "Could not load membership plans");
   return (data ?? []) as MembershipPlan[];
 }
@@ -186,6 +193,22 @@ export async function createPlan(
     .single();
   throwIf(error, "Could not create the plan");
   return data as MembershipPlan;
+}
+
+export async function updatePlan(
+  planId: string,
+  patch: Partial<
+    Pick<
+      MembershipPlan,
+      "name" | "description" | "duration_days" | "price_minor" | "is_active"
+    >
+  >,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("membership_plans")
+    .update(patch)
+    .eq("id", planId);
+  throwIf(error, "Could not update the plan");
 }
 
 export async function listMembershipsForMember(
@@ -328,6 +351,27 @@ export async function recordPayment(
   return data as Payment;
 }
 
+// Marks an already-recorded pending payment as received. There is no gateway:
+// staff confirm the money arrived, and this only changes what the workspace says.
+// RLS limits payment updates to owner, manager and finance, so a receptionist
+// gets a policy error rather than a silent no-op — hence the zero-row check.
+export async function settlePayment(
+  paymentId: string,
+  input: { method: PaymentMethod; paid_on?: string },
+): Promise<void> {
+  const { data, error } = await getSupabase()
+    .from("payments")
+    .update({
+      status: "paid",
+      method: input.method,
+      paid_on: input.paid_on || new Date().toISOString().slice(0, 10),
+    })
+    .eq("id", paymentId)
+    .select("id");
+  throwIf(error, "Could not settle the payment");
+  if (!data?.length) throw err("You cannot settle this payment");
+}
+
 // ---------------------------------------------------------------------------
 // Attendance
 // ---------------------------------------------------------------------------
@@ -378,6 +422,23 @@ export async function checkOutMember(attendanceId: string): Promise<void> {
     .update({ check_out: new Date().toISOString() })
     .eq("id", attendanceId);
   throwIf(error, "Could not record the check-out");
+}
+
+// Recent visits for the member drawer. Reads only that member's rows.
+export async function listMemberAttendance(
+  orgId: string,
+  memberId: string,
+  limit = 10,
+): Promise<AttendanceRecord[]> {
+  const { data, error } = await getSupabase()
+    .from("attendance")
+    .select("*")
+    .eq("organization_id", orgId)
+    .eq("member_id", memberId)
+    .order("check_in", { ascending: false })
+    .limit(limit);
+  throwIf(error, "Could not load this member's attendance");
+  return (data ?? []) as AttendanceRecord[];
 }
 
 // ---------------------------------------------------------------------------
@@ -487,6 +548,22 @@ export async function createStaffMember(
 // Classes
 // ---------------------------------------------------------------------------
 
+export async function updateStaffMember(
+  staffId: string,
+  patch: Partial<
+    Pick<
+      StaffMember,
+      "name" | "phone" | "email" | "job_role" | "employment_status"
+    >
+  >,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("staff")
+    .update(patch)
+    .eq("id", staffId);
+  throwIf(error, "Could not update the team member");
+}
+
 export async function listClasses(
   orgId: string,
   options: { upcomingOnly?: boolean } = {},
@@ -578,6 +655,171 @@ export async function createExpense(
     .single();
   throwIf(error, "Could not record the expense");
   return data as Expense;
+}
+
+// ---------------------------------------------------------------------------
+// Team roster & roles
+// ---------------------------------------------------------------------------
+
+// Needs migration 0004: profiles is readable only for your own row, so names
+// have to come from a definer function rather than a join.
+export async function listOrgMembers(orgId: string): Promise<OrgMemberRow[]> {
+  const { data, error } = await getSupabase().rpc("list_org_members", {
+    p_org_id: orgId,
+  });
+  throwIf(error, "Could not load the team roster");
+  return (data ?? []) as OrgMemberRow[];
+}
+
+// RLS allows this for the workspace owner only; everyone else gets a policy error.
+export async function updateOrgMemberRole(
+  orgId: string,
+  userId: string,
+  role: OrgRole,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("organization_members")
+    .update({ role })
+    .eq("organization_id", orgId)
+    .eq("user_id", userId);
+  throwIf(error, "Could not change that role");
+}
+
+// ---------------------------------------------------------------------------
+// In-app reminders (notifications)
+// ---------------------------------------------------------------------------
+
+// Needs the INSERT policy from migration 0004 before anything can be created.
+export async function listNotifications(orgId: string): Promise<AppNotification[]> {
+  const { data, error } = await getSupabase()
+    .from("notifications")
+    .select("*")
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  throwIf(error, "Could not load reminders");
+  return (data ?? []) as AppNotification[];
+}
+
+export async function createNotification(
+  orgId: string,
+  input: {
+    user_id: string;
+    title: string;
+    body?: string;
+    type?: AppNotification["type"];
+  },
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("notifications")
+    .insert({
+      organization_id: orgId,
+      user_id: input.user_id,
+      title: input.title.trim(),
+      body: input.body?.trim() || null,
+      type: input.type ?? "task",
+    });
+  throwIf(error, "Could not create the reminder");
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", id);
+  throwIf(error, "Could not mark the reminder as read");
+}
+
+// ---------------------------------------------------------------------------
+// Monthly reports
+// ---------------------------------------------------------------------------
+
+// Aggregates the last N calendar months from rows that exist. Nothing is
+// projected or estimated: an empty month simply sums to zero.
+export async function loadMonthlyReports(
+  orgId: string,
+  months = 6,
+): Promise<ReportMonth[]> {
+  const supabase = getSupabase();
+  const first = new Date();
+  first.setDate(1);
+  first.setMonth(first.getMonth() - (months - 1));
+  const since = `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, "0")}-01`;
+
+  const [payments, expenses, attendance, members] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("amount_minor, status, paid_on")
+      .eq("organization_id", orgId)
+      .gte("paid_on", since)
+      .limit(10_000),
+    supabase
+      .from("expenses")
+      .select("amount_minor, expense_date")
+      .eq("organization_id", orgId)
+      .gte("expense_date", since)
+      .limit(10_000),
+    supabase
+      .from("attendance")
+      .select("check_in")
+      .eq("organization_id", orgId)
+      .gte("check_in", since)
+      .limit(10_000),
+    supabase
+      .from("members")
+      .select("joined_on")
+      .eq("organization_id", orgId)
+      .gte("joined_on", since)
+      .limit(10_000),
+  ]);
+
+  throwIf(payments.error, "Could not load payment reports");
+  throwIf(expenses.error, "Could not load expense reports");
+  throwIf(attendance.error, "Could not load attendance reports");
+  throwIf(members.error, "Could not load membership reports");
+
+  const buckets: ReportMonth[] = Array.from({ length: months }, (_, i) => {
+    const day = new Date(first);
+    day.setMonth(first.getMonth() + i);
+    return {
+      month: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}`,
+      label: day.toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
+      collectedMinor: 0,
+      pendingMinor: 0,
+      expensesMinor: 0,
+      visits: 0,
+      newMembers: 0,
+    };
+  });
+  const byMonth = new Map(buckets.map((b) => [b.month, b]));
+  const monthOf = (iso: string) => iso.slice(0, 7);
+
+  for (const p of (payments.data ?? []) as {
+    amount_minor: number;
+    status: string;
+    paid_on: string;
+  }[]) {
+    const bucket = byMonth.get(monthOf(p.paid_on));
+    if (!bucket) continue;
+    if (p.status === "paid") bucket.collectedMinor += p.amount_minor;
+    if (p.status === "pending") bucket.pendingMinor += p.amount_minor;
+  }
+  for (const e of (expenses.data ?? []) as {
+    amount_minor: number;
+    expense_date: string;
+  }[]) {
+    const bucket = byMonth.get(monthOf(e.expense_date));
+    if (bucket) bucket.expensesMinor += e.amount_minor;
+  }
+  for (const a of (attendance.data ?? []) as { check_in: string }[]) {
+    const bucket = byMonth.get(monthOf(a.check_in));
+    if (bucket) bucket.visits += 1;
+  }
+  for (const m of (members.data ?? []) as { joined_on: string }[]) {
+    const bucket = byMonth.get(monthOf(m.joined_on));
+    if (bucket) bucket.newMembers += 1;
+  }
+  return buckets;
 }
 
 // ---------------------------------------------------------------------------
