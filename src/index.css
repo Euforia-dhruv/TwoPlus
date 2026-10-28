@@ -5,7 +5,7 @@
 @media(max-width:1150px){main{padding:25px 22px 0}.topbar{padding:0 22px}.sidebar{width:210px}.main-shell{margin-left:210px}.stat{padding:15px}.stats{gap:10px}.stat-label{font-size:10px}.tabs{gap:20px}.table-toolbar{padding:14px}.product-grid{grid-template-columns:repeat(2,1fr)}.community{grid-template-columns:205px 1fr}.chat-header{padding:15px}.chat-header .btn{font-size:9px}.member-app-layout{gap:25px;padding:0;grid-template-columns:1fr 300px}.bottom-note{font-size:8px}.bottom-note button{font-size:8px}}
 @media(max-width:850px){.sidebar{width:220px;transform:translateX(-100%);transition:transform .2s}.sidebar.is-open{transform:translateX(0)}.main-shell{margin-left:0}.mobile-toggle,.mobile-close{display:inline-flex}.mobile-close{margin-left:auto;padding:4px;min-height:23px}.nav-overlay{position:fixed;inset:0;z-index:25;background:#0005}.topbar{height:58px}.page-heading{align-items:flex-start}.eyebrow{font-size:8px}.heading-actions{padding-top:23px}.attention div>span{max-width:370px;line-height:1.6}.community{grid-template-columns:190px 1fr}.plan-card{padding:20px}.plan-price{font-size:26px}.bottom-note{flex-wrap:wrap}.dashboard-grid{grid-template-columns:1.4fr 1fr}}
 @media(max-width:600px){main{padding:24px 15px 0}.topbar{padding:0 15px}.top-actions{gap:12px}.demo-label{font-size:8px}.breadcrumb{gap:8px;font-size:10px}.breadcrumb>svg,.breadcrumb>span:not(.slash){display:none}.page-heading{flex-direction:column;gap:17px;margin-bottom:22px}.page-heading h1{font-size:26px}.heading-actions{padding:0;width:100%;justify-content:flex-end}.stats{grid-template-columns:repeat(2,1fr);gap:10px}.stat>strong{font-size:26px}.stat-label{font-size:10px}.stat>span{font-size:8px}.attention{padding:12px;gap:9px;flex-wrap:wrap;margin-bottom:18px}.attention>div{flex:1}.attention>button{margin-top:4px;margin-right:5px}.attention div>span{font-size:9px}.tabs{overflow:auto;gap:18px;padding:0 13px}.tabs button{font-size:9px}.table-toolbar{flex-wrap:wrap}.search-field{max-width:none}.filter-group{margin-left:auto}.table-footer{font-size:8px;padding:14px}.table-footer>div>span{display:none}.bottom-note{line-height:1.7;text-align:center;margin-bottom:20px}.bottom-note>svg{display:none}.page-footer{font-size:8px;gap:10px}.page-footer button{font-size:8px;white-space:nowrap}.dashboard-grid,.plan-grid,.member-app-layout{grid-template-columns:1fr}.dashboard-grid{gap:15px}.panel{padding:19px}.plan-card{padding:28px}.plan-grid{gap:24px}.community{display:flex;flex-direction:column}.channels{display:flex;overflow:auto;padding:10px;border-right:0;border-bottom:1px solid var(--border);gap:5px}.channels-heading,.channel-section,.channels .channel:nth-last-child(-n+3){display:none}.channel{width:auto;min-width:155px;padding:8px}.channel strong{font-size:10px}.chat-header{padding:14px 10px;gap:8px}.chat-header h2{font-size:13px}.chat-header p{font-size:8px}.chat-header .btn{font-size:8px;padding:7px}.chat-messages{padding:20px 15px}.message{gap:8px}.message p{font-size:10px}.message strong{font-size:10px}.message strong span{font-size:8px;display:block;margin:5px 0}.chat-caption{font-size:8px}.product-grid{gap:10px}.product-visual{height:140px}.product-info{padding:12px}.product-info h2{font-size:11px}.product-info strong{font-size:12px}.product-info .btn{padding:6px;font-size:9px}.product-info .btn svg{display:none}.market-banner{padding:28px}.market-banner h2{font-size:29px}.market-toolbar{gap:15px}.market-toolbar>span{font-size:8px;text-align:right}.member-app-layout{padding:0 10px;gap:20px}.phone-preview{max-width:330px;margin:auto}.modal-body{padding:20px}.modal-heading{padding:20px}.form-row{grid-template-columns:1fr}.toast{right:15px;bottom:15px;font-size:10px}.selection-bar{gap:8px;font-size:9px;flex-wrap:wrap}.selection-bar .btn{font-size:9px}.module-table-heading{padding:18px}.module-table-heading p{font-size:10px;max-width:220px;line-height:1.6}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 
 /* Reference-led glass workspace: warm olive, electric lime, and lavender. */
 .nav-overlay{position:fixed;inset:0}
@@ -153,6 +153,33 @@ tbody tr { transition:background-color .18s ease; }
 tbody tr:hover { background:rgba(255,255,255,.14); }
 .member-cell { transition:transform .18s ease; }
 .member-cell:hover { transform:translateX(2px); }
+
+/* Smooth arrivals for overlays that would otherwise pop in. */
+.modal-overlay {
+  animation:overlay-fade .22s cubic-bezier(.2,.7,.2,1) both;
+}
+.modal,.profile-drawer {
+  animation:panel-arrive .28s cubic-bezier(.2,.7,.2,1) both;
+}
+.account-panel {
+  animation:panel-arrive .2s cubic-bezier(.2,.7,.2,1) both;
+  transform-origin:top right;
+}
+.toast {
+  animation:toast-arrive .3s cubic-bezier(.2,.7,.2,1) both;
+}
+.sidebar {
+  transition:transform .26s cubic-bezier(.2,.7,.2,1);
+}
+@keyframes overlay-fade {
+  from { opacity:0; }
+}
+@keyframes panel-arrive {
+  from { opacity:0; transform:translateY(8px) scale(.98); }
+}
+@keyframes toast-arrive {
+  from { opacity:0; transform:translateY(10px); }
+}
 
 @media(prefers-reduced-motion:reduce) {
   .stat,.summary-card,.micro-metrics>div,.floating-rail button,
