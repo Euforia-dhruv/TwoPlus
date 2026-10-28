@@ -305,7 +305,7 @@ export default function App() {
   useEffect(() => {
     if (!railMore) return
     const close = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest(".rail-more-wrap")) setRailMore(false)
+      if (!(e.target as HTMLElement).closest(".rail-more-wrap,.rail-more-menu")) setRailMore(false)
     }
     document.addEventListener("click", close)
     return () => document.removeEventListener("click", close)
@@ -898,26 +898,27 @@ export default function App() {
             <Icon name="grid" size={19} />
             <span className="rail-label" aria-hidden="true">More</span>
           </button>
-          {railMore && (
-            <div className="rail-more-menu" role="menu">
-              {groups.map(([label, ...items]) => (
-                <div key={label} className="rail-more-group">
-                  <p>{label}</p>
-                  {items.map((item) => (
-                    <button key={item} role="menuitem" className={active === item ? "rail-more-active" : ""} onClick={() => { go(item); setRailMore(false) }}>{item}</button>
-                  ))}
-                </div>
-              ))}
-              <div className="rail-more-group">
-                <p>Extras</p>
-                {["Member app", "Customer support"].map((item) => (
-                  <button key={item} role="menuitem" className={active === item ? "rail-more-active" : ""} onClick={() => { go(item); setRailMore(false) }}>{item}</button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </nav>
+      {/* Rendered outside the rail: the rail's transform makes position:fixed relative to it, which clipped the menu. */}
+      {railMore && (
+        <div className="rail-more-menu" role="menu">
+          {groups.map(([label, ...items]) => (
+            <div key={label} className="rail-more-group">
+              <p>{label}</p>
+              {items.map((item) => (
+                <button key={item} role="menuitem" className={active === item ? "rail-more-active" : ""} onClick={() => { go(item); setRailMore(false) }}>{item}</button>
+              ))}
+            </div>
+          ))}
+          <div className="rail-more-group">
+            <p>Extras</p>
+            {["Member app", "Customer support"].map((item) => (
+              <button key={item} role="menuitem" className={active === item ? "rail-more-active" : ""} onClick={() => { go(item); setRailMore(false) }}>{item}</button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="main-shell">
         <header className="topbar">
           <div className="summary-tabs">{[["Overview", "Gym Summary"], ["Members", "Members"], ["Reports", "Revenue Analysis"], ["Classes & PT", "Class Schedule"]].map(([key, label]) => <button key={key} className={active === key ? "is-selected" : ""} onClick={() => go(key)}>{label}</button>)}</div>
