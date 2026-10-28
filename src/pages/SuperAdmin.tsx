@@ -534,16 +534,16 @@ export default function SuperAdmin() {
         ))}
       </nav>
 
+      <button
+        className="glass-brand"
+        onClick={() => setSection("Overview")}
+        aria-label="TwoPlus platform home"
+      >
+        <Icon name="activity" size={22} />
+        <span>TwoPlus</span>
+      </button>
       <div className="main-shell">
         <header className="topbar">
-          <button
-            className="glass-brand"
-            onClick={() => setSection("Overview")}
-            aria-label="TwoPlus platform home"
-          >
-            <Icon name="activity" size={25} />
-            <span>TwoPlus</span>
-          </button>
           <div className="breadcrumb">
             <Icon name="shield" size={15} />
             <span>Platform</span>
