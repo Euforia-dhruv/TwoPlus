@@ -187,12 +187,12 @@ html[data-theme="lagoon"]{--lime:#3fd6bf;--lavender:#7fc8ff;--ws-tint:linear-gra
 html[data-theme="blush"]{--lime:#ff9ec2;--lavender:#ffc7a8;--ws-tint:linear-gradient(160deg,rgba(253,238,241,.5),rgba(246,219,227,.36) 55%,rgba(235,203,214,.42))}
 html[data-theme="lilac"]{--lime:#bda6ff;--lavender:#9fd0ff;--ws-tint:linear-gradient(160deg,rgba(240,234,251,.5),rgba(226,219,246,.36) 55%,rgba(211,203,233,.42))}
 
-/* Dark mode keeps the photograph but lays a heavy scrim over it, so the page
-   reads as night while the gym backdrop stays recognisable. */
-html[data-mode="dark"]{--foreground:#eef1e6;--muted:#b7c1ae;--border:rgba(255,255,255,.14);--ws-tint:linear-gradient(160deg,rgba(18,23,15,.82),rgba(13,17,11,.86) 55%,rgba(9,12,8,.9))}
-html[data-theme="lagoon"][data-mode="dark"]{--ws-tint:linear-gradient(160deg,rgba(12,32,37,.82),rgba(9,24,29,.86) 55%,rgba(6,18,22,.9))}
-html[data-theme="blush"][data-mode="dark"]{--ws-tint:linear-gradient(160deg,rgba(40,22,29,.82),rgba(30,15,22,.86) 55%,rgba(22,10,16,.9))}
-html[data-theme="lilac"][data-mode="dark"]{--ws-tint:linear-gradient(160deg,rgba(28,22,45,.82),rgba(21,16,36,.86) 55%,rgba(15,11,27,.9))}
+/* Dark mode keeps the photograph clearly visible and only lays a light tint
+   over it. The dark glass shell already carries the contrast for content. */
+html[data-mode="dark"]{--foreground:#eef1e6;--muted:#b7c1ae;--border:rgba(255,255,255,.14);--ws-tint:linear-gradient(160deg,rgba(18,23,15,.34),rgba(13,17,11,.42) 55%,rgba(9,12,8,.5))}
+html[data-theme="lagoon"][data-mode="dark"]{--ws-tint:linear-gradient(160deg,rgba(12,32,37,.34),rgba(9,24,29,.42) 55%,rgba(6,18,22,.5))}
+html[data-theme="blush"][data-mode="dark"]{--ws-tint:linear-gradient(160deg,rgba(40,22,29,.34),rgba(30,15,22,.42) 55%,rgba(22,10,16,.5))}
+html[data-theme="lilac"][data-mode="dark"]{--ws-tint:linear-gradient(160deg,rgba(28,22,45,.34),rgba(21,16,36,.42) 55%,rgba(15,11,27,.5))}
 
 /* A custom photo replaces the bundled backdrop everywhere the theme is used. */
 html[data-image="true"]{--ws-photo:var(--workspace-image)}
@@ -210,7 +210,7 @@ body{
   color:var(--foreground)
 }
 
-html[data-mode="dark"] .main-shell{background:linear-gradient(135deg,rgba(30,36,27,.74),rgba(24,31,22,.6) 52%,rgba(19,25,18,.68));border-color:rgba(255,255,255,.12);color:#eef1e6}
+html[data-mode="dark"] .main-shell{background:linear-gradient(135deg,rgba(30,36,27,.5),rgba(24,31,22,.34) 52%,rgba(19,25,18,.42));border-color:rgba(255,255,255,.12);color:#eef1e6}
 html[data-mode="dark"] .topbar{background:linear-gradient(180deg,rgba(28,34,25,.6),rgba(28,34,25,0));border-color:rgba(255,255,255,.1)}
 html[data-mode="dark"] .glass-brand{color:#f2f5e9}
 html[data-mode="dark"] .summary-tabs button,html[data-mode="dark"] .icon-button{background:rgba(255,255,255,.1);color:#dfe4d6;border-color:rgba(255,255,255,.14)}
