@@ -260,15 +260,16 @@ html[data-mode="dark"] .floating-rail .rail-active{background:rgba(255,255,255,.
 html[data-mode="dark"] .page-heading h1{color:#f5f5f5}
 html[data-mode="dark"] .page-heading .eyebrow,html[data-mode="dark"] .page-heading p{color:#bababa}
 html[data-mode="dark"] .directory,html[data-mode="dark"] .panel,html[data-mode="dark"] .community,html[data-mode="dark"] .stat,html[data-mode="dark"] .micro-metrics>div,html[data-mode="dark"] .summary-card,html[data-mode="dark"] .product{background:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.12));border-color:rgba(255,255,255,.28);color:#f5f5f5;backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);box-shadow:0 12px 32px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(255,255,255,.08)}
-html[data-mode="dark"] .panel-heading p,html[data-mode="dark"] .muted,html[data-mode="dark"] .module-table-heading p{color:#afafaf}
-html[data-mode="dark"] .stat-label,html[data-mode="dark"] .stat-label svg,html[data-mode="dark"] .stat>span{color:#b1b1b1}
+html[data-mode="dark"] .panel-heading p,html[data-mode="dark"] .muted,html[data-mode="dark"] .module-table-heading p{color:#c3c3c3}
+html[data-mode="dark"] .stat-label,html[data-mode="dark"] .stat-label svg,html[data-mode="dark"] .stat>span{color:#c6c6c6}
 html[data-mode="dark"] .stat>strong{color:#f6f6f6}
 html[data-mode="dark"] thead{background:rgba(255,255,255,.06)}
-html[data-mode="dark"] th{color:#b0b0b0;border-color:rgba(255,255,255,.12)}
-html[data-mode="dark"] td{color:#cecece;border-color:rgba(255,255,255,.08)}
-html[data-mode="dark"] .member-cell strong,html[data-mode="dark"] .table-name,html[data-mode="dark"] .plan-label{color:#f0f0f0}
-html[data-mode="dark"] .member-cell small,html[data-mode="dark"] .cell-detail,html[data-mode="dark"] .table-footer,html[data-mode="dark"] .table-footer strong{color:#a7a7a7}
-html[data-mode="dark"] .search-field,html[data-mode="dark"] .btn.secondary,html[data-mode="dark"] .input,html[data-mode="dark"] textarea,html[data-mode="dark"] .tabs button span,html[data-mode="dark"] .badge{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.16);color:#d5d5d5}
+html[data-mode="dark"] th{color:#c9c9c9;border-color:rgba(255,255,255,.12)}
+html[data-mode="dark"] td{color:#d8d8d8;border-color:rgba(255,255,255,.09)}
+html[data-mode="dark"] .member-cell strong,html[data-mode="dark"] .table-name,html[data-mode="dark"] .plan-label{color:#f5f5f5}
+html[data-mode="dark"] .member-cell small,html[data-mode="dark"] .cell-detail,html[data-mode="dark"] .table-footer,html[data-mode="dark"] .table-footer strong{color:#b5b5b5}
+html[data-mode="dark"] .btn.secondary,html[data-mode="dark"] .input,html[data-mode="dark"] textarea,html[data-mode="dark"] .tabs button span,html[data-mode="dark"] .badge{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.24);color:#e8e8e8}
+html[data-mode="dark"] .search-field{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.24);color:#e8e8e8}
 html[data-mode="dark"] .search-field .input{color:#f0f0f0}
 html[data-mode="dark"] .search-field .input::placeholder{color:#9c9c9c}
 html[data-mode="dark"] .search-field kbd{background:rgba(255,255,255,.14);color:#d5d5d5;border-color:rgba(255,255,255,.2)}
@@ -332,3 +333,14 @@ html[data-mode="dark"] .page-footer button,
 html[data-mode="dark"] .summary-view .page-footer,
 html[data-mode="dark"] .summary-view .page-footer>span,
 html[data-mode="dark"] .summary-bottom button{color:#cacaca}
+
+/* Split layout: shell slab invisible, each surface floats on its own over the photo. */
+.main-shell{background:none!important;border-color:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;overflow:visible}
+.main-shell:before{display:none}
+.main-shell .topbar{margin:14px 14px 0;border:1px solid rgba(255,255,255,.55);border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.55),rgba(255,255,255,.35));backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);box-shadow:0 14px 36px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.7)}
+.main-shell main{padding-left:26px;padding-right:26px}
+.stats{gap:16px}
+.dashboard-grid{gap:16px}
+html[data-mode="dark"] .workspace-empty>svg{color:#9a9a9a}
+html[data-mode="dark"] .workspace-empty h2{color:#f5f5f5}
+html[data-mode="dark"] .workspace-empty p{color:#c6c6c6}
