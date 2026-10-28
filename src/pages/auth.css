@@ -7,9 +7,30 @@
    changes with the gym's chosen theme. */
 
 .auth-page {
+  position: relative;
   min-height: 100dvh;
   display: grid;
   grid-template-columns: 1.05fr 1fr;
+  isolation: isolate;
+  /* Photographic canvas. Longhands are deliberate: a multi-layer shorthand
+     fails to size every layer (same reason index.css splits them). */
+  background-color: #1a1a1a;
+  background-image: var(--ws-bg);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* Scrim so the glass has something to sit against and text stays legible
+   over a bright photo. */
+.auth-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(120% 90% at 18% 20%, rgba(12, 12, 13, 0.55), transparent 60%),
+    linear-gradient(180deg, rgba(12, 12, 13, 0.42), rgba(12, 12, 13, 0.62));
 }
 
 .auth-brand {
@@ -104,10 +125,20 @@
 }
 
 .auth-panel {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px 32px;
+  /* Frosted half, so the photo reads as a continuous surface rather than
+     stopping at the brand panel. */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.04)
+  );
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
 }
 
 .auth-card {
@@ -319,6 +350,14 @@ html[data-mode="dark"] .auth-brand {
   color: #f2f2f2;
 }
 
+html[data-mode="dark"] .auth-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(12, 12, 13, 0.72),
+    rgba(12, 12, 13, 0.58)
+  );
+}
+
 html[data-mode="dark"] .auth-card {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
   border-color: rgba(255, 255, 255, 0.16);
@@ -387,16 +426,25 @@ html[data-mode="dark"] .onboarding-steps {
     display: none;
   }
 
+  /* Sits on the photo, not on the light card, so it needs its own glass pill
+     and light text instead of the old charcoal. */
   .auth-mobile-brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 9px;
     justify-content: center;
-    padding: 26px 0 4px;
-    font-size: 17px;
+    margin: 22px auto 2px;
+    padding: 9px 16px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.6px;
-    color: #1f1f1f;
+    color: #f6f7ef;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   }
 
   .auth-mobile-brand svg {
