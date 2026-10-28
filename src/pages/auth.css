@@ -356,7 +356,7 @@
 .auth-alert.success {
   border-color: color-mix(in srgb, var(--lime) 45%, transparent);
   background: color-mix(in srgb, var(--lime) 16%, rgba(255, 255, 255, 0.06));
-  color: #eaf3e2;
+  color: #ebebeb;
 }
 
 .auth-mobile-brand {
