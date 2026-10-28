@@ -289,11 +289,10 @@ const dbModules = [
 ] as const
 const hasDbStorage = (name: string) =>
   (dbModules as readonly string[]).includes(name)
-// Tables that already exist, but whose write/read path needs migration 0004:
-// notifications has no INSERT policy and profiles is own-row only, so the
-// team roster comes from a SECURITY DEFINER function.
-const needsMigration = (name: string) =>
-  name === "Reminders" || name === "Access & roles"
+
+// Read/write path for these tables needs migration 0004 (notifications INSERT
+// policy, roster RPC). Live-probed via the roster fetch, see hasMigration0004.
+const migrationModules = ["Reminders", "Access & roles"]
 
 export default function App() {
   const mainRef = useRef<HTMLElement>(null)
@@ -332,6 +331,14 @@ export default function App() {
   const [enquiryList, setEnquiryList] = useState<Enquiry[]>([])
   const [roster, setRoster] = useState<OrgMemberRow[]>([])
   const [reminders, setReminders] = useState<AppNotification[]>([])
+  // Migration 0004 adds the notifications INSERT policy and the roster RPC.
+  // Detected live: false until a fetch succeeds, so the "needs migration"
+  // banners disappear the moment the database has run 0004.
+  const [hasMigration0004, setHasMigration0004] = useState(false)
+  const needsMigration = (name: string) =>
+    !hasMigration0004 && migrationModules.includes(name)
+  // Reminders and the roster live in the database once 0004 has run.
+  const isSaved = (name: string) => hasDbStorage(name) || (hasMigration0004 && migrationModules.includes(name))
   const [reports, setReports] = useState<ReportMonth[]>([])
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([])
   const [pendingTarget, setPendingTarget] = useState("")
@@ -406,7 +413,10 @@ export default function App() {
         api.listEnquiries(orgId),
         // Roster and reminders need migration 0004; failing soft keeps the rest
         // of the workspace usable on a database that has not run it yet.
-        api.listOrgMembers(orgId).catch(() => []),
+        api.listOrgMembers(orgId).then(
+          (r) => { setHasMigration0004(true); return r },
+          () => [],
+        ),
         api.listNotifications(orgId).catch(() => []),
         api.loadMonthlyReports(orgId, 6),
       ])
@@ -882,7 +892,7 @@ export default function App() {
     "Access & roles": ["owner"],
   }
   const canWrite = !!org && (writeRoles[active]?.includes(org.role) ?? false)
-  const addBlocked = !!module && !hasDbStorage(active) && !needsMigration(active)
+  const addBlocked = !!module && !hasDbStorage(active) && needsMigration(active)
   return (
     <div className={`app ${active === "Overview" ? "summary-view" : ""}`}>
       <button className="glass-brand" onClick={() => go("Overview")} aria-label="TwoPlus home"><Icon name="activity" size={22} /><span>TwoPlus</span></button>
@@ -1448,15 +1458,15 @@ export default function App() {
 
           {module && active !== "Reports" && (
             <>
-              <Stats items={[["Records", String((records[active] || []).length), hasDbStorage(active) ? "Saved to your workspace" : needsMigration(active) ? "Needs migration 0004" : "This session only"]]} />
+              <Stats items={[["Records", String((records[active] || []).length), isSaved(active) ? "Saved to your workspace" : needsMigration(active) ? "Needs migration 0004" : "This session only"]]} />
               {["Payments", "Reminders", "Access & roles"].includes(active) && (
                 <div className="integration-note">
                   <Icon name="settings" size={15} />
                   {active === "Payments"
                     ? "Payments are saved to your workspace. Online gateway collection is not connected — record only payments you have actually received."
                     : active === "Reminders"
-                      ? "Reminders are in-app notifications, visible to whoever they are assigned to. Nothing is sent by SMS, email or push. The table needs migration 0004 to load or save."
-                      : "Roles are enforced by the database. Changing a role takes effect for that person on their next sign-in. The roster needs migration 0004 to load."}
+                      ? "Reminders are in-app notifications, visible to whoever they are assigned to. Nothing is sent by SMS, email or push." + (needsMigration(active) ? " The table needs migration 0004 to load or save." : "")
+                      : "Roles are enforced by the database. Changing a role takes effect for that person on their next sign-in." + (needsMigration(active) ? " The roster needs migration 0004 to load." : "")}
                 </div>
               )}
               <section className="directory">
@@ -1471,7 +1481,7 @@ export default function App() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <Badge>
-                      {hasDbStorage(active)
+                      {isSaved(active)
                         ? "Saved"
                         : needsMigration(active)
                           ? "Needs migration"
@@ -1628,12 +1638,12 @@ export default function App() {
                         ))}
                     </tbody>
                   </table>
-                  {!(records[active] || []).length && <div className="empty">{hasDbStorage(active) ? "No records yet. Use the add button to create your first entry." : needsMigration(active) ? "Run migration 0004 to store this data. Nothing is saved yet." : "This module is not connected to the database yet, so no records can be stored here."}</div>}
+                  {!(records[active] || []).length && <div className="empty">{isSaved(active) ? "No records yet. Use the add button to create your first entry." : needsMigration(active) ? "Run migration 0004 to store this data. Nothing is saved yet." : "This module is not connected to the database yet, so no records can be stored here."}</div>}
                 </div>
                 <div className="table-footer">
                   <span>All records · {branch}</span>
                   <span>
-                    {hasDbStorage(active)
+                    {isSaved(active)
                       ? "Saved to your workspace"
                       : needsMigration(active)
                         ? "Needs migration 0004"
@@ -2136,7 +2146,7 @@ export default function App() {
                     </div>
                   ))}
                 <p className="muted">
-                  {hasDbStorage(active)
+                  {isSaved(active)
                     ? "Saved to your workspace."
                     : needsMigration(active)
                       ? "This table needs migration 0004 before it can store or load rows."
