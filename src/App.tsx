@@ -302,6 +302,14 @@ export default function App() {
   const { role: platformRole } = usePlatformAdmin()
   const [active, setActive] = useState("Overview")
   const [railMore, setRailMore] = useState(false)
+  useEffect(() => {
+    if (!railMore) return
+    const close = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".rail-more-wrap")) setRailMore(false)
+    }
+    document.addEventListener("click", close)
+    return () => document.removeEventListener("click", close)
+  }, [railMore])
   const [members, setMembers] = useState<Member[]>([])
   const [tab, setTab] = useState("All members")
   const [query, setQuery] = useState("")
@@ -886,7 +894,7 @@ export default function App() {
           </button>
         ))}
         <div className="rail-more-wrap">
-          <button aria-label="More sections" aria-expanded={railMore} className={railMore || groups.some(([, ...items]) => items.includes(active)) || ["Member app", "Customer support"].includes(active) ? "rail-active" : ""} onClick={() => setRailMore(!railMore)}>
+          <button aria-label="More sections" aria-expanded={railMore} className={railMore || !railPrimary.includes(active) ? "rail-active" : ""} onClick={() => setRailMore(!railMore)}>
             <Icon name="grid" size={19} />
             <span className="rail-label" aria-hidden="true">More</span>
           </button>
