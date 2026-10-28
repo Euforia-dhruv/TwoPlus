@@ -118,9 +118,22 @@ body:before {
 .micro-metrics>div {
   transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s ease,border-color .24s ease;
 }
+.stat-chip {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:26px;
+  height:26px;
+  border-radius:8px;
+  background:color-mix(in srgb,var(--lime) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--lime) 28%,transparent);
+  color:var(--lime);
+  flex-shrink:0;
+}
+.stat-label { gap:8px; }
 .stat:hover {
   transform:translateY(-3px);
-  border-color:rgba(255,255,255,.72);
+  border-color:color-mix(in srgb,var(--lime) 38%,rgba(255,255,255,.7));
   box-shadow:0 14px 28px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.65);
 }
 .summary-card:hover {

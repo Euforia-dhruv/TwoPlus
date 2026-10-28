@@ -96,19 +96,18 @@ export function Avatar({ name, small }: { name: string; small?: boolean }) {
   );
 }
 
+const STAT_ICONS = ["members", "check", "calendar", "wallet"] as const;
+
 export function Stats({ items }: { items: string[][] }) {
   return (
     <div className="stats">
       {items.map(([label, value, detail], i) => (
         <section key={label} className="stat">
           <div className="stat-label">
+            <span className="stat-chip">
+              <Icon name={STAT_ICONS[i % 4]} size={14} />
+            </span>
             {label}
-            <Icon
-              name={
-                (["members", "check", "calendar", "wallet"] as const)[i % 4]
-              }
-              size={16}
-            />
           </div>
           <strong>{value}</strong>
           <span>

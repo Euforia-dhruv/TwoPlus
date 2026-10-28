@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import gsap from "gsap";
 import { Icon, type IconName } from "@/icons";
 import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit";
 import { useAuth } from "@/lib/auth";
@@ -266,6 +267,68 @@ export default function SuperAdmin() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  // Entrance choreography on every section switch — same recipe as the
+  // gym workspace: heading, stat cards, panels, then table rows.
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const motion = gsap.matchMedia(main);
+    motion.add("(prefers-reduced-motion: no-preference)", () => {
+      const heading = main.querySelector<HTMLElement>(".page-heading");
+      const statCards = gsap.utils.toArray<HTMLElement>(".stats > .stat", main);
+      const sections = gsap.utils.toArray<HTMLElement>(
+        ".panel, .directory, .attention, .integration-note",
+        main,
+      );
+      const rows = gsap.utils.toArray<HTMLElement>(".directory tbody tr", main);
+      const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      if (heading) {
+        timeline.fromTo(
+          heading,
+          { autoAlpha: 0, y: 14 },
+          { autoAlpha: 1, y: 0, duration: 0.4, clearProps: "opacity,visibility,transform" },
+          0,
+        );
+      }
+      if (statCards.length) {
+        timeline.fromTo(
+          statCards,
+          { autoAlpha: 0, y: 16, scale: 0.98 },
+          {
+            autoAlpha: 1, y: 0, scale: 1, duration: 0.42, stagger: 0.07,
+            clearProps: "opacity,visibility,transform",
+          },
+          0.08,
+        );
+      }
+      if (sections.length) {
+        timeline.fromTo(
+          sections,
+          { autoAlpha: 0, y: 16 },
+          {
+            autoAlpha: 1, y: 0, duration: 0.45, stagger: 0.08,
+            clearProps: "opacity,visibility,transform",
+          },
+          statCards.length ? 0.2 : 0.1,
+        );
+      }
+      if (rows.length) {
+        timeline.fromTo(
+          rows,
+          { autoAlpha: 0, y: 8 },
+          {
+            autoAlpha: 1, y: 0, duration: 0.28, stagger: 0.035,
+            clearProps: "opacity,visibility,transform",
+          },
+          0.35,
+        );
+      }
+    });
+    return () => motion.revert();
+  }, [section]);
+
   async function runAction(action: () => Promise<unknown>, message: string) {
     setError("");
     setBusy(true);
@@ -504,7 +567,7 @@ export default function SuperAdmin() {
           </div>
         </header>
 
-        <main>
+        <main ref={mainRef}>
           <div className="page-heading">
             <div>
               <div className="eyebrow">
