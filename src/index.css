@@ -210,7 +210,7 @@ body{
   color:var(--foreground)
 }
 
-html[data-mode="dark"] .main-shell{background:linear-gradient(135deg,rgba(30,36,27,.5),rgba(24,31,22,.34) 52%,rgba(19,25,18,.42));border-color:rgba(255,255,255,.12);color:#eef1e6}
+html[data-mode="dark"] .main-shell{background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06));border-color:rgba(255,255,255,.16);color:#eef1e6}
 html[data-mode="dark"] .topbar{background:linear-gradient(180deg,rgba(28,34,25,.6),rgba(28,34,25,0));border-color:rgba(255,255,255,.1)}
 html[data-mode="dark"] .glass-brand{color:#f2f5e9}
 html[data-mode="dark"] .summary-tabs button,html[data-mode="dark"] .icon-button{background:rgba(255,255,255,.1);color:#dfe4d6;border-color:rgba(255,255,255,.14)}
