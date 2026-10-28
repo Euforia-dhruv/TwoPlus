@@ -518,7 +518,6 @@ export default function SuperAdmin() {
         {sections.map((item) => (
           <button
             key={item.key}
-            title={item.key}
             aria-label={item.key}
             aria-current={section === item.key ? "page" : undefined}
             className={section === item.key ? "rail-active" : ""}
@@ -530,6 +529,7 @@ export default function SuperAdmin() {
             }}
           >
             <Icon name={item.icon} size={19} />
+            <span className="rail-label" aria-hidden="true">{item.title}</span>
           </button>
         ))}
       </nav>

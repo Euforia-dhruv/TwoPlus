@@ -877,7 +877,7 @@ export default function App() {
     <div className={`app ${active === "Overview" ? "summary-view" : ""}`}>
       <nav className="floating-rail compact-module-rail" aria-label="Main navigation">
         {[...groups.flatMap(([, ...items]) => items), "Member app", "Customer support"].map((item) => (
-          <button key={item} title={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
+          <button key={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
             <Icon name={navigationIcons[item as keyof typeof navigationIcons]} size={19} />
             <span className="rail-label" aria-hidden="true">{item}</span>
           </button>
