@@ -15,6 +15,8 @@
 
 -- The subquery reads organization_members, whose own "orgmember read" policy
 -- already allows the caller's row and, for owners and managers, the whole gym.
+-- re-run safe: drop the policy first in case a previous run already created it
+drop policy if exists "notifications insert own or managed" on public.notifications;
 create policy "notifications insert own or managed" on public.notifications
   for insert
   with check (
