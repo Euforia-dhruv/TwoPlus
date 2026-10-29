@@ -899,18 +899,29 @@ export default function App() {
   const addBlocked = !!module && !hasDbStorage(active) && needsMigration(active)
   return (
     <div className={`app ${active === "Overview" ? "summary-view" : ""}`}>
-      <button className="glass-brand" onClick={() => go("Overview")} aria-label="TwoPlus home"><Icon name="activity" size={22} /><span>TwoPlus</span></button>
       <nav className="floating-rail compact-module-rail" aria-label="Main navigation">
-        {railPrimary.map((item) => (
-          <button key={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
-            <Icon name={navigationIcons[item as keyof typeof navigationIcons]} size={19} />
-            <span className="rail-label" aria-hidden="true">{item}</span>
-          </button>
-        ))}
-        <div className="rail-more-wrap">
-          <button aria-label="More sections" aria-expanded={railMore} className={railMore || !railPrimary.includes(active) ? "rail-active" : ""} onClick={() => setRailMore(!railMore)}>
-            <Icon name="grid" size={19} />
-            <span className="rail-label" aria-hidden="true">More</span>
+        <button className="glass-brand" onClick={() => go("Overview")} aria-label="TwoPlus home">
+          <Icon name="activity" size={20} />
+          <span className="rail-label" aria-hidden="true">TwoPlus</span>
+        </button>
+        <div className="rail-primary">
+          {railPrimary.map((item) => (
+            <button key={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
+              <Icon name={navigationIcons[item as keyof typeof navigationIcons]} size={19} />
+              <span className="rail-label" aria-hidden="true">{item}</span>
+            </button>
+          ))}
+          <div className="rail-more-wrap">
+            <button aria-label="More sections" aria-expanded={railMore} className={railMore || !railPrimary.includes(active) ? "rail-active" : ""} onClick={() => setRailMore(!railMore)}>
+              <Icon name="grid" size={19} />
+              <span className="rail-label" aria-hidden="true">More</span>
+            </button>
+          </div>
+        </div>
+        <div className="rail-foot">
+          <button aria-label="Settings" aria-current={active === "Settings" ? "page" : undefined} className={active === "Settings" ? "rail-active" : ""} onClick={() => go("Settings")}>
+            <Icon name="settings" size={19} />
+            <span className="rail-label" aria-hidden="true">Settings</span>
           </button>
         </div>
       </nav>
