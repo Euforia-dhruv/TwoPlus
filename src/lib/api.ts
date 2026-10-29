@@ -97,6 +97,7 @@ export async function createMember(
     emergency_contact_phone?: string;
     joined_on?: string;
     member_code?: string;
+    photo_url?: string;
   },
 ): Promise<Member> {
   const supabase = getSupabase();
@@ -117,6 +118,8 @@ export async function createMember(
       emergency_contact_name: input.emergency_contact_name || null,
       emergency_contact_phone: input.emergency_contact_phone || null,
       joined_on: input.joined_on || new Date().toISOString().slice(0, 10),
+      // Omitted unless set, so workspaces without migration 0005 keep working.
+      ...(input.photo_url?.trim() ? { photo_url: input.photo_url.trim() } : {}),
     })
     .select("*")
     .single();
@@ -148,12 +151,16 @@ export async function saveOrganizationTheme(
 export async function updateMember(
   memberId: string,
   patch: Partial<
-    Pick<Member, "first_name" | "last_name" | "email" | "phone" | "status" | "notes" | "date_of_birth">
+    Pick<Member, "first_name" | "last_name" | "email" | "phone" | "status" | "notes" | "date_of_birth" | "photo_url">
   >,
 ): Promise<void> {
+  // An empty photo is dropped rather than written as null, so a workspace
+  // without migration 0005 can still edit every other field.
+  const { photo_url, ...rest } = patch;
+  const body = photo_url ? { ...rest, photo_url } : rest;
   const { error } = await getSupabase()
     .from("members")
-    .update(patch)
+    .update(body)
     .eq("id", memberId);
   throwIf(error, "Could not update the member");
 }

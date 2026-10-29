@@ -475,3 +475,89 @@ html[data-mode="light"] .board-empty,html:not([data-mode]) .board-empty{border-c
 @media(max-width:1100px){.board{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}.board-hero{min-height:380px;padding:22px}.board-hero h2{font-size:31px}.board-hero-stats{padding:12px}.board-hero-stats strong{font-size:20px}.board-row{grid-template-columns:30px minmax(0,1fr) 88px 78px;gap:8px}.board-row-cell:last-of-type,.board-spark{display:none}}
 @media(max-width:840px){.board{grid-template-columns:1fr}.board-hero{min-height:360px}.board-side{flex-direction:row}.board-side>.board-card{flex:1}.board-row{grid-template-columns:28px minmax(0,1fr) auto;gap:8px}.board-row-cell{display:none}}
 @media(max-width:600px){.board-hero{min-height:330px;padding:18px;background-position:center 22%}.board-hero h2{font-size:27px}.board-hero-sub{font-size:11px}.board-hero-stats{flex-wrap:wrap;gap:10px;padding:12px 14px}.board-hero-stats>div{flex:1 1 40%;border-right:0;padding:0}.board-hero-stats strong{font-size:18px}.board-round{width:34px;height:34px}.board-side{flex-direction:column}.board-table{padding:16px 14px 6px}.board-card-head{flex-wrap:wrap}}
+
+/* Members: photo-card grid. Cards share the board's glass language. */
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;padding:2px 0 6px}
+.member-card{position:relative;display:flex;flex-direction:column;border-radius:20px;border:1px solid rgba(255,255,255,.16);background:linear-gradient(160deg,rgba(255,255,255,.13),rgba(255,255,255,.05));backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);box-shadow:0 16px 42px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.16);overflow:hidden;transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s,border-color .22s}
+.member-card:hover{transform:translateY(-3px);box-shadow:0 24px 54px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2);border-color:rgba(255,255,255,.26)}
+.member-card.is-selected{border-color:var(--lime);box-shadow:0 0 0 1px var(--lime),0 20px 46px rgba(0,0,0,.28)}
+.member-card-open{display:flex;flex-direction:column;flex:1;text-align:left;cursor:pointer;border:0;background:none;padding:0;color:inherit}
+.member-card-open:focus-visible{outline:2px solid var(--lime);outline-offset:-3px}
+
+/* Photo plate: real photo when the gym has one, initials otherwise. */
+.member-card-photo{position:relative;aspect-ratio:16/10;background:rgba(255,255,255,.06);overflow:hidden}
+.member-card-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+.member-card:hover .member-card-photo img{transform:scale(1.045)}
+.member-card-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:650;letter-spacing:-1px;color:rgba(255,255,255,.9)}
+.member-card-fallback.tone-0{background:linear-gradient(150deg,#4a5c3a,#2c3626)}
+.member-card-fallback.tone-1{background:linear-gradient(150deg,#3f4a56,#242a31)}
+.member-card-fallback.tone-2{background:linear-gradient(150deg,#57493a,#2f2820)}
+.member-card-fallback.tone-3{background:linear-gradient(150deg,#4b3f52,#282130)}
+.member-card-fallback.tone-4{background:linear-gradient(150deg,#3a4f4c,#212d2b)}
+.member-card-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 42%,rgba(0,0,0,.55) 100%);pointer-events:none}
+.member-card-photo .badge{position:absolute;top:10px;left:10px;z-index:2;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+
+.member-card-body{display:flex;flex-direction:column;gap:2px;padding:14px 14px 4px;min-width:0}
+.member-card-body strong{font-size:14px;font-weight:600;letter-spacing:-.2px;color:#f7f7f2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-card-body small{font-size:10.5px;color:rgba(255,255,255,.52);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-card-rows{display:flex;flex-direction:column;gap:5px;margin-top:11px}
+.member-card-rows span{display:flex;align-items:center;gap:7px;font-size:10.5px;color:rgba(255,255,255,.62);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-card-rows svg{flex:none;opacity:.62}
+.member-card-rows .is-overdue{color:#ff9d8f}
+.member-card-rows .is-due{color:var(--lime)}
+
+.member-card-actions{display:flex;align-items:center;gap:6px;padding:10px 12px 12px;margin-top:auto}
+.member-card-action{flex:1;padding:8px 10px;border-radius:11px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#eeeee7;font-size:10.5px;font-weight:550;transition:background .16s,border-color .16s}
+.member-card-action:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.26)}
+.member-card-icon{width:30px;height:30px;flex:none;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);font-size:12px;line-height:1;display:grid;place-items:center;letter-spacing:1px}
+.member-card-icon:hover{background:rgba(255,255,255,.15);color:#fff}
+.member-card-check{width:15px;height:15px;flex:none;margin:0 2px 0 0;accent-color:var(--lime);cursor:pointer}
+
+.member-card-backdrop{position:fixed;inset:0;z-index:60}
+.member-card-menu{position:absolute;right:12px;bottom:54px;z-index:61;display:flex;flex-direction:column;gap:2px;min-width:168px;padding:7px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(150deg,rgba(32,32,32,.92),rgba(24,24,24,.88));backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);box-shadow:0 20px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14);animation:panel-arrive .16s cubic-bezier(.2,.7,.2,1) both}
+.member-card-menu button{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;color:#e8e8e2;font-size:11.5px;text-align:left;transition:background .14s}
+.member-card-menu button:hover{background:rgba(255,255,255,.12)}
+.member-card-menu svg{opacity:.66}
+
+.grid-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 2px 12px;font-size:10.5px;color:rgba(255,255,255,.55)}
+.grid-select-all{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.grid-select-all input{width:14px;height:14px;accent-color:var(--lime);cursor:pointer}
+.grid-count{font-variant-numeric:tabular-nums}
+.member-grid-empty{flex-direction:column;gap:14px;padding:56px 24px;text-align:center;border-radius:20px;border:1px dashed rgba(255,255,255,.16);background:rgba(255,255,255,.03);margin-bottom:8px}
+.empty-mark{display:grid;place-items:center;width:46px;height:46px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);font-size:19px;color:rgba(255,255,255,.62)}
+.member-grid-empty p{font-size:12px;color:rgba(255,255,255,.6);max-width:320px}
+
+/* Skeletons: quiet placeholders while members load. */
+.member-card.is-skeleton{pointer-events:none}
+.member-card.is-skeleton .member-card-photo{background:rgba(255,255,255,.07);animation:skeleton-pulse 1.4s ease-in-out infinite}
+.skeleton-line{display:block;height:9px;border-radius:5px;background:rgba(255,255,255,.09);animation:skeleton-pulse 1.4s ease-in-out infinite}
+.skeleton-line.wide{width:68%;height:12px;margin-bottom:8px}
+.skeleton-line.short{width:42%;margin-top:8px}
+@keyframes skeleton-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+html[data-mode="light"] .member-card,html:not([data-mode]) .member-card{border-color:rgba(255,255,255,.85);background:linear-gradient(160deg,rgba(255,255,255,.92),rgba(255,255,255,.74));box-shadow:0 16px 40px rgba(90,96,80,.14),inset 0 1px 0 #fff}
+html[data-mode="light"] .member-card:hover,html:not([data-mode]) .member-card:hover{box-shadow:0 24px 52px rgba(90,96,80,.2),inset 0 1px 0 #fff}
+html[data-mode="light"] .member-card-fallback,html:not([data-mode]) .member-card-fallback{color:#fff}
+html[data-mode="light"] .member-card-scrim,html:not([data-mode]) .member-card-scrim{background:linear-gradient(180deg,rgba(0,0,0,.16) 0%,transparent 40%,rgba(0,0,0,.34) 100%)}
+html[data-mode="light"] .member-card-body strong,html:not([data-mode]) .member-card-body strong{color:#232323}
+html[data-mode="light"] .member-card-body small,html:not([data-mode]) .member-card-body small{color:#8d9288}
+html[data-mode="light"] .member-card-rows span,html:not([data-mode]) .member-card-rows span{color:#767b70}
+html[data-mode="light"] .member-card-rows .is-overdue,html:not([data-mode]) .member-card-rows .is-overdue{color:#c2452f}
+html[data-mode="light"] .member-card-rows .is-due,html:not([data-mode]) .member-card-rows .is-due{color:#5c6b1f}
+html[data-mode="light"] .member-card-action,html:not([data-mode]) .member-card-action{border-color:rgba(0,0,0,.1);background:rgba(255,255,255,.78);color:#3b3b3b}
+html[data-mode="light"] .member-card-action:hover,html:not([data-mode]) .member-card-action:hover{background:#fff;border-color:rgba(0,0,0,.18)}
+html[data-mode="light"] .member-card-icon,html:not([data-mode]) .member-card-icon{border-color:rgba(0,0,0,.1);background:rgba(255,255,255,.7);color:#6a6a6a}
+html[data-mode="light"] .member-card-icon:hover,html:not([data-mode]) .member-card-icon:hover{background:#fff;color:#2a2a2a}
+html[data-mode="light"] .member-card-menu,html:not([data-mode]) .member-card-menu{border-color:rgba(255,255,255,.85);background:linear-gradient(150deg,rgba(255,255,255,.97),rgba(255,255,255,.9));box-shadow:0 20px 44px rgba(0,0,0,.16),inset 0 1px 0 #fff}
+html[data-mode="light"] .member-card-menu button,html:not([data-mode]) .member-card-menu button{color:#333}
+html[data-mode="light"] .member-card-menu button:hover,html:not([data-mode]) .member-card-menu button:hover{background:rgba(0,0,0,.06)}
+html[data-mode="light"] .grid-bar,html:not([data-mode]) .grid-bar{color:#7d8278}
+html[data-mode="light"] .member-grid-empty,html:not([data-mode]) .member-grid-empty{border-color:rgba(0,0,0,.12);background:rgba(255,255,255,.5)}
+html[data-mode="light"] .empty-mark,html:not([data-mode]) .empty-mark{border-color:rgba(0,0,0,.1);background:rgba(0,0,0,.04);color:#8b9086}
+html[data-mode="light"] .member-grid-empty p,html:not([data-mode]) .member-grid-empty p{color:#7d8278}
+html[data-mode="light"] .member-card.is-skeleton .member-card-photo,html:not([data-mode]) .member-card.is-skeleton .member-card-photo,
+html[data-mode="light"] .skeleton-line,html:not([data-mode]) .skeleton-line{background:rgba(0,0,0,.07)}
+
+@media(max-width:1100px){.member-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}}
+@media(max-width:600px){.member-grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}.member-card-photo{aspect-ratio:1/1}.member-card-fallback{font-size:24px}.member-card-body{padding:11px 11px 2px}.member-card-body strong{font-size:12.5px}.member-card-body small{font-size:9.5px}.member-card-rows span{font-size:9px}.member-card-rows{gap:4px;margin-top:8px}.member-card-actions{padding:8px}.member-card-action{font-size:9.5px;padding:7px 6px}.member-card-icon{width:27px;height:27px}.grid-bar{font-size:9.5px}}
+@media(prefers-reduced-motion:reduce){.member-card,.member-card-photo img{transition:none}.member-card:hover{transform:none}.member-card.is-skeleton .member-card-photo,.skeleton-line{animation:none}}

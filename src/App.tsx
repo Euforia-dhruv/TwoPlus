@@ -3,6 +3,7 @@ import gsap from "gsap"
 import { Icon, type IconName } from "./icons"
 import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit"
 import { SummaryBoard } from "@/components/SummaryBoard"
+import { MemberCard, MemberCardSkeleton } from "@/components/MemberCard"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
 import { usePlatformAdmin } from "@/lib/use-platform-admin"
@@ -127,6 +128,7 @@ type Member = {
   trainer: string
   memberId?: string
   membershipId?: string
+  photo?: string
 }
 
 type Module = {
@@ -473,6 +475,7 @@ export default function App() {
           trainer: row.trainer_id ? (staffMap[row.trainer_id] ?? "Unassigned") : "Unassigned",
           memberId: row.id,
           membershipId: ms?.id,
+          photo: row.photo_url ?? undefined,
         }
       })
       setMembers(rows)
@@ -1213,119 +1216,58 @@ export default function App() {
                     </Button>
                   </div>
                 )}
-                <div className="table-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>
-                          <input
-                            type="checkbox"
-                            aria-label="Select all members"
-                            checked={
-                              filtered.length > 0 &&
-                              filtered.every((m) => selected.includes(m.name))
-                            }
-                            onChange={(e) =>
-                              setSelected(
-                                e.target.checked
-                                  ? filtered.map((m) => m.name)
-                                  : [],
-                              )
-                            }
-                          />
-                        </th>
-                        <th>
-                          Member <span className="sort">↓</span>
-                        </th>
-                        <th>Membership</th>
-                        <th>Status</th>
-                        <th>Expiry date</th>
-                        <th>Pending dues</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paged.map((m) => (
-                        <tr key={m.memberId ?? m.email}>
-                          <td>
-                            <input
-                              type="checkbox"
-                              aria-label={`Select ${m.name}`}
-                              checked={selected.includes(m.name)}
-                              onChange={(e) =>
-                                setSelected(
-                                  e.target.checked
-                                    ? [...selected, m.name]
-                                    : selected.filter((n) => n !== m.name),
+                {!loadingData && !dbError && paged.length > 0 && (
+                  <div className="grid-bar">
+                    <label className="grid-select-all">
+                      <input
+                        type="checkbox"
+                        checked={
+                          paged.length > 0 &&
+                          paged.every((m) => selected.includes(m.name))
+                        }
+                        onChange={(e) =>
+                          setSelected(
+                            e.target.checked
+                              ? Array.from(
+                                  new Set([...selected, ...paged.map((m) => m.name)]),
                                 )
-                              }
-                            />
-                          </td>
-                          <td>
-                            <button
-                              className="member-cell"
-                              onClick={() => setProfile(m)}
-                            >
-                              <Avatar name={m.name} />
-                              <span>
-                                <strong>{m.name}</strong>
-                                <small>{m.email}</small>
-                              </span>
-                            </button>
-                          </td>
-                          <td>
-                            <span className="plan-label">
-                              {m.plan}
-                            </span>
-
-                          </td>
-                          <td>
-                            <Badge>{m.status}</Badge>
-                          </td>
-                          <td
-                            className={
-                              m.status === "Expired" ? "expired-date" : ""
-                            }
-                          >
-                            {m.expires}
-                            <small className="cell-detail">
-                              {m.status === "Expiring soon"
-                                ? "Renewal coming up"
-                                : m.status === "Expired"
-                                  ? "Renewal overdue"
-                                  : ""}
-                            </small>
-                          </td>
-                          <td
-                            className={m.due !== "₹0" ? "due-amount" : "muted"}
-                          >
-                            {m.due}
-                          </td>
-                          <td>
-                            <button
-                              className="row-more"
-                              aria-label={`Open ${m.name} details`}
-                              onClick={() => setProfile(m)}
-                            >
-                              ···
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {loadingData ? (
-                    <div className="empty">Loading members…</div>
-                  ) : dbError ? (
-                    <div className="empty">
-                      {dbError}
-                      <Button secondary onClick={() => reload()}>
-                        Retry
-                      </Button>
-                    </div>
-                  ) : !filtered.length && (
-                    <div className="empty">
-                      {members.length ? "No members match your filters." : "No members yet. Add your first member to get started."}
+                              : selected.filter(
+                                  (n) => !paged.some((m) => m.name === n),
+                                ),
+                          )
+                        }
+                      />
+                      Select this page
+                    </label>
+                    <span className="grid-count">
+                      {paged.length} member{paged.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                )}
+                {loadingData ? (
+                  <div className="member-grid" aria-busy="true">
+                    {Array.from({ length: 8 }, (_, i) => (
+                      <MemberCardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : dbError ? (
+                  <div className="empty member-grid-empty">
+                    <p>{dbError}</p>
+                    <Button secondary onClick={() => reload()}>
+                      Retry
+                    </Button>
+                  </div>
+                ) : !filtered.length ? (
+                  <div className="empty member-grid-empty">
+                    <span className="empty-mark" aria-hidden="true">
+                      {members.length ? "∅" : "+"}
+                    </span>
+                    <p>
+                      {members.length
+                        ? "No members match your filters."
+                        : "No members yet. Add your first member to get started."}
+                    </p>
+                    {members.length ? (
                       <Button
                         secondary
                         onClick={() => {
@@ -1336,9 +1278,43 @@ export default function App() {
                       >
                         Clear filters
                       </Button>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <Button onClick={() => setModal("Add member")}>
+                        Add your first member
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="member-grid">
+                    {paged.map((m) => (
+                      <MemberCard
+                        key={m.memberId ?? m.email}
+                        member={m}
+                        selected={selected.includes(m.name)}
+                        onSelect={(name) =>
+                          setSelected((prev) =>
+                            prev.includes(name)
+                              ? prev.filter((n) => n !== name)
+                              : [...prev, name],
+                          )
+                        }
+                        onOpen={setProfile}
+                        onEdit={(member) => {
+                          setProfile(member)
+                          setModal("Edit member")
+                        }}
+                        onArchive={(member) => {
+                          setProfile(member)
+                          setModal(
+                            member.status === "Archived"
+                              ? "Restore member"
+                              : "Archive member",
+                          )
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="table-footer">
                   <span>
                     Showing{" "}
@@ -2163,6 +2139,7 @@ export default function App() {
                         phone: String(data.get("phone") || ""),
                         date_of_birth: String(data.get("dob") || "") || undefined,
                         joined_on: String(data.get("joined") || "") || undefined,
+                        photo_url: String(data.get("photo") || "").trim() || undefined,
                       })
                       if (chosen) {
                         const start = String(data.get("joined") || "") ||
@@ -2315,6 +2292,7 @@ export default function App() {
                         email: String(data.get("email") || "") || null,
                         phone: String(data.get("phone") || ""),
                         date_of_birth: String(data.get("dob") || "") || null,
+                        photo_url: String(data.get("photo") || "").trim() || null,
                       })
                       setModal("")
                       setProfile(null)
@@ -2539,6 +2517,14 @@ export default function App() {
                       </Select>
                     </label>
                     <div className="form-row"><label>Start date<Input type="date" name="joined" required defaultValue={new Date().toISOString().slice(0,10)} /></label><label>Expiry date<Input type="date" name="expires" required /></label></div>
+                    <label>
+                      Profile photo URL (optional)
+                      <Input
+                        name="photo"
+                        type="url"
+                        placeholder="https://…"
+                      />
+                    </label>
                   </>
                 ) : modal === "Renew membership" ? (
                   <>
@@ -2812,6 +2798,15 @@ export default function App() {
                     <label>
                       Date of birth
                       <Input type="date" name="dob" />
+                    </label>
+                    <label>
+                      Profile photo URL (optional)
+                      <Input
+                        name="photo"
+                        type="url"
+                        defaultValue={profile?.photo}
+                        placeholder="https://…"
+                      />
                     </label>
                     <p>
                       Plan changes are handled through renewals. This edits

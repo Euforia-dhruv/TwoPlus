@@ -76,6 +76,8 @@ export type Member = {
   status: MemberStatus;
   notes: string | null;
   joined_on: string;
+  /** Absent until migration 0005 is applied. */
+  photo_url?: string | null;
 };
 
 export type MembershipStatus =
