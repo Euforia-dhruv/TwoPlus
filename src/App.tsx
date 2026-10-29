@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { Icon, type IconName } from "./icons"
 import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit"
+import { SummaryBoard } from "@/components/SummaryBoard"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
 import { usePlatformAdmin } from "@/lib/use-platform-admin"
@@ -1036,33 +1037,16 @@ export default function App() {
             </div>
           )}
         <main ref={mainRef}>
-          {active === "Overview" && <><div className="page-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Gym Summary</h1><p>{stats ? "Live figures from your workspace." : loadingData ? "Loading your workspace…" : "Your business overview will fill in as you add records."}</p></div><Button onClick={() => setModal("Add member")}><Icon name="plus" size={15} />Add member</Button></div><Stats items={[["Members", stats ? String(stats.totalMembers) : "—", stats ? `${stats.activeMembers} active` : "Loading"], ["Active memberships", stats ? String(stats.activeMemberships) : "—", stats ? `${stats.expiringSoon} expiring within 7 days` : "Loading"], ["Recorded payments", stats ? formatMoney(stats.monthCollectionsMinor, org?.organization.currency) : "—", "Collected this month"], ["Enquiries", stats ? String(stats.newEnquiries) : "—", "Received this month"]]} />{stats && (stats.totalMembers > 0 || stats.attendanceToday > 0 || stats.monthCollectionsMinor > 0) ? (
-              <section className="panel">
-                <div className="panel-heading">
-                  <div>
-                    <Title>Needs attention today</Title>
-                    <p className="muted">Live counts from your workspace. Nothing here is estimated.</p>
-                  </div>
-                  <Badge>{stats.expiringSoon || stats.expiredMemberships ? "Follow up" : "All clear"}</Badge>
-                </div>
-                {[
-                  ["Memberships expiring within 7 days", String(stats.expiringSoon)],
-                  ["Expired memberships", String(stats.expiredMemberships)],
-                  ["Pending payments", formatMoney(stats.pendingPaymentsMinor, org?.organization.currency)],
-                  ["Check-ins today", String(stats.attendanceToday)],
-                  ["Classes coming up", String(stats.upcomingClasses)],
-                  ["New enquiries this month", String(stats.newEnquiries)],
-                ].map(([label, value]) => (
-                  <div className="detail-line" key={label}>
-                    <span>{label}</span>
-                    <strong>{value}</strong>
-                  </div>
-                ))}
-                <Button secondary onClick={() => go("Members")}>Open member directory <Icon name="arrow" size={15} /></Button>
-              </section>
-            ) : (
-              <section className="panel workspace-empty"><Icon name="dashboard" size={32} /><Title>No activity to report yet</Title><p>Add your first member to start tracking revenue, attendance and growth. No sample figures are shown.</p><Button secondary onClick={() => setModal("Add member")}>Add your first member <Icon name="arrow" size={15} /></Button></section>
-            )}</>}
+          {active === "Overview" && <SummaryBoard
+            stats={stats}
+            reports={reports}
+            currency={org?.organization.currency ?? "INR"}
+            members={members}
+            loading={loadingData}
+            onAddMember={() => setModal("Add member")}
+            onOpenMembers={() => go("Members")}
+            onOpenPayments={() => go("Payments")}
+          />}
 
           <div className="page-heading" hidden={active === "Overview"}>
             <div>
