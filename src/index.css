@@ -871,3 +871,89 @@ html[data-mode="light"] .table-footer{background:rgba(15,30,34,.015)}
   .filter-group select{flex:1;min-width:0}
   .grid-bar{padding:10px 12px 0}
 }
+
+/* ============================================================ theme 2 === */
+/* Classic solid surfaces: the look before the glass restyle. Theme 1 (glass)
+   is the default and needs no rules of its own. Both share tokens, layout and
+   components; only the surface treatment diverges. */
+
+.theme-swatch.style-glass{background:linear-gradient(150deg,rgba(255,255,255,.72),rgba(54,214,192,.35) 55%,rgba(11,16,18,.75))}
+.theme-swatch.style-classic{background:linear-gradient(150deg,#151C20,#1C252A 55%,#0B1012)}
+
+html[data-style="classic"] body:before{
+  background:radial-gradient(1100px 640px at 78% -8%,rgba(54,214,192,.09),transparent 62%),linear-gradient(180deg,rgba(11,16,18,.88),rgba(11,16,18,.93) 55%,rgba(11,16,18,.97));
+}
+html[data-style="classic"] .floating-rail,html[data-style="classic"] .floating-rail.compact-module-rail{
+  background:rgba(17,23,26,.86)!important;border-color:var(--hairline)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(150%)!important;box-shadow:0 12px 34px rgba(0,0,0,.4)!important;
+  backdrop-filter:blur(14px) saturate(150%)!important;
+}
+html[data-style="classic"] .main-shell .topbar{
+  background:rgba(21,28,32,.9)!important;border-color:var(--hairline)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(140%)!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.05)!important;
+  backdrop-filter:blur(14px) saturate(140%)!important;
+}
+html[data-style="classic"] .main-shell .icon-button{
+  background:var(--surface-2)!important;border-color:var(--hairline)!important;
+}
+html[data-style="classic"] .main-shell .icon-button:hover{background:var(--surface-3)!important}
+html[data-style="classic"] .stat{
+  border-color:var(--hairline)!important;background-color:var(--surface)!important;background-image:none!important;
+  box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-style="classic"] .stat:hover{border-color:var(--hairline-2)!important;background-color:var(--surface-2)!important;background-image:none!important}
+html[data-style="classic"] .directory{
+  border-color:var(--hairline)!important;background-color:var(--surface)!important;background-image:none!important;
+  box-shadow:0 14px 40px rgba(0,0,0,.26)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-style="classic"] .search-field{
+  border-color:var(--hairline-2)!important;background-color:var(--surface-2)!important;background-image:none!important;
+  box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-style="classic"] .member-card{
+  border-color:var(--hairline)!important;background-color:var(--surface-2)!important;background-image:none!important;
+  box-shadow:0 10px 26px rgba(0,0,0,.22)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+
+/* Classic + light. The extra attribute keeps these ahead of the light-mode
+   glass rules above without editing them. */
+html[data-style="classic"][data-mode="light"] body:before{
+  background:radial-gradient(1100px 640px at 78% -8%,rgba(54,214,192,.1),transparent 62%),linear-gradient(180deg,rgba(237,240,239,.9),rgba(237,240,239,.95) 55%,rgba(237,240,239,.98));
+}
+html[data-style="classic"][data-mode="light"] .floating-rail,
+html[data-style="classic"][data-mode="light"] .floating-rail.compact-module-rail{
+  background:rgba(255,255,255,.9)!important;border-color:var(--hairline)!important;
+  -webkit-backdrop-filter:none!important;box-shadow:0 12px 30px rgba(20,40,44,.12)!important;
+  backdrop-filter:none!important;
+}
+html[data-style="classic"][data-mode="light"] .main-shell .topbar{
+  background:rgba(255,255,255,.92)!important;border-color:var(--hairline)!important;
+  -webkit-backdrop-filter:none!important;box-shadow:0 8px 24px rgba(20,40,44,.08),inset 0 1px 0 #fff!important;
+  backdrop-filter:none!important;
+}
+html[data-style="classic"][data-mode="light"] .main-shell .icon-button{
+  background:var(--surface-2)!important;border-color:var(--hairline)!important;color:#5D6B70!important;
+}
+html[data-style="classic"][data-mode="light"] .stat{
+  background:#fff!important;border-color:var(--hairline)!important;box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-style="classic"][data-mode="light"] .stat:hover{
+  background-color:var(--surface-2)!important;background-image:none!important;border-color:var(--hairline-2)!important;
+}
+html[data-style="classic"][data-mode="light"] .directory{
+  background:#fff!important;border-color:var(--hairline)!important;
+  -webkit-backdrop-filter:none!important;box-shadow:0 12px 32px rgba(20,40,44,.09)!important;
+  backdrop-filter:none!important;
+}
+html[data-style="classic"][data-mode="light"] .search-field,
+html[data-style="classic"][data-mode="light"] .filter-group select{
+  background-color:var(--surface-2)!important;background-image:none!important;border-color:var(--hairline-2)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-style="classic"][data-mode="light"] .member-card{
+  background:#fff!important;border-color:var(--hairline)!important;
+  -webkit-backdrop-filter:none!important;box-shadow:0 8px 22px rgba(20,40,44,.08)!important;
+  backdrop-filter:none!important;
+}

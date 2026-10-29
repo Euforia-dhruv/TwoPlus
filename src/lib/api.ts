@@ -131,17 +131,39 @@ export async function createMember(
 // for owners; staff get a silent 0-row update, which we surface as an error.
 export async function saveOrganizationTheme(
   orgId: string,
-  theme: { preset: string; mode: string; image: string | null },
+  theme: { preset: string; mode: string; style: string; image: string | null },
 ): Promise<void> {
-  const { data, error } = await getSupabase()
-    .from("organizations")
-    .update({
-      theme_preset: theme.preset,
-      theme_mode: theme.mode,
-      theme_image: theme.image,
-    })
-    .eq("id", orgId)
-    .select("id");
+  const base = {
+    preset: theme.preset,
+    mode: theme.mode,
+    image: theme.image,
+  }
+  const write = (withStyle: boolean) =>
+    getSupabase()
+      .from("organizations")
+      .update(
+        withStyle
+          ? {
+              theme_preset: base.preset,
+              theme_mode: base.mode,
+              theme_style: theme.style,
+              theme_image: base.image,
+            }
+          : {
+              theme_preset: base.preset,
+              theme_mode: base.mode,
+              theme_image: base.image,
+            },
+      )
+      .eq("id", orgId)
+      .select("id");
+
+  let { data, error } = await write(true);
+  // 0006 adds theme_style. Until it is applied the column is absent, and the
+  // rest of the appearance should still save rather than failing outright.
+  if (error?.code === "PGRST204" || error?.code === "42703") {
+    ({ data, error } = await write(false));
+  }
   throwIf(error, "Could not save the workspace appearance");
   if (!data || data.length === 0) {
     throw err("Only the workspace owner can change its appearance.");

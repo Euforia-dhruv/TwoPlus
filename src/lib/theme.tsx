@@ -4,12 +4,26 @@
 
 export type ThemePreset = "sage" | "lagoon" | "blush" | "lilac";
 export type ThemeMode = "light" | "dark";
+// Visual language. "glass" is the frosted liquid-glass look; "classic" is the
+// solid premium surfaces that came before it. Both share the same layout,
+// tokens and components — only the surface treatment changes.
+export type ThemeStyle = "glass" | "classic";
 
 export type WorkspaceTheme = {
   preset: ThemePreset;
   mode: ThemeMode;
+  style: ThemeStyle;
   image: string | null;
 };
+
+export const THEME_STYLES: Array<{
+  id: ThemeStyle;
+  label: string;
+  hint: string;
+}> = [
+  { id: "glass", label: "Theme 1", hint: "Liquid glass" },
+  { id: "classic", label: "Theme 2", hint: "Classic solid" },
+];
 
 export const THEME_PRESETS: Array<{
   id: ThemePreset;
@@ -25,6 +39,7 @@ export const THEME_PRESETS: Array<{
 export const DEFAULT_THEME: WorkspaceTheme = {
   preset: "sage",
   mode: "light",
+  style: "glass",
   image: null,
 };
 
@@ -51,6 +66,7 @@ export function applyTheme(theme: WorkspaceTheme) {
   // the page backdrop, so a custom photo keeps the chosen colour scheme.
   root.dataset.theme = theme.preset;
   root.dataset.mode = theme.mode;
+  root.dataset.style = theme.style;
   root.dataset.image = image ? "true" : "false";
   if (image) {
     root.style.setProperty("--workspace-image", `url("${image}")`);
@@ -63,6 +79,7 @@ export function applyTheme(theme: WorkspaceTheme) {
 export function themeFromOrg(org: {
   theme_preset?: string | null;
   theme_mode?: string | null;
+  theme_style?: string | null;
   theme_image?: string | null;
 }): WorkspaceTheme {
   const preset = THEME_PRESETS.some((p) => p.id === org.theme_preset)
@@ -71,6 +88,7 @@ export function themeFromOrg(org: {
   return {
     preset,
     mode: org.theme_mode === "dark" ? "dark" : "light",
+    style: org.theme_style === "classic" ? "classic" : "glass",
     image: safeImageUrl(org.theme_image),
   };
 }

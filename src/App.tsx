@@ -10,6 +10,7 @@ import { usePlatformAdmin } from "@/lib/use-platform-admin"
 import {
   DEFAULT_THEME,
   THEME_PRESETS,
+  THEME_STYLES,
   applyTheme,
   safeImageUrl,
   themeFromOrg,
@@ -563,6 +564,7 @@ export default function App() {
       await api.saveOrganizationTheme(org.organization.id, {
         preset: theme.preset,
         mode: theme.mode,
+        style: theme.style,
         image: theme.image,
       })
       reloadOrg()
@@ -1648,7 +1650,31 @@ export default function App() {
                 </div>
 
                 <div className="theme-preview" aria-hidden="true">
-                  {theme.preset} · {theme.mode}
+                  {theme.style} · {theme.preset} · {theme.mode}
+                </div>
+
+                <div className="theme-grid" role="group" aria-label="Visual theme">
+                  {THEME_STYLES.map((style) => (
+                    <button
+                      key={style.id}
+                      type="button"
+                      disabled={!isOwner}
+                      title={
+                        isOwner
+                          ? undefined
+                          : "Only the workspace owner can change the appearance"
+                      }
+                      aria-pressed={theme.style === style.id}
+                      className={`theme-option ${
+                        theme.style === style.id ? "selected" : ""
+                      }`}
+                      onClick={() => updateTheme({ style: style.id })}
+                    >
+                      <span className={`theme-swatch style-${style.id}`} />
+                      <strong>{style.label}</strong>
+                      <small>{style.hint}</small>
+                    </button>
+                  ))}
                 </div>
 
                 <div className="theme-grid" role="group" aria-label="Colour preset">
