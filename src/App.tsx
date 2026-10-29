@@ -1298,15 +1298,15 @@ export default function App() {
                               : [...prev, name],
                           )
                         }
-                        onOpen={setProfile}
-                        onEdit={(member) => {
-                          setProfile(member)
+                        onOpen={() => setProfile(m)}
+                        onEdit={() => {
+                          setProfile(m)
                           setModal("Edit member")
                         }}
-                        onArchive={(member) => {
-                          setProfile(member)
+                        onArchive={() => {
+                          setProfile(m)
                           setModal(
-                            member.status === "Archived"
+                            m.status === "Archived"
                               ? "Restore member"
                               : "Archive member",
                           )

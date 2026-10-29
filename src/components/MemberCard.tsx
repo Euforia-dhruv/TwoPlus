@@ -190,5 +190,3 @@ export function MemberCardSkeleton() {
     </div>
   );
 }
-
-export { STATUS_TONE };
