@@ -935,12 +935,14 @@ export default function App() {
       )}
       <div className="main-shell">
         <header className="topbar">
-          <div className="summary-tabs">{[["Overview", "Gym Summary"], ["Members", "Members"], ["Reports", "Revenue Analysis"], ["Classes & PT", "Class Schedule"]].map(([key, label]) => <button key={key} className={active === key ? "is-selected" : ""} onClick={() => go(key)}>{label}</button>)}</div>
-          <div className="breadcrumb">
-            <Icon name="shop" size={15} />
-            <span>Workspace</span>
-            <span className="slash">/</span>
-            <strong>{active}</strong>
+          <div className="topbar-context">
+            <span className="context-icon" aria-hidden="true">
+              <Icon name="shop" size={16} />
+            </span>
+            <span className="context-text">
+              <strong>{org?.organization.name ?? "Workspace"}</strong>
+              <small>{active}</small>
+            </span>
           </div>
           <div className="top-actions">
             <span className="demo-label">{org?.role ?? "Owner"}</span>
@@ -1056,7 +1058,7 @@ export default function App() {
               <div className="eyebrow">
                 {(org?.organization.name ?? "YOUR GYM").toUpperCase()} <span>/</span> {branch.toUpperCase()}
               </div>
-              <h1>{active === "Members" ? "Your members" : active}</h1>
+              <h1>{active === "Members" ? "Members" : active}</h1>
               <p>
                 {descriptions[active] ||
                   module?.sub ||
