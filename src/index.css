@@ -957,3 +957,92 @@ html[data-style="classic"][data-mode="light"] .member-card{
   -webkit-backdrop-filter:none!important;box-shadow:0 8px 22px rgba(20,40,44,.08)!important;
   backdrop-filter:none!important;
 }
+
+/* ================================================ theme 2: layout ===== */
+/* The floating glass pill rail becomes
+   a docked full-height sidebar with visible labels, and the floating topbar
+   becomes a flush header. Same DOM, same components, same routes. */
+
+html[data-style="classic"] .app{padding:0 26px 34px 268px}
+
+html[data-style="classic"] .floating-rail,
+html[data-style="classic"] .floating-rail.compact-module-rail{
+  top:0;left:0;bottom:0;transform:none;width:244px;height:auto;max-height:none;
+  padding:16px 12px 18px;gap:2px;border-radius:0;
+  align-items:stretch;
+  border:0!important;border-right:1px solid var(--hairline)!important;
+  box-shadow:1px 0 0 rgba(255,255,255,.03)!important;
+}
+html[data-style="classic"] .floating-rail button{
+  width:100%;height:38px;border-radius:9px;
+  display:flex;align-items:center;justify-content:flex-start;gap:11px;
+  padding:0 11px;font-size:12.5px;font-weight:500;
+}
+html[data-style="classic"] .floating-rail button:hover{transform:none;box-shadow:none}
+html[data-style="classic"] .rail-primary,
+html[data-style="classic"] .rail-foot{flex-direction:column;align-items:stretch;gap:2px}
+html[data-style="classic"] .rail-foot{
+  margin-top:auto;padding-top:12px;border-top:1px solid var(--hairline);
+}
+/* Labels are permanent captions here, so suppress the hover tooltip bubble. */
+html[data-style="classic"] .floating-rail button>.rail-label{
+  position:static;transform:none;opacity:1;padding:0;background:none;
+  color:inherit;font-size:12.5px;font-weight:500;pointer-events:auto;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+html[data-style="classic"] .floating-rail button:hover>.rail-label{transform:none}
+/* Brand: wordmark next to the icon instead of a lone glyph. */
+html[data-style="classic"] .floating-rail .glass-brand{
+  width:100%;height:44px;margin:0 0 14px;padding:0 11px;border-radius:9px;
+  display:flex;align-items:center;justify-content:flex-start;gap:11px;
+}
+html[data-style="classic"] .floating-rail .glass-brand .rail-label{
+  display:inline;font-size:14.5px;font-weight:700;letter-spacing:-.4px;
+}
+
+/* Light mode: the accent teal is too light for 12.5px labels on white, so the
+   docked sidebar keeps the app's normal text colours and tints only the active
+   row. Glass mode is unaffected. */
+html[data-style="classic"][data-mode="light"] .floating-rail button{color:#5D6B70}
+html[data-style="classic"][data-mode="light"] .floating-rail button:hover{color:#131A1D;background:rgba(15,30,34,.06)}
+html[data-style="classic"][data-mode="light"] .floating-rail .rail-active,
+html[data-style="classic"][data-mode="light"] .floating-rail .rail-active:hover{
+  color:#0E7A6C;background:rgba(54,214,192,.14);
+}
+html[data-style="classic"][data-mode="light"] .floating-rail .glass-brand{color:#0E7A6C!important}
+
+/* Flush header: no pill, no rounding, sits on the page edge. */
+html[data-style="classic"] .main-shell .topbar{
+  margin:0 0 22px!important;height:64px;min-height:64px;
+  border-radius:0!important;border-left:0!important;border-right:0!important;border-top:0!important;
+  padding:0 2px;
+}
+/* The More popover is fixed at left:78px for the 64px pill. Dock it beside the
+   244px sidebar instead, or it renders underneath the rail. */
+html[data-style="classic"] .rail-more-menu{left:256px}
+
+@media(max-width:1000px){
+  html[data-style="classic"] .app{padding:0 20px 30px 92px}
+  html[data-style="classic"] .floating-rail,
+  html[data-style="classic"] .floating-rail.compact-module-rail{width:72px;padding:14px 8px 16px}
+  html[data-style="classic"] .rail-more-menu{left:80px}
+  html[data-style="classic"] .floating-rail button{height:42px;justify-content:center;padding:0;gap:0}
+  html[data-style="classic"] .floating-rail button>.rail-label{display:none}
+  html[data-style="classic"] .floating-rail .glass-brand{height:44px;justify-content:center;padding:0;margin-bottom:12px}
+  html[data-style="classic"] .floating-rail .glass-brand .rail-label{display:none}
+}
+@media(max-width:600px){
+  /* Back to a bottom bar, same as Theme 1. */
+  html[data-style="classic"] .app{padding:0 12px 92px}
+  html[data-style="classic"] .main-shell .topbar{height:auto;min-height:58px;padding:10px 0}
+  html[data-style="classic"] .floating-rail,
+  html[data-style="classic"] .floating-rail.compact-module-rail{
+    top:auto;left:50%;bottom:12px;transform:translateX(-50%);
+    width:auto;height:auto;max-height:none;padding:7px 9px;gap:2px;border-radius:16px;
+    border:1px solid var(--hairline)!important;
+  }
+  html[data-style="classic"] .rail-primary{flex-direction:row;gap:2px}
+  html[data-style="classic"] .rail-foot,
+  html[data-style="classic"] .floating-rail .glass-brand{display:none!important}
+  html[data-style="classic"] .floating-rail button{width:42px;height:42px;justify-content:center;padding:0}
+}
