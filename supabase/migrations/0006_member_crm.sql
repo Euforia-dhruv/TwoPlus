@@ -12,11 +12,29 @@
 
 -- ---------------------------------------------------------------------------
 -- Theme style: 0003 shipped the glass look as the only look. Theme 2 keeps the
--- previous solid surfaces available per workspace.
+-- previous solid surfaces, Theme 3 is the flat signal console. Both are per
+-- workspace.
 -- ---------------------------------------------------------------------------
 alter table public.organizations
-  add column if not exists theme_style text not null default 'glass'
-  check (theme_style in ('glass','classic'));
+  add column if not exists theme_style text not null default 'glass';
+
+-- Every look the registry ships, so the check is replaced by name rather than
+-- relying on the unnamed inline constraint from the original column add.
+-- Keep this list in step with THEME_STYLES in src/lib/theme.tsx: a style missing
+-- here applies in the browser and then fails to save.
+alter table public.organizations
+  drop constraint if exists organizations_theme_style_check;
+
+alter table public.organizations
+  add constraint organizations_theme_style_check
+  check (theme_style in (
+    'glass','classic','clay','ethereal',
+    'cybercore','neon','cyberpunk','pixel','y2k',
+    'brutal','maximal','surreal','scrapbook',
+    'dispatch','luxury','swiss','minimal','bento','ledger','sketch',
+    'bohemian','victorian','wabi',
+    'signal','console','pocket'
+  ));
 
 -- ---------------------------------------------------------------------------
 -- Tenancy anchors

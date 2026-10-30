@@ -4,18 +4,17 @@ import { Icon, type IconName } from "./icons"
 import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit"
 import { SummaryBoard } from "@/components/SummaryBoard"
 import { MemberCard, MemberCardSkeleton } from "@/components/MemberCard"
+import { DesignStudio } from "@/pages/Studio"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
 import { usePlatformAdmin } from "@/lib/use-platform-admin"
 import {
   DEFAULT_THEME,
-  THEME_PRESETS,
   THEME_STYLES,
   applyTheme,
   safeImageUrl,
   themeFromOrg,
   type ThemeMode,
-  type ThemePreset,
   type WorkspaceTheme,
 } from "@/lib/theme"
 import * as api from "@/lib/api"
@@ -73,6 +72,7 @@ const groups = [
     "Branches",
     "Access & roles",
     "Settings",
+    "Design Studio",
   ],
 ]
 const railPrimary = ["Overview", "Members", "Memberships", "Attendance", "Classes & PT", "Payments"]
@@ -101,6 +101,7 @@ const navigationIcons = {
   Branches: "building",
   "Access & roles": "shield",
   Settings: "settings",
+  "Design Studio": "grid",
   "Member app": "mobile",
   "Customer support": "headset",
 } as const satisfies Record<string, IconName>
@@ -115,6 +116,7 @@ const descriptions: Record<string, string> = {
   Payroll: "Stay on top of salaries, commissions, and incentives.",
   Marketplace: "Equip your next chapter. Sourced for gym owners.",
   Settings: "Make this workspace feel like your gym, not a template.",
+  "Design Studio": "Every design language, rendered with the real components.",
 }
 type Member = {
   name: string
@@ -1650,7 +1652,7 @@ export default function App() {
                 </div>
 
                 <div className="theme-preview" aria-hidden="true">
-                  {theme.style} · {theme.preset} · {theme.mode}
+                  {theme.style} · {theme.mode}
                 </div>
 
                 <div className="theme-grid" role="group" aria-label="Visual theme">
@@ -1670,35 +1672,19 @@ export default function App() {
                       }`}
                       onClick={() => updateTheme({ style: style.id })}
                     >
-                      <span className={`theme-swatch style-${style.id}`} />
-                      <strong>{style.label}</strong>
+                      <span
+                        className={`theme-swatch style-${style.id}`}
+                        style={
+                          {
+                            "--sw-accent":
+                              style.accent[theme.mode === "dark" ? 0 : 1],
+                            "--sw-canvas":
+                              style.canvas[theme.mode === "dark" ? 0 : 1],
+                          } as React.CSSProperties
+                        }
+                      />
+                      <strong>{style.name}</strong>
                       <small>{style.hint}</small>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="theme-grid" role="group" aria-label="Colour preset">
-                  {THEME_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      disabled={!isOwner}
-                      title={
-                        isOwner
-                          ? undefined
-                          : "Only the workspace owner can change the appearance"
-                      }
-                      aria-pressed={theme.preset === preset.id}
-                      className={`theme-option ${
-                        theme.preset === preset.id ? "selected" : ""
-                      }`}
-                      onClick={() =>
-                        updateTheme({ preset: preset.id as ThemePreset })
-                      }
-                    >
-                      <span className={`theme-swatch ${preset.id}`} />
-                      <strong>{preset.label}</strong>
-                      <small>{preset.hint}</small>
                     </button>
                   ))}
                 </div>
@@ -1836,6 +1822,16 @@ export default function App() {
                 </span>
               </div>
             </>
+          )}
+
+          {active === "Design Studio" && (
+            <DesignStudio
+              current={theme.style}
+              mode={theme.mode}
+              isOwner={isOwner}
+              onApply={(style) => updateTheme({ style })}
+              onMode={(mode) => updateTheme({ mode })}
+            />
           )}
 
           <footer className="page-footer">

@@ -6,7 +6,7 @@
 
    Themes are token sets, not parallel stylesheets:
      html[data-style="glass"]    translucent frosted surfaces + floating rail
-     html[data-style="classic"]  opaque surfaces + docked rail, square corners
+     html:is([data-style="classic"],[data-style="signal"])  opaque surfaces + docked rail, square corners
    Modes (data-mode) and presets (data-theme) only swap colour values.
    ========================================================================= */
 
@@ -85,6 +85,10 @@ table {
 :root {
   --font-sans: "Inter", "Inter var", system-ui, -apple-system, "Segoe UI",
     sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono",
+    Menlo, Consolas, monospace;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
 
   --radius-sm: 10px;
   --radius: 14px;
@@ -140,6 +144,13 @@ table {
   --shell-bg: rgba(255, 255, 255, 0.05);
 
   --ws-photo: url("https://images.unsplash.com/photo-1671970922029-0430d2ae122c?auto=format&fit=crop&w=2400&q=85");
+  --hero-image: linear-gradient(
+      105deg,
+      rgba(12, 12, 14, 0.94) 10%,
+      rgba(22, 18, 16, 0.74) 46%,
+      rgba(22, 18, 16, 0.22) 80%
+    ),
+    url("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=80");
   --ws-tint: linear-gradient(
     165deg,
     rgba(9, 14, 16, 0.62),
@@ -190,6 +201,11 @@ html[data-mode="light"] {
   --field-hover: rgba(255, 255, 255, 0.92);
 
   --focus: #0e7a6c;
+  /* Status colours are text on light surfaces, so they need the darker step:
+     the bright dark-mode values sit near 1.8:1 on white. */
+  --ok: #0f7b4d;
+  --warn: #8a5a00;
+  --err: #b42318;
   --rail-bg: rgba(255, 255, 255, 0.62);
   --topbar-bg: rgba(255, 255, 255, 0.66);
   --shell-bg: rgba(255, 255, 255, 0.24);
@@ -202,24 +218,15 @@ html[data-mode="light"] {
   );
 }
 
-/* Theme 2: opaque surfaces, square corners, docked rail with visible labels. */
-html[data-style="classic"] {
-  --rail-w: 244px;
-  --rail-radius: 0;
-  --rail-top: 0;
-  --rail-height: 100dvh;
-  --rail-transform: none;
-  --rail-inset: 0;
-  --shell-pad-left: 268px;
-  --topbar-radius: 0;
-  --topbar-h: 64px;
-  --label-display: inline;
+/* Theme 2 (neumorphism) and Theme 3 (signal) both use the docked shell, whose
+   geometry lives in "3b. Layout shells". Only their material differs. */
+html:is([data-style="classic"],[data-style="signal"]) {
   --shell-bg: transparent;
   --blur-card: 0px;
   --blur-shell: 0px;
 }
 
-html[data-style="classic"][data-mode="dark"] {
+html:is([data-style="classic"],[data-style="signal"])[data-mode="dark"] {
   --card: #151c20;
   --card-solid: #151c20;
   --card-hover: #1c252a;
@@ -230,7 +237,7 @@ html[data-style="classic"][data-mode="dark"] {
   --field-hover: #232e34;
 }
 
-html[data-style="classic"][data-mode="light"] {
+html:is([data-style="classic"],[data-style="signal"])[data-mode="light"] {
   --card: #ffffff;
   --card-solid: #ffffff;
   --card-hover: #f7f9f8;
@@ -277,7 +284,7 @@ body::before {
     );
 }
 
-html[data-style="classic"] body::before {
+html:is([data-style="classic"],[data-style="signal"]) body::before {
   display: none;
 }
 
@@ -288,6 +295,19 @@ html[data-style="classic"] body::before {
   z-index: 1;
   min-height: 100dvh;
   padding: 18px 24px 32px var(--shell-pad-left);
+}
+
+/* Shell geometry is driven by data-layout, so a new theme only declares which
+   shell it wants instead of re-deriving the rail offsets. */
+html[data-layout="strip"],
+html[data-layout="index"],
+html[data-layout="tabs"],
+html[data-layout="clay"] {
+  --shell-pad-left: 24px;
+}
+
+html[data-layout="tabs"] .app {
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }
 
 .main-shell {
@@ -301,11 +321,11 @@ html[data-style="classic"] body::before {
   -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(150%);
 }
 
-html[data-style="classic"] .app {
+html:is([data-style="classic"],[data-style="signal"]) .app {
   padding: 0 26px 34px var(--shell-pad-left);
 }
 
-html[data-style="classic"] .main-shell {
+html:is([data-style="classic"],[data-style="signal"]) .main-shell {
   min-height: calc(100dvh - 64px);
   border-color: transparent;
   background: transparent;
@@ -344,7 +364,7 @@ html[data-style="classic"] .main-shell {
   overflow: visible;
 }
 
-html[data-style="classic"] .floating-rail {
+html:is([data-style="classic"],[data-style="signal"]) .floating-rail {
   --rail-top: 0;
   --rail-bottom: 0;
   --rail-left: 0;
@@ -373,7 +393,7 @@ html[data-style="classic"] .floating-rail {
   background: var(--card-hover);
 }
 
-html[data-style="classic"] .glass-brand {
+html:is([data-style="classic"],[data-style="signal"]) .glass-brand {
   justify-content: flex-start;
   gap: 10px;
   width: 100%;
@@ -382,7 +402,7 @@ html[data-style="classic"] .glass-brand {
   color: var(--text);
 }
 
-html[data-style="classic"] .glass-brand svg {
+html:is([data-style="classic"],[data-style="signal"]) .glass-brand svg {
   color: var(--lime);
   flex: none;
 }
@@ -395,7 +415,7 @@ html[data-style="classic"] .glass-brand svg {
   min-height: 0;
 }
 
-html[data-style="classic"] .rail-primary {
+html:is([data-style="classic"],[data-style="signal"]) .rail-primary {
   align-items: stretch;
   gap: 2px;
   margin-top: 14px;
@@ -413,7 +433,7 @@ html[data-style="classic"] .rail-primary {
   width: 100%;
 }
 
-html[data-style="classic"] .rail-foot {
+html:is([data-style="classic"],[data-style="signal"]) .rail-foot {
   align-items: stretch;
   gap: 2px;
   padding-top: 12px;
@@ -449,7 +469,7 @@ html[data-mode="light"] .floating-rail .rail-active {
   color: var(--on-accent);
 }
 
-html[data-style="classic"] .floating-rail button {
+html:is([data-style="classic"],[data-style="signal"]) .floating-rail button {
   justify-content: flex-start;
   gap: 11px;
   width: 100%;
@@ -460,12 +480,12 @@ html[data-style="classic"] .floating-rail button {
   font-weight: 500;
 }
 
-html[data-style="classic"] .floating-rail .rail-active {
+html:is([data-style="classic"],[data-style="signal"]) .floating-rail .rail-active {
   background: color-mix(in srgb, var(--lime) 16%, transparent);
   color: var(--text);
 }
 
-html[data-style="classic"] .floating-rail .rail-active svg {
+html:is([data-style="classic"],[data-style="signal"]) .floating-rail .rail-active svg {
   color: var(--lime);
 }
 
@@ -525,7 +545,7 @@ html[data-style="glass"] .floating-rail button:focus-visible .rail-label {
   box-shadow: 0 26px 60px rgba(0, 0, 0, 0.4);
 }
 
-html[data-style="classic"] .rail-more-menu {
+html:is([data-style="classic"],[data-style="signal"]) .rail-more-menu {
   left: 256px;
 }
 
@@ -582,7 +602,7 @@ html[data-style="classic"] .rail-more-menu {
   box-shadow: var(--inset-hi);
 }
 
-html[data-style="classic"] .topbar {
+html:is([data-style="classic"],[data-style="signal"]) .topbar {
   position: sticky;
   top: 0;
   border-bottom: 1px solid var(--hairline);
@@ -1114,7 +1134,10 @@ select.input {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1 1 260px;
+  /* Basis auto, not 260px: inside a column flex parent a px basis becomes a
+     height, which stretched this into a 260px-tall capsule in Settings. */
+  flex: 1 1 auto;
+  min-width: 260px;
   max-width: 420px;
   min-height: 40px;
   padding: 0 10px 0 12px;
@@ -1316,8 +1339,8 @@ tbody tr:last-child td {
 .row-more {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   color: var(--text-2);
   font-size: 14px;
@@ -1348,7 +1371,8 @@ tbody tr:last-child td {
 }
 
 .table-footer .btn {
-  min-height: 32px;
+  min-height: 36px;
+  min-width: 36px;
   padding: 0 10px;
   font-size: 12px;
 }
@@ -1641,7 +1665,9 @@ html[data-mode="light"] .badge.red {
   pointer-events: none;
 }
 
-.member-card-photo .badge {
+/* The chip sits on the photo and stays dark in both modes, so its label is
+   always white. html[data-mode] outranks the light-mode badge overrides. */
+html[data-mode] .member-card-photo .badge {
   position: absolute;
   top: 8px;
   left: 8px;
@@ -1719,7 +1745,7 @@ html[data-mode="light"] .badge.red {
 
 .member-card-action {
   flex: 1;
-  min-height: 32px;
+  min-height: 36px;
   padding: 0 10px;
   border-radius: 8px;
   border: 1px solid var(--hairline-2);
@@ -1736,8 +1762,8 @@ html[data-mode="light"] .badge.red {
 .member-card-icon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   flex: none;
   border-radius: 8px;
   border: 1px solid var(--hairline-2);
@@ -1753,8 +1779,8 @@ html[data-mode="light"] .badge.red {
 }
 
 .member-card-check {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   flex: none;
   accent-color: var(--lime);
   cursor: pointer;
@@ -1822,24 +1848,27 @@ html[data-mode="light"] .badge.red {
 
 /* ---------- 15. Overview board ---------- */
 
+/* Reference composition: a photo hero carrying the headline and its numbers,
+   a narrow column of live cards beside it, then a full-width table. */
 .board {
   display: grid;
-  grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
+  align-items: start;
   gap: 14px;
 }
 
 .board-hero {
   position: relative;
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
+  flex-direction: column;
   justify-content: space-between;
-  gap: 22px;
-  min-height: 268px;
-  padding: 26px;
+  gap: 28px;
+  min-height: 330px;
+  padding: 26px 26px 0;
   border-radius: var(--radius-lg);
   background-color: #10171a;
+  /* Photo lives in a token so a theme can drop it without !important. */
+  background-image: var(--hero-image);
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -1853,7 +1882,7 @@ html[data-mode="light"] .badge.red {
   flex-direction: column;
   align-items: flex-start;
   gap: 9px;
-  max-width: 42ch;
+  max-width: 34ch;
 }
 
 .board-eyebrow {
@@ -1863,10 +1892,10 @@ html[data-mode="light"] .badge.red {
 }
 
 .board-hero h2 {
-  font-size: clamp(23px, 2.3vw, 31px);
+  font-size: clamp(24px, 2.6vw, 34px);
   font-weight: 600;
   letter-spacing: -0.035em;
-  line-height: 1.1;
+  line-height: 1.08;
 }
 
 .board-hero-sub {
@@ -1882,7 +1911,7 @@ html[data-mode="light"] .badge.red {
   gap: 7px;
   min-height: 40px;
   margin-top: 6px;
-  padding: 0 16px;
+  padding: 0 18px;
   border-radius: var(--radius-pill);
   background: var(--lime);
   color: var(--on-accent);
@@ -1894,24 +1923,38 @@ html[data-mode="light"] .badge.red {
   background: color-mix(in srgb, var(--lime) 86%, white);
 }
 
+/* The stat strip sits on the hero's lower edge, so it bleeds past the
+   hero padding and loses its own bottom radius. */
 .board-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(96px, auto));
-  gap: 4px 22px;
-  align-items: end;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+  margin: 0 -26px;
+  padding: 16px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
 
 .board-hero-stats > div {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .board-hero-stats strong {
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.03em;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+
+.board-hero-stats .is-lit strong {
+  color: var(--lime);
 }
 
 .board-hero-stats span {
@@ -1936,15 +1979,15 @@ html[data-mode="light"] .badge.red {
   place-items: center;
   width: 40px;
   height: 40px;
-  margin-top: 8px;
+  flex: none;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   color: #fff;
 }
 
 .board-round:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.26);
 }
 
 .board-side {
@@ -1987,6 +2030,17 @@ html[data-mode="light"] .badge.red {
   color: var(--text-2);
 }
 
+.board-peak {
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--app-bg);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .board-live {
   display: inline-flex;
   align-items: center;
@@ -2006,7 +2060,7 @@ html[data-mode="light"] .badge.red {
 
 .board-chart {
   width: 100%;
-  height: 96px;
+  height: 104px;
 }
 
 .board-grid {
@@ -2065,21 +2119,24 @@ html[data-mode="light"] .badge.red {
   opacity: 0.6;
 }
 
-.board-area {
-  width: 100%;
-  height: 82px;
+.board-sales {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.board-flat {
-  height: 82px;
-  border-radius: 8px;
-  background: var(--field);
+.board-spark {
+  width: 92px;
+  height: 40px;
+  flex: none;
 }
 
 .board-amount {
-  font-size: 25px;
+  font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.035em;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2144,6 +2201,44 @@ html[data-mode="light"] .badge.red {
   color: color-mix(in srgb, var(--err) 84%, var(--text));
 }
 
+/* Standalone tile, the "product card" slot of the reference column. */
+.board-tile {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.board-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--lime) 16%, transparent);
+  color: var(--lime);
+}
+
+.board-tile > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.board-tile strong {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-tile span {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
 .board-table {
   grid-column: 1 / -1;
 }
@@ -2155,19 +2250,19 @@ html[data-mode="light"] .badge.red {
 
 .board-row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1.6fr) auto minmax(0, 0.8fr) minmax(0, 0.6fr);
+  grid-template-columns: 32px minmax(0, 1.6fr) auto minmax(0, 0.8fr) minmax(0, 0.6fr);
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
+  padding: 11px 0;
   border-top: 1px solid var(--hairline);
 }
 
 .board-avatar {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--lime) 20%, transparent);
   font-size: 11px;
   font-weight: 600;
@@ -2344,6 +2439,12 @@ html[data-mode="light"] .badge.red {
   margin-bottom: 6px;
   border-radius: 7px;
   border: 1px solid var(--hairline);
+  /* Every tile gets the style's own pair from the registry, so a new language
+     shows real colours without a bespoke swatch rule. Styles below that draw
+     real material keep their art and simply override this. */
+  background:
+    linear-gradient(90deg, var(--sw-accent, #888) 0 6px, transparent 6px) 0 0 / 100% 100% no-repeat,
+    var(--sw-canvas, #888);
 }
 
 .theme-swatch.style-glass {
@@ -2352,23 +2453,33 @@ html[data-mode="light"] .badge.red {
 }
 
 .theme-swatch.style-classic {
-  background: linear-gradient(140deg, #1b2429, #0f1416);
+  /* Neumorphic sample: the same surface colour as the page, lifted by paired
+     shadows, so the swatch shows the material instead of a dark patch. */
+  background: var(--card);
+  border-color: transparent;
+  box-shadow: var(--nm-out-sm);
 }
 
-.theme-swatch.sage {
-  background: linear-gradient(140deg, #a8c4a6, #6f8f79);
+.theme-swatch.style-signal {
+  /* Console sample: matte panel, hairline border, orange status tick. */
+  background:
+    linear-gradient(90deg, transparent 0 12px, #ff6a3d 12px 20px, transparent 20px),
+    #131315;
+  border-color: rgba(255, 255, 255, 0.16);
+  background-repeat: no-repeat;
+  background-size: 100% 2px, auto;
+  background-position: 0 10px, 0 0;
 }
 
-.theme-swatch.lagoon {
-  background: linear-gradient(140deg, #7fd7d1, #4a9aa4);
-}
-
-.theme-swatch.blush {
-  background: linear-gradient(140deg, #ffb9cd, #d98ba6);
-}
-
-.theme-swatch.lilac {
-  background: linear-gradient(140deg, #c6b6f5, #9184c9);
+.theme-swatch.style-neon {
+  /* Neon sample: violet field, one glowing pill. */
+  background:
+    linear-gradient(90deg, transparent 0 14px, #a855f7 14px 54px, transparent 54px),
+    linear-gradient(180deg, #1a1029, #0b0713);
+  border-color: rgba(168, 132, 255, 0.34);
+  background-repeat: no-repeat;
+  background-size: 100% 12px, auto;
+  background-position: 0 11px, 0 0;
 }
 
 .theme-actions {
@@ -2438,7 +2549,7 @@ html[data-mode="light"] .badge.red {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 32px;
+  min-height: 36px;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--text);
@@ -2693,22 +2804,2285 @@ html[data-mode="light"] .badge.red {
   }
 }
 
+/* ---------- 3b. Layout shells ----------
+
+   Two shells are shared by many languages: a labelled sidebar flush to the
+   left edge, and a narrow instrument rail. They live before the per-theme
+   blocks so a style that wants its own variant (classic, signal, neon) can
+   still override them, and every other style gets a real shell from
+   data-layout instead of silently falling back to the floating glass rail. */
+
+html[data-layout="docked"] {
+  --rail-w: 236px;
+  --rail-radius: 0;
+  --rail-top: 0;
+  --rail-bottom: 0;
+  --rail-left: 0;
+  --rail-pad: 14px;
+  --shell-pad-left: 260px;
+  --topbar-radius: 0;
+  --topbar-h: 62px;
+  --label-display: inline;
+  --shell-bg: transparent;
+}
+
+html[data-layout="docked"] .app {
+  padding: 0 26px 34px var(--shell-pad-left);
+}
+
+html[data-layout="docked"] .main-shell {
+  min-height: 100dvh;
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-layout="docked"] .floating-rail {
+  align-items: stretch;
+  gap: 4px;
+  padding: var(--rail-pad) 12px;
+  border-width: 0 1px 0 0;
+  border-style: solid;
+  border-color: var(--hairline-2);
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto;
+}
+
+html[data-layout="docked"] .glass-brand {
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  padding: 0 10px;
+  color: var(--text);
+}
+
+html[data-layout="docked"] .glass-brand svg {
+  color: var(--lime);
+  flex: none;
+}
+
+html[data-layout="docked"] .rail-primary {
+  align-items: stretch;
+  gap: 2px;
+  margin-top: 14px;
+}
+
+html[data-layout="docked"] .rail-foot {
+  align-items: stretch;
+  gap: 2px;
+  padding-top: 12px;
+}
+
+html[data-layout="docked"] .floating-rail button {
+  justify-content: flex-start;
+  gap: 11px;
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+html[data-layout="docked"] .floating-rail .rail-active {
+  background: color-mix(in srgb, var(--lime) 16%, transparent);
+  color: var(--text);
+}
+
+html[data-layout="docked"] .floating-rail .rail-active svg {
+  color: var(--lime);
+}
+
+html[data-layout="docked"] .topbar {
+  position: sticky;
+  top: 0;
+  border-radius: 0;
+}
+
+/* A narrow rail: icons only, flush left, no furniture. */
+html[data-layout="operator"] {
+  --rail-w: 64px;
+  --rail-radius: 0;
+  --rail-top: 0;
+  --rail-bottom: 0;
+  --rail-left: 0;
+  --rail-pad: 12px;
+  --shell-pad-left: 88px;
+  --topbar-radius: 0;
+  --label-display: none;
+  --shell-bg: transparent;
+}
+
+html[data-layout="operator"] .app {
+  padding: 0 22px 30px var(--shell-pad-left);
+}
+
+html[data-layout="operator"] .main-shell {
+  min-height: 100dvh;
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-layout="operator"] .floating-rail {
+  align-items: center;
+  gap: 4px;
+  padding: var(--rail-pad) 0;
+  border-width: 0 1px 0 0;
+  border-style: solid;
+  border-color: var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto;
+}
+
+html[data-layout="operator"] .topbar {
+  position: sticky;
+  top: 0;
+  border-radius: 0;
+}
+
+/* ---------- 18b. Theme 2 surfaces: neumorphic ---------- */
+
+/* Surfaces carry the page colour itself and separate only by a paired light
+   and dark shadow, so card borders and the photo backdrop are removed. Placed
+   after the base rules so it wins on equal specificity, but before the
+   responsive block so layout overrides there still apply. */
+html[data-style="classic"] {
+  --radius-sm: 14px;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --nm-dark: rgba(26, 36, 44, 0.18);
+  --nm-light: rgba(255, 255, 255, 0.92);
+  --nm-out: 9px 9px 22px var(--nm-dark), -9px -9px 22px var(--nm-light);
+  --nm-out-sm: 5px 5px 12px var(--nm-dark), -5px -5px 12px var(--nm-light);
+  --nm-in: inset 4px 4px 9px var(--nm-dark), inset -4px -4px 9px var(--nm-light);
+  --card-shadow: var(--nm-out);
+  --inset-hi: none;
+  --hairline: rgba(26, 36, 44, 0.09);
+  --hairline-2: rgba(26, 36, 44, 0.15);
+}
+
+html[data-style="classic"][data-mode="light"] {
+  --app-bg: #e4e9ef;
+  --text: #37434d;
+  --text-2: #55636f;
+  --text-3: #54626e;
+  --card: #e4e9ef;
+  --card-solid: #e4e9ef;
+  --card-hover: #dde3ea;
+  --field: #e4e9ef;
+  --field-hover: #dde3ea;
+  --rail-bg: #e4e9ef;
+  --topbar-bg: #e4e9ef;
+  --focus: #2b6d94;
+}
+
+html[data-style="classic"][data-mode="dark"] {
+  --app-bg: #272c32;
+  --text: #e9eef2;
+  --text-2: #b6c1c9;
+  --text-3: #a3aeb7;
+  --card: #272c32;
+  --card-solid: #272c32;
+  --card-hover: #2e343a;
+  --field: #272c32;
+  --field-hover: #2e343a;
+  --rail-bg: #272c32;
+  --topbar-bg: #272c32;
+  /* Dark surfaces need a much stronger highlight to read as lifted: the same
+     5% white that works on paper is invisible against charcoal. */
+  --nm-dark: rgba(0, 0, 0, 0.7);
+  --nm-light: rgba(255, 255, 255, 0.12);
+  --focus: #86c8ea;
+}
+
+/* A photograph behind the cards would break the single-colour illusion. */
+html[data-style="classic"] body {
+  background-image: none;
+}
+
+html[data-style="classic"] .floating-rail {
+  border-right: 0;
+  box-shadow: 12px 0 26px var(--nm-dark);
+}
+
+html[data-style="classic"] .directory,
+html[data-style="classic"] .panel,
+html[data-style="classic"] .stat,
+html[data-style="classic"] .board-card,
+html[data-style="classic"] .member-card,
+html[data-style="classic"] .modal,
+html[data-style="classic"] .account-panel,
+html[data-style="classic"] .rail-more-menu,
+html[data-style="classic"] .profile-drawer,
+html[data-style="classic"] .toast {
+  border-color: transparent;
+  box-shadow: var(--nm-out);
+}
+
+/* Selection states need restating: the block above outranks the un-prefixed
+   rules that used to draw their accent border. */
+html[data-style="classic"] .member-card.is-selected {
+  border-color: color-mix(in srgb, var(--lime) 62%, transparent);
+}
+
+html[data-style="classic"] .theme-option {
+  border-color: transparent;
+  box-shadow: var(--nm-out-sm);
+}
+
+html[data-style="classic"] .theme-option.selected {
+  border-color: color-mix(in srgb, var(--lime) 60%, transparent);
+  box-shadow:
+    var(--nm-out-sm),
+    0 0 0 2px color-mix(in srgb, var(--lime) 22%, transparent);
+}
+
+/* Fields press into the surface; raised controls stay raised. */
+html[data-style="classic"] .input {
+  border-color: transparent;
+  box-shadow: var(--nm-in);
+}
+
+html[data-style="classic"] .search-field {
+  border-color: transparent;
+  box-shadow: var(--nm-out-sm);
+}
+
+html[data-style="classic"] .search-field .input {
+  box-shadow: none;
+}
+
+html[data-style="classic"] .input:focus-visible {
+  border-color: color-mix(in srgb, var(--lime) 70%, transparent);
+  box-shadow:
+    var(--nm-in),
+    0 0 0 3px color-mix(in srgb, var(--lime) 22%, transparent);
+}
+
+html[data-style="classic"] .search-field:focus-within {
+  border-color: color-mix(in srgb, var(--lime) 60%, transparent);
+  box-shadow:
+    var(--nm-out-sm),
+    0 0 0 3px color-mix(in srgb, var(--lime) 18%, transparent);
+}
+
+html[data-style="classic"] .btn {
+  border-color: transparent;
+  box-shadow: var(--nm-out-sm);
+}
+
+html[data-style="classic"] .btn:active:not(:disabled) {
+  box-shadow: var(--nm-in);
+  transform: none;
+}
+
+html[data-style="classic"] .icon-button,
+html[data-style="classic"] .account-trigger,
+html[data-style="classic"] .board-filter {
+  border-color: transparent;
+  box-shadow: var(--nm-out-sm);
+}
+
+html[data-style="classic"] .tabs button span {
+  box-shadow: var(--nm-in);
+}
+
+/* Active nav presses in instead of filling with tint. */
+html[data-style="classic"] .floating-rail .rail-active {
+  background: transparent;
+  box-shadow: var(--nm-in);
+  color: var(--text);
+}
+
+html[data-style="classic"] .floating-rail .rail-active svg {
+  color: var(--lime);
+}
+
+html[data-style="classic"] .theme-preview {
+  background-color: var(--card);
+  background-image: none;
+  border-color: transparent;
+  box-shadow: var(--nm-in);
+  color: var(--text-2);
+  text-shadow: none;
+}
+
+/* ---------- 18c. Theme 3 surfaces: signal console ---------- */
+
+/* Matte panels on near-black, one orange accent, mono micro labels. */
+html[data-style="signal"] {
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 8px;
+}
+
+html[data-style="signal"][data-mode="dark"] {
+  --app-bg: #0a0a0b;
+  --text: #ececed;
+  --text-2: #a8a8b0;
+  --text-3: #8a8a93;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-2: rgba(255, 255, 255, 0.16);
+
+  --card: #131315;
+  --card-solid: #17171a;
+  --card-hover: #1d1d21;
+  --card-shadow: none;
+  --inset-hi: none;
+
+  --field: #101012;
+  --field-hover: #1a1a1f;
+
+  --lime: #ff6a3d;
+  --lavender: #ffa07a;
+  --on-accent: #1b0a04;
+
+  --rail-bg: #0d0d0f;
+  --topbar-bg: #0d0d0f;
+  --shell-bg: transparent;
+  --focus: #ff8a63;
+}
+
+html[data-style="signal"][data-mode="light"] {
+  --app-bg: #f2f2ef;
+  --text: #16161a;
+  --text-2: #4a4a52;
+  --text-3: #63636c;
+  --hairline: rgba(20, 20, 24, 0.12);
+  --hairline-2: rgba(20, 20, 24, 0.2);
+
+  --card: #fbfbf9;
+  --card-solid: #ffffff;
+  --card-hover: #f0f0ed;
+  --card-shadow: none;
+  --inset-hi: none;
+
+  --field: #ececea;
+  --field-hover: #e4e4e1;
+
+  --lime: #b8401a;
+  --lavender: #a03a16;
+  --on-accent: #fff8f5;
+
+  --rail-bg: #fbfbf9;
+  --topbar-bg: #fbfbf9;
+  --shell-bg: transparent;
+  --focus: #b03a12;
+}
+
+/* No photographic backdrop: the console is a flat instrument panel. */
+html[data-style="signal"] body {
+  background-image: none;
+}
+
+/* Micro labels read as machine readouts. */
+html[data-style="signal"] .eyebrow,
+html[data-style="signal"] .stat-label,
+html[data-style="signal"] .stat > span,
+html[data-style="signal"] th,
+html[data-style="signal"] .board-eyebrow,
+html[data-style="signal"] .rail-more-group p,
+html[data-style="signal"] .page-footer {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* The overview hero carries hardcoded white text over a photo; replace both.
+   The stat strip stays a dark band: it sits on the photo, not on the card. */
+html[data-style="signal"] .board-hero {
+  background-image: none;
+  background-color: var(--card);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  box-shadow: none;
+}
+
+html[data-style="signal"] .board-hero h2 {
+  letter-spacing: -0.02em;
+}
+
+html[data-style="signal"] .board-eyebrow {
+  color: var(--text-3);
+}
+
+html[data-style="signal"] .board-hero-sub {
+  color: var(--text-2);
+}
+
+html[data-style="signal"] .board-hero-stats {
+  background: var(--field);
+  border-top-color: var(--hairline);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-style="signal"] .board-hero-stats span {
+  color: var(--text-3);
+}
+
+/* Theme 4 has no photo either: the hero is a glowing panel. */
+html[data-style="neon"] .board-hero {
+  background-image: none;
+  background-color: var(--card-solid);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+}
+
+html[data-style="neon"] .board-hero-stats {
+  background: color-mix(in srgb, var(--lime) 10%, transparent);
+  border-top-color: var(--hairline);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-style="neon"] .board-hero-stats span,
+html[data-style="neon"] .board-eyebrow {
+  color: var(--text-2);
+}
+
+html[data-style="neon"] .board-hero-sub {
+  color: var(--text-2);
+}
+
+/* Active section: orange rule on the left instead of a filled block. */
+html[data-style="signal"] .floating-rail .rail-active {
+  background: color-mix(in srgb, var(--lime) 12%, transparent);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--lime);
+}
+
+html[data-style="signal"] .floating-rail .rail-active svg {
+  color: var(--lime);
+}
+
+html[data-style="signal"] .rail-more-active {
+  box-shadow: inset 2px 0 0 var(--lime);
+}
+
+html[data-style="signal"] .theme-preview {
+  background-color: var(--card);
+  background-image: none;
+  color: var(--text-2);
+  text-shadow: none;
+}
+
+/* ---------- 18d. Theme 4 surfaces: neon halo ---------- */
+
+/* Deep violet glass, labelled floating panels, one lit pill per screen. */
+html[data-style="neon"] {
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 24px;
+
+  --rail-w: 208px;
+  --rail-radius: 24px;
+  --rail-top: 18px;
+  --rail-bottom: 18px;
+  --rail-left: 18px;
+  --rail-pad: 12px;
+  --shell-pad-left: 244px;
+  --topbar-h: 64px;
+  --topbar-radius: 20px;
+  --label-display: inline;
+  --blur-card: 20px;
+  --blur-shell: 30px;
+}
+
+html[data-style="neon"][data-mode="dark"] {
+  --app-bg: #08060d;
+  --text: #f2eefb;
+  --text-2: #b3a9c9;
+  --text-3: #8b80a3;
+  --hairline: rgba(168, 132, 255, 0.14);
+  --hairline-2: rgba(168, 132, 255, 0.26);
+
+  --card: rgba(24, 18, 36, 0.72);
+  --card-solid: #150f21;
+  --card-hover: rgba(168, 85, 247, 0.16);
+  --card-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(168, 132, 255, 0.08);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --field: rgba(168, 132, 255, 0.1);
+  --field-hover: rgba(168, 132, 255, 0.18);
+
+  --lime: #a855f7;
+  --lavender: #c084fc;
+  --on-accent: #180a2c;
+  --focus: #c084fc;
+
+  --rail-bg: rgba(20, 14, 32, 0.8);
+  --topbar-bg: rgba(20, 14, 32, 0.72);
+  --shell-bg: rgba(18, 12, 30, 0.55);
+}
+
+html[data-style="neon"][data-mode="light"] {
+  --app-bg: #f4f1fa;
+  --text: #1a1226;
+  --text-2: #55496b;
+  --text-3: #6b5f80;
+  --hairline: rgba(88, 44, 160, 0.14);
+  --hairline-2: rgba(88, 44, 160, 0.22);
+
+  --card: rgba(255, 255, 255, 0.78);
+  --card-solid: #ffffff;
+  --card-hover: rgba(124, 58, 237, 0.09);
+  --card-shadow: 0 16px 40px rgba(76, 29, 149, 0.14);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  --field: rgba(124, 58, 237, 0.08);
+  --field-hover: rgba(124, 58, 237, 0.14);
+
+  --lime: #7c3aed;
+  --lavender: #9333ea;
+  --on-accent: #ffffff;
+  --focus: #6d28d9;
+
+  --rail-bg: rgba(255, 255, 255, 0.74);
+  --topbar-bg: rgba(255, 255, 255, 0.72);
+  --shell-bg: rgba(255, 255, 255, 0.42);
+}
+
+/* Flat violet field instead of a photograph. */
+html[data-style="neon"] body {
+  background-image: none;
+}
+
+/* The rail is a floating labelled panel, so rows stretch and captions show. */
+html[data-style="neon"] .floating-rail {
+  align-items: stretch;
+  gap: 4px;
+  padding: 14px 12px;
+}
+
+html[data-style="neon"] .rail-primary,
+html[data-style="neon"] .rail-foot {
+  align-items: stretch;
+  gap: 3px;
+}
+
+html[data-style="neon"] .rail-foot {
+  padding-top: 12px;
+}
+
+html[data-style="neon"] .glass-brand {
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  padding: 0 10px;
+  color: var(--text);
+}
+
+html[data-style="neon"] .glass-brand svg {
+  color: var(--lime);
+  flex: none;
+}
+
+html[data-style="neon"] .floating-rail button {
+  justify-content: flex-start;
+  gap: 11px;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+html[data-style="neon"] .floating-rail .rail-label {
+  font-weight: 500;
+}
+
+/* The lit pill: filled accent, bright text, real bloom. */
+html[data-style="neon"] .floating-rail .rail-active {
+  background: var(--lime);
+  color: var(--on-accent);
+  box-shadow:
+    0 10px 26px color-mix(in srgb, var(--lime) 42%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+html[data-style="neon"] .floating-rail .rail-active svg {
+  color: var(--on-accent);
+}
+
+html[data-style="neon"] .rail-more-menu {
+  left: 240px;
+  border-radius: var(--radius);
+}
+
+html[data-style="neon"] .rail-more-active {
+  background: var(--lime);
+  color: var(--on-accent) !important;
+}
+
+/* Controls echo the reference: pill fields, glowing primary action. */
+html[data-style="neon"] .btn {
+  border-radius: var(--radius-pill);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--lime) 34%, transparent);
+}
+
+html[data-style="neon"] .btn.secondary {
+  box-shadow: none;
+}
+
+html[data-style="neon"] .search-field,
+html[data-style="neon"] .input,
+html[data-style="neon"] .tabs button span {
+  border-radius: var(--radius-pill);
+}
+
+html[data-style="neon"] .tabs button.selected {
+  background: color-mix(in srgb, var(--lime) 16%, transparent);
+  border-bottom-color: transparent;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lime) 40%, transparent);
+}
+
+html[data-style="neon"] .theme-preview {
+  background-color: var(--card-solid);
+  background-image: none;
+  color: var(--text-2);
+  text-shadow: none;
+}
+
+/* ---------- 18e. Themes 5-9: five different shells ----------
+
+   Each of these changes the shell, not just the palette:
+     18e Ledger   flush tab strip across the top, paper sheets
+     18f Console  narrow icon rail, one dense stat bar, mono readouts
+     18g Dispatch right-hand contents rail, serif editorial rules
+     18h Pocket   bottom tab bar, one centred phone-width column
+     18i Clay     floating capsule across the top, puffy pastel surfaces
+   Geometry keys off data-layout so one theme never restates another's.  */
+
+/* ---------- 18e. Theme 5: ledger ---------- */
+
+html[data-layout="strip"] {
+  --rail-w: auto;
+  --rail-top: 0;
+  --rail-bottom: auto;
+  --rail-left: 0;
+  --rail-radius: 0;
+  --rail-pad: 0;
+  --label-display: inline;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 5px;
+  --topbar-h: 54px;
+  --topbar-radius: 0;
+  --blur-card: 0px;
+  --blur-shell: 0px;
+  --card-shadow: none;
+  --inset-hi: none;
+}
+
+html[data-style="ledger"][data-mode="light"] {
+  --app-bg: #f4efe4;
+  --text: #1b1a17;
+  --text-2: #48443a;
+  --text-3: #6a655a;
+  --hairline: rgba(38, 34, 26, 0.14);
+  --hairline-2: rgba(38, 34, 26, 0.24);
+  --card: #fffdf7;
+  --card-solid: #fffdf7;
+  --card-hover: #f7f1e4;
+  --field: #f5f0e4;
+  --field-hover: #ece5d5;
+  --rail-bg: #fffdf7;
+  --topbar-bg: #fffdf7;
+  --shell-bg: transparent;
+  --lime: #1f6b4a;
+  --lavender: #2f5d8f;
+  --on-accent: #f8f5ec;
+  --focus: #1f6b4a;
+}
+
+html[data-style="ledger"][data-mode="dark"] {
+  --app-bg: #16150f;
+  --text: #f0eadd;
+  --text-2: #bcb4a3;
+  --text-3: #948c7c;
+  --hairline: rgba(240, 232, 214, 0.15);
+  --hairline-2: rgba(240, 232, 214, 0.26);
+  --card: #1d1b14;
+  --card-solid: #1d1b14;
+  --card-hover: #26231a;
+  --field: #221f17;
+  --field-hover: #2b2720;
+  --rail-bg: #1a1811;
+  --topbar-bg: #1a1811;
+  --shell-bg: transparent;
+  --lime: #d8a94a;
+  --lavender: #8fb3d9;
+  --on-accent: #1d1608;
+  --focus: #e8bd63;
+}
+
+html:is([data-style="ledger"]) body {
+  background-image: none;
+}
+
+/* Top strip: brand, then tabs that underline instead of filling. */
+html[data-layout="strip"] .app {
+  padding: 56px 0 0;
+}
+
+html[data-layout="strip"] .main-shell {
+  min-height: calc(100dvh - 56px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-layout="strip"] .floating-rail {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  width: auto;
+  height: 56px;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0 22px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline-2);
+  border-radius: 0;
+  background: var(--app-bg);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-layout="strip"] .rail-primary {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  margin-left: 22px;
+  overflow: visible;
+}
+
+html[data-layout="strip"] .rail-foot {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  width: auto;
+}
+
+html[data-layout="strip"] .floating-rail button,
+html[data-layout="strip"] .glass-brand {
+  justify-content: center;
+  gap: 7px;
+  width: auto;
+  height: auto;
+  padding: 0 12px;
+  border-radius: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: inset 0 -2px 0 transparent;
+}
+
+html[data-layout="strip"] .floating-rail .rail-active {
+  background: none;
+  box-shadow: inset 0 -2px 0 var(--lime);
+  color: var(--text);
+}
+
+html[data-layout="strip"] .floating-rail .rail-active svg {
+  color: var(--lime);
+}
+
+html[data-layout="strip"] .rail-more-menu {
+  top: 64px;
+  left: 22px;
+  transform: none;
+  border-radius: 6px;
+  box-shadow: 0 18px 40px rgba(24, 20, 12, 0.18);
+}
+
+/* Paper: sheets separated by rules, no lift. */
+html[data-style="ledger"] .page-heading h1 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html[data-style="ledger"] .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+html[data-style="ledger"] .stat,
+html[data-style="ledger"] .directory,
+html[data-style="ledger"] .panel,
+html[data-style="ledger"] .board-card,
+html[data-style="ledger"] .member-card {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+html[data-style="ledger"] .stat > strong,
+html[data-style="ledger"] .board-amount {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+html[data-style="ledger"] th {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* ---------- 18f. Theme 6: console ---------- */
+
+html[data-style="console"] {
+  --radius-sm: 3px;
+  --radius: 4px;
+  --radius-lg: 5px;
+  --radius-pill: 4px;
+  --blur-card: 0px;
+  --blur-shell: 0px;
+  --card-shadow: none;
+  --inset-hi: none;
+  --rail-w: 60px;
+  --rail-radius: 0;
+  --rail-top: 0;
+  --rail-bottom: 0;
+  --rail-left: 0;
+  --rail-pad: 10px;
+  --shell-pad-left: 84px;
+}
+
+html[data-style="console"][data-mode="dark"] {
+  --app-bg: #0c1114;
+  --text: #e8eef0;
+  --text-2: #9fb0b6;
+  --text-3: #7d8f95;
+  --hairline: rgba(200, 220, 226, 0.13);
+  --hairline-2: rgba(200, 220, 226, 0.22);
+  --card: #11181c;
+  --card-solid: #141d22;
+  --card-hover: #18232a;
+  --field: #0f1619;
+  --field-hover: #172128;
+  --rail-bg: #0a0f11;
+  --topbar-bg: #0a0f11;
+  --shell-bg: transparent;
+  --lime: #59a6ff;
+  --lavender: #8fd0ff;
+  --on-accent: #04121f;
+  --focus: #7ab8ff;
+}
+
+html[data-style="console"][data-mode="light"] {
+  --app-bg: #eaeeef;
+  --text: #10181b;
+  --text-2: #46565c;
+  --text-3: #5f7076;
+  --hairline: rgba(16, 30, 34, 0.14);
+  --hairline-2: rgba(16, 30, 34, 0.24);
+  --card: #fdfefe;
+  --card-solid: #ffffff;
+  --card-hover: #f1f5f6;
+  --field: #eef2f3;
+  --field-hover: #e4eaec;
+  --rail-bg: #ffffff;
+  --topbar-bg: #ffffff;
+  --shell-bg: transparent;
+  --lime: #12499b;
+  --lavender: #2b6bb0;
+  --on-accent: #f4f8ff;
+  --focus: #12499b;
+}
+
+html:is([data-style="console"]) body {
+  background-image: none;
+}
+
+html[data-style="console"] .floating-rail {
+  border-width: 0 1px 0 0;
+  border-radius: 0;
+}
+
+html[data-style="console"] .topbar {
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+html[data-style="console"] .main-shell {
+  min-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* The four figures become one instrument bar instead of four cards. */
+html[data-style="console"] .stats {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--hairline);
+  background: var(--card);
+}
+
+html[data-style="console"] .stat {
+  flex: 1 1 0;
+  gap: 3px;
+  padding: 12px 16px;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+  border-radius: 0;
+  background: none;
+}
+
+html[data-style="console"] .stat:first-child {
+  border-left: 0;
+}
+
+html[data-style="console"] .stat-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+html[data-style="console"] .stat > strong {
+  font-family: var(--font-mono);
+  font-size: 23px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--lime);
+}
+
+html[data-style="console"] .page-heading h1 {
+  font-family: var(--font-mono);
+  font-size: clamp(20px, 1.8vw, 25px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+html[data-style="console"] th,
+html[data-style="console"] .eyebrow,
+html[data-style="console"] .panel-heading p,
+html[data-style="console"] .page-footer {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+html[data-style="console"] .directory,
+html[data-style="console"] .panel,
+html[data-style="console"] .board-card {
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+/* ---------- 18g. Theme 7: dispatch ---------- */
+
+html[data-layout="index"] {
+  --rail-w: 196px;
+  --rail-radius: 0;
+  --rail-top: 0;
+  --rail-bottom: 0;
+  --rail-left: auto;
+  --rail-pad: 20px;
+  --label-display: inline;
+  --radius-sm: 2px;
+  --radius: 3px;
+  --radius-lg: 4px;
+  --radius-pill: 3px;
+  --topbar-h: 58px;
+  --topbar-radius: 0;
+  --blur-card: 0px;
+  --blur-shell: 0px;
+  --card-shadow: none;
+  --inset-hi: none;
+}
+
+html[data-style="dispatch"][data-mode="light"] {
+  --app-bg: #fbf7ef;
+  --text: #17130e;
+  --text-2: #4c453a;
+  --text-3: #6d6455;
+  --hairline: rgba(26, 20, 12, 0.16);
+  --hairline-2: rgba(26, 20, 12, 0.28);
+  --card: #fdfaf3;
+  --card-solid: #fffdf8;
+  --card-hover: #f6f0e4;
+  --field: #f5efe2;
+  --field-hover: #ebe3d2;
+  --rail-bg: #f7f1e5;
+  --topbar-bg: #fbf7ef;
+  --shell-bg: transparent;
+  --lime: #b23a1c;
+  --lavender: #2f5b7a;
+  --on-accent: #fdf8f2;
+  --focus: #b23a1c;
+}
+
+html[data-style="dispatch"][data-mode="dark"] {
+  --app-bg: #12100c;
+  --text: #f4eee2;
+  --text-2: #bcb2a1;
+  --text-3: #948a79;
+  --hairline: rgba(244, 238, 226, 0.16);
+  --hairline-2: rgba(244, 238, 226, 0.28);
+  --card: #171410;
+  --card-solid: #1b1712;
+  --card-hover: #221d17;
+  --field: #1e1a14;
+  --field-hover: #271f18;
+  --rail-bg: #16130f;
+  --topbar-bg: #12100c;
+  --shell-bg: transparent;
+  --lime: #e0654a;
+  --lavender: #8fb2cc;
+  --on-accent: #1a0c07;
+  --focus: #f07a5d;
+}
+
+html:is([data-style="dispatch"]) body {
+  background-image: none;
+}
+
+html[data-layout="index"] .app {
+  padding-right: calc(var(--rail-w) + 40px);
+}
+
+/* Contents column on the right: numbered-looking labels, rules not boxes. */
+html[data-layout="index"] .floating-rail {
+  left: auto;
+  right: 0;
+  align-items: stretch;
+  gap: 2px;
+  padding: 22px 14px;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  background: var(--rail-bg);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-layout="index"] .rail-primary {
+  align-items: stretch;
+  gap: 2px;
+  margin-top: 18px;
+}
+
+html[data-layout="index"] .rail-foot {
+  align-items: stretch;
+  gap: 2px;
+  padding-top: 12px;
+}
+
+html[data-layout="index"] .floating-rail button,
+html[data-layout="index"] .glass-brand {
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 38px;
+  padding: 0 8px;
+  border-radius: 0;
+  font-size: 12.5px;
+}
+
+html[data-layout="index"] .floating-rail .rail-active {
+  background: none;
+  box-shadow: inset -2px 0 0 var(--lime);
+  color: var(--text);
+}
+
+html[data-layout="index"] .floating-rail .rail-active svg {
+  color: var(--lime);
+}
+
+html[data-layout="index"] .rail-more-menu {
+  left: auto;
+  right: calc(var(--rail-w) + 12px);
+  border-radius: 4px;
+}
+
+html[data-layout="index"] .main-shell {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-style="dispatch"] .page-heading h1 {
+  font-family: var(--font-serif);
+  font-size: clamp(32px, 3.4vw, 46px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+html[data-style="dispatch"] .page-heading {
+  align-items: flex-start;
+  padding: 10px 0 14px;
+  border-bottom: 1px solid var(--hairline-2);
+}
+
+html[data-style="dispatch"] .page-heading p {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-2);
+}
+
+html[data-style="dispatch"] .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+html[data-style="dispatch"] .stat,
+html[data-style="dispatch"] .directory,
+html[data-style="dispatch"] .panel,
+html[data-style="dispatch"] .board-card {
+  border: 0;
+  border-top: 2px solid var(--text);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-style="dispatch"] .stat > strong {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+html[data-style="dispatch"] .board-hero h2,
+html[data-style="dispatch"] .panel-heading h2 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+html[data-style="dispatch"] th {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--text);
+}
+
+/* ---------- 18h. Theme 8: pocket ---------- */
+
+html[data-layout="tabs"] {
+  --rail-w: auto;
+  --rail-radius: 28px;
+  --label-display: none;
+}
+
+html[data-style="pocket"][data-mode="light"] {
+  --app-bg: #eef0f6;
+  --text: #14161d;
+  --text-2: #4d5464;
+  --text-3: #6a7284;
+  --hairline: rgba(22, 26, 38, 0.1);
+  --hairline-2: rgba(22, 26, 38, 0.16);
+  --card: #ffffff;
+  --card-solid: #ffffff;
+  --card-hover: #f4f6fb;
+  --card-shadow: 0 8px 20px rgba(24, 32, 56, 0.08);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --field: #f1f3f9;
+  --field-hover: #e7eaf3;
+  --rail-bg: rgba(255, 255, 255, 0.94);
+  --topbar-bg: rgba(255, 255, 255, 0.9);
+  --shell-bg: transparent;
+  --radius-sm: 14px;
+  --radius: 18px;
+  --radius-lg: 22px;
+  --lime: #5b5bd6;
+  --lavender: #f2668b;
+  --on-accent: #fbfbff;
+  --focus: #5b5bd6;
+}
+
+html[data-style="pocket"][data-mode="dark"] {
+  --app-bg: #0f1117;
+  --text: #eef1f7;
+  --text-2: #a8b0c0;
+  --text-3: #848d9e;
+  --hairline: rgba(226, 234, 248, 0.12);
+  --hairline-2: rgba(226, 234, 248, 0.2);
+  --card: #181b24;
+  --card-solid: #1c2029;
+  --card-hover: #212531;
+  --card-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --field: #1b1f29;
+  --field-hover: #232833;
+  --rail-bg: rgba(20, 23, 30, 0.92);
+  --topbar-bg: #12151c;
+  --shell-bg: transparent;
+  --radius-sm: 14px;
+  --radius: 18px;
+  --radius-lg: 22px;
+  --lime: #8b8bf5;
+  --lavender: #ff8fae;
+  --on-accent: #0c0b1a;
+  --focus: #8b8bf5;
+}
+
+html:is([data-style="pocket"]) body {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--lime) 8%, var(--app-bg)),
+    var(--app-bg) 46%
+  );
+}
+
+html:is([data-style="pocket"]) body::before {
+  display: none;
+}
+
+/* One column, phone width, even on a 1440 screen. */
+html[data-layout="tabs"] .main-shell {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-layout="tabs"] .floating-rail {
+  top: auto;
+  bottom: 18px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(100% - 32px, 460px);
+  height: auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 9px 12px;
+  border-radius: 26px;
+  box-shadow: 0 16px 34px rgba(18, 24, 40, 0.22);
+}
+
+html[data-layout="tabs"] .rail-primary {
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
+}
+
+html[data-layout="tabs"] .rail-foot {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0 0 6px;
+  border-top: 0;
+  border-left: 1px solid var(--hairline);
+  width: auto;
+}
+
+html[data-layout="tabs"] .rail-primary button,
+html[data-layout="tabs"] .floating-rail button {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  height: 46px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+  border-radius: 16px;
+}
+
+html[data-layout="tabs"] .glass-brand {
+  width: 42px;
+  height: 46px;
+  padding: 0;
+  justify-content: center;
+}
+
+html[data-layout="tabs"] .rail-more-menu {
+  top: auto;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 18px;
+}
+
+html[data-style="pocket"] .topbar {
+  position: sticky;
+  top: 8px;
+  height: 54px;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+}
+
+html[data-style="pocket"] .page-heading h1 {
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+html[data-style="pocket"] .btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 16px;
+}
+
+html[data-style="pocket"] .input {
+  border-radius: 14px;
+}
+
+html[data-style="pocket"] .member-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+/* ---------- 18i. Theme 9: clay ---------- */
+
+html[data-layout="clay"] {
+  --rail-w: auto;
+  --rail-radius: 30px;
+  --rail-top: 16px;
+  --rail-bottom: auto;
+  --rail-left: auto;
+  --label-display: inline;
+  --radius-sm: 18px;
+  --radius: 24px;
+  --radius-lg: 30px;
+  --radius-pill: 999px;
+  --blur-card: 0px;
+  --blur-shell: 0px;
+  --inset-hi: none;
+}
+
+html[data-style="clay"][data-mode="light"] {
+  --app-bg: #ebe5f6;
+  --text: #241f33;
+  --text-2: #554d6b;
+  --text-3: #6f6787;
+  --hairline: rgba(74, 58, 112, 0.12);
+  --hairline-2: rgba(74, 58, 112, 0.2);
+  --card: #f8f4ff;
+  --card-solid: #faf7ff;
+  --card-hover: #f0eafc;
+  --card-shadow:
+    0 14px 26px rgba(88, 66, 140, 0.16),
+    0 -8px -10px rgba(88, 66, 140, 0.04);
+  --field: #f2ecfd;
+  --field-hover: #e9e1fa;
+  --rail-bg: #f6f1ff;
+  --topbar-bg: #f4eeff;
+  --shell-bg: transparent;
+  --lime: #7a5af8;
+  --lavender: #f78fb3;
+  --on-accent: #ffffff;
+  --focus: #6d4bea;
+}
+
+html[data-style="clay"][data-mode="dark"] {
+  --app-bg: #211c2e;
+  --text: #f1ecfb;
+  --text-2: #c0b7d6;
+  --text-3: #a196bb;
+  --hairline: rgba(216, 204, 248, 0.14);
+  --hairline-2: rgba(216, 204, 248, 0.24);
+  --card: #2b2440;
+  --card-solid: #2e2646;
+  --card-hover: #342c4c;
+  --card-shadow:
+    0 16px 30px rgba(6, 3, 14, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --field: #261f38;
+  --field-hover: #2f2746;
+  --rail-bg: #2a2339;
+  --topbar-bg: #251f33;
+  --shell-bg: transparent;
+  --lime: #b39bff;
+  --lavender: #ff9fc2;
+  --on-accent: #1a1230;
+  --focus: #c2aeff;
+}
+
+html:is([data-style="clay"]) body {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--lime) 14%, var(--app-bg)),
+    var(--app-bg) 52%,
+    color-mix(in srgb, var(--lavender) 12%, var(--app-bg))
+  );
+}
+
+html:is([data-style="clay"]) body::before {
+  display: none;
+}
+
+/* Nav becomes a floating capsule across the top; content starts under it. */
+html[data-layout="clay"] .app {
+  padding-top: 112px;
+}
+
+html[data-layout="clay"] .floating-rail {
+  top: 18px;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: calc(100% - 32px);
+  height: 74px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 30px;
+  background: var(--rail-bg);
+  box-shadow:
+    0 18px 32px rgba(88, 66, 140, 0.22),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7);
+}
+
+html[data-style="clay"][data-mode="dark"] .floating-rail {
+  box-shadow:
+    0 20px 34px rgba(4, 2, 10, 0.6),
+    inset 0 2px 0 rgba(255, 255, 255, 0.08);
+}
+
+html[data-layout="clay"] .rail-primary,
+html[data-layout="clay"] .rail-foot {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+html[data-layout="clay"] .rail-foot {
+  margin: 0 0 0 8px;
+  padding: 0 0 0 12px;
+  border-top: 0;
+  border-left: 1px solid var(--hairline-2);
+  width: auto;
+}
+
+html[data-layout="clay"] .floating-rail button,
+html[data-layout="clay"] .glass-brand {
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  box-shadow:
+    0 6px 12px rgba(88, 66, 140, 0.14),
+    inset 0 2px 0 rgba(255, 255, 255, 0.75);
+}
+
+html[data-layout="clay"] .floating-rail button:hover {
+  background: var(--card);
+}
+
+html[data-layout="clay"] .floating-rail .rail-active {
+  background: var(--lime);
+  color: var(--on-accent);
+  box-shadow:
+    0 10px 18px color-mix(in srgb, var(--lime) 34%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+
+html[data-layout="clay"] .floating-rail .rail-active svg {
+  color: var(--on-accent);
+}
+
+html[data-layout="clay"] .rail-more-menu {
+  top: 104px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 22px 40px rgba(88, 66, 140, 0.26);
+}
+
+html[data-layout="clay"] .main-shell {
+  border: 0;
+  border-radius: 30px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Clay: every surface is a thick, puffy pillow with a bright top edge. */
+html[data-style="clay"] .stat,
+html[data-style="clay"] .directory,
+html[data-style="clay"] .panel,
+html[data-style="clay"] .board-card,
+html[data-style="clay"] .member-card {
+  border: 0;
+  border-radius: 26px;
+  background: var(--card);
+  box-shadow:
+    0 16px 28px rgba(88, 66, 140, 0.16),
+    inset 0 3px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -4px 8px rgba(88, 66, 140, 0.07);
+}
+
+html[data-style="clay"][data-mode="dark"] .stat,
+html[data-style="clay"][data-mode="dark"] .directory,
+html[data-style="clay"][data-mode="dark"] .panel,
+html[data-style="clay"][data-mode="dark"] .board-card,
+html[data-style="clay"][data-mode="dark"] .member-card {
+  box-shadow:
+    0 18px 30px rgba(4, 2, 10, 0.55),
+    inset 0 3px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.28);
+}
+
+html[data-style="clay"] .topbar {
+  border: 0;
+  border-radius: 24px;
+  box-shadow:
+    0 12px 24px rgba(88, 66, 140, 0.16),
+    inset 0 2px 0 rgba(255, 255, 255, 0.72);
+}
+
+html[data-style="clay"] .btn {
+  border: 0;
+  border-radius: 18px;
+  box-shadow:
+    0 10px 18px color-mix(in srgb, var(--lime) 32%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
+}
+
+html[data-style="clay"] .btn:not(.btn-secondary):not(.btn-ghost) {
+  border: 0;
+}
+
+html[data-style="clay"] .input {
+  border: 0;
+  border-radius: 18px;
+  background: var(--field);
+  box-shadow:
+    inset 0 3px 6px rgba(88, 66, 140, 0.12),
+    inset 0 -2px 0 rgba(255, 255, 255, 0.7);
+}
+
+html[data-style="clay"] .icon-button {
+  border: 0;
+  box-shadow:
+    0 6px 12px rgba(88, 66, 140, 0.14),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7);
+}
+
+html[data-style="clay"] .page-heading h1 {
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ---------- 18j. Only glass keeps the photograph ---------- */
+
+/* Every other language paints its own surface, so the hero is a card. Written
+   as one exclusion instead of a list of style ids: a new style inherits it.
+   Neon is excluded because its own block already gives the hero a solid fill. */
+html:not([data-style="glass"]):not([data-style="neon"]) .board-hero {
+  --hero-image: none;
+  background-image: none;
+  background-color: var(--card);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+}
+
+html:not([data-style="glass"]):not([data-style="neon"]) .board-hero-stats {
+  background: var(--field);
+  border-top-color: var(--hairline);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html:not([data-style="glass"]):not([data-style="neon"]) .board-hero-stats span,
+html:not([data-style="glass"]):not([data-style="neon"]) .board-eyebrow {
+  color: var(--text-3);
+}
+
+html:not([data-style="glass"]):not([data-style="neon"]) .board-hero-sub {
+  color: var(--text-2);
+}
+
+html:not([data-style="glass"]):not([data-style="neon"]) .board-round {
+  border-color: var(--hairline-2);
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+/* ---------- 18k. Swatches for the new picker tiles ---------- */
+
+.theme-swatch.style-ledger {
+  /* Paper sheet with a ruled line and a green ledger tick. */
+  background:
+    linear-gradient(90deg, transparent 0 10px, #1f6b4a 10px 16px, transparent 16px),
+    repeating-linear-gradient(0deg, #f4efe4 0 7px, #e2dbc9 7px 8px);
+  border-color: rgba(38, 34, 26, 0.2);
+  border-radius: 4px;
+}
+
+.theme-swatch.style-console {
+  /* Instrument bar: mono ticks on navy. */
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 11px,
+      rgba(89, 166, 255, 0.75) 11px 12px
+    ),
+    linear-gradient(180deg, #0f1b26, #0a1014);
+  border-color: rgba(89, 166, 255, 0.3);
+  border-radius: 3px;
+}
+
+.theme-swatch.style-dispatch {
+  /* Editorial: serif rule over cream. */
+  background:
+    linear-gradient(90deg, transparent 0 9px, #b23a1c 9px 40px, transparent 40px),
+    linear-gradient(0deg, transparent 0 22px, #17130e 22px 23px, transparent 23px),
+    #fbf7ef;
+  border-color: rgba(26, 20, 12, 0.22);
+  border-radius: 3px;
+}
+
+.theme-swatch.style-pocket {
+  /* Phone card with a bottom tab bar. */
+  background:
+    linear-gradient(0deg, transparent 0 6px, #5b5bd6 6px 12px, transparent 12px),
+    radial-gradient(circle at 30% 40%, #ffffff, #eef0f6 70%);
+  border-color: rgba(22, 26, 38, 0.14);
+  border-radius: 14px;
+}
+
+.theme-swatch.style-clay {
+  /* Puffy pastel pillow. */
+  background: #f2ecfd;
+  border-color: transparent;
+  border-radius: 16px;
+  box-shadow:
+    0 8px 14px rgba(88, 66, 140, 0.24),
+    inset 0 3px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ---------- 18m. Signature details ---------- */
+
+/* Tokens cover colour, type, radius and shadow for every language. What is left
+   are the few structural marks that make a style recognisable at a glance and
+   cannot be expressed as a value. Each block is scoped to one style and touches
+   only that style's own surfaces, so nothing leaks. */
+
+/* Pixel art: no rounded pixels, no soft shadows, a 2px step everywhere. */
+html[data-style="pixel"] .btn,
+html[data-style="pixel"] .input,
+html[data-style="pixel"] .tabs button {
+  border-radius: 0;
+  box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+html[data-style="pixel"] .stat > strong,
+html[data-style="pixel"] .board-amount {
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+/* Conceptual sketch: dashed rules, annotations in the margin, no fills. */
+html[data-style="sketch"] .stat,
+html[data-style="sketch"] .directory,
+html[data-style="sketch"] .panel,
+html[data-style="sketch"] .board-card {
+  border-style: dashed;
+  border-width: 1.5px;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-style="sketch"] .board-hero {
+  border: 1.5px dashed var(--hairline-2);
+}
+
+html[data-style="sketch"] .btn,
+html[data-style="sketch"] .board-cta,
+html[data-style="sketch"] .board-filter {
+  border: 1.5px dashed var(--hairline-2);
+  border-radius: 14px 18px 13px 20px;
+}
+
+html[data-style="sketch"] .stat > strong,
+html[data-style="sketch"] .board-amount {
+  font-weight: 700;
+}
+
+/* Scrapbook: pasted, slightly askew, never two cards at the same angle. */
+html[data-style="scrapbook"] .stat:nth-child(odd) {
+  transform: rotate(-0.6deg);
+}
+
+html[data-style="scrapbook"] .stat:nth-child(even) {
+  transform: rotate(0.7deg);
+}
+
+html[data-style="scrapbook"] .board-tile:nth-child(3) {
+  transform: rotate(-0.8deg);
+}
+
+html[data-style="scrapbook"] .board-hero-title,
+html[data-style="scrapbook"] .page-heading h1 {
+  text-shadow: 1px 1px 0 rgba(42, 33, 23, 0.18);
+}
+
+/* Swiss: the column rule is the ornament. Vertical hairlines between columns. */
+html[data-style="swiss"] .stats {
+  gap: 0;
+  border: 1px solid var(--hairline-2);
+}
+
+html[data-style="swiss"] .stat {
+  border: 0;
+  border-left: 1px solid var(--hairline-2);
+}
+
+html[data-style="swiss"] .stat:first-child {
+  border-left: 0;
+}
+
+html[data-style="swiss"] .stat > strong {
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+html[data-style="swiss"] .page-heading h1,
+html[data-style="swiss"] .board-hero h2 {
+  font-weight: 600;
+  letter-spacing: -0.045em;
+}
+
+/* Neo-brutalism: the offset shadow is real, and pressed buttons lose it. */
+html[data-style="brutal"] .btn,
+html[data-style="brutal"] .board-cta {
+  border: 2px solid var(--hairline-2);
+  box-shadow: 3px 3px 0 var(--hairline-2);
+}
+
+html[data-style="brutal"] .btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+html[data-style="brutal"] .stat,
+html[data-style="brutal"] .panel,
+html[data-style="brutal"] .board-card,
+html[data-style="brutal"] .directory {
+  border: 2px solid var(--hairline-2);
+}
+
+html[data-style="brutal"] .page-heading h1,
+html[data-style="brutal"] .board-hero h2 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+/* Maximalism: a thick two-tone rule under the heading, ornament in the corner. */
+html[data-style="maximal"] .page-heading h1::after {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 6px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--lime) 0 60%, var(--lavender) 60% 100%);
+}
+
+html[data-style="maximal"] .stat,
+html[data-style="maximal"] .panel,
+html[data-style="maximal"] .board-card {
+  border-width: 2px;
+}
+
+/* Victorian: an inset keyline inside every frame. */
+html[data-style="victorian"] .stat,
+html[data-style="victorian"] .panel,
+html[data-style="victorian"] .board-card,
+html[data-style="victorian"] .directory {
+  outline: 1px solid var(--hairline);
+  outline-offset: -5px;
+}
+
+html[data-style="victorian"] .page-heading h1,
+html[data-style="victorian"] .board-hero h2 {
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.02em;
+}
+
+/* Luxury: wide tracked caps for labels, hairline rules instead of boxes. */
+html[data-style="luxury"] .eyebrow,
+html[data-style="luxury"] .stat-label,
+html[data-style="luxury"] th {
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+html[data-style="luxury"] .stat > strong,
+html[data-style="luxury"] .board-amount {
+  font-weight: 400;
+  font-size: 30px;
+}
+
+/* Bohemian: arches. The top corners curve twice as far as the bottom. */
+html[data-style="bohemian"] .stat,
+html[data-style="bohemian"] .board-card,
+html[data-style="bohemian"] .panel {
+  border-radius: 32px 32px var(--radius-lg) var(--radius-lg);
+}
+
+/* Wabi-Sabi: nothing quite concentric, and the first tile sits lower. */
+html[data-style="wabi"] .stat:nth-child(2) {
+  border-radius: 16px 15px 14px 18px;
+}
+
+html[data-style="wabi"] .stat:nth-child(3) {
+  border-radius: 14px 18px 16px 15px;
+}
+
+html[data-style="wabi"] .stats {
+  align-items: start;
+}
+
+html[data-style="wabi"] .stat:nth-child(even) {
+  margin-top: 7px;
+}
+
+/* Y2K: a gloss sweep across the top of each card. */
+html[data-style="y2k"] .stat,
+html[data-style="y2k"] .board-card,
+html[data-style="y2k"] .panel {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 42%);
+}
+
+html[data-style="y2k"] .btn {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent 54%);
+}
+
+/* Cyberpunk: clipped corners and a hazard rule on the active nav item. */
+html[data-style="cyberpunk"] .stat,
+html[data-style="cyberpunk"] .board-card,
+html[data-style="cyberpunk"] .panel {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+html[data-style="cyberpunk"] .rail-active {
+  box-shadow: inset 3px 0 0 var(--lime);
+}
+
+html[data-style="cyberpunk"] .page-heading h1,
+html[data-style="cyberpunk"] .board-hero h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+/* Bento: one tile in the strip is filled, the rest are quiet. */
+html[data-style="bento"] .stat:nth-child(1) {
+  background: var(--lime);
+  color: var(--on-accent);
+}
+
+html[data-style="bento"] .stat:nth-child(1) .stat-label,
+html[data-style="bento"] .stat:nth-child(1) > span {
+  color: color-mix(in srgb, var(--on-accent) 74%, transparent);
+}
+
+/* Ethereal: a weightless lift, no hard edges anywhere. */
+html[data-style="ethereal"] .stat,
+html[data-style="ethereal"] .board-card,
+html[data-style="ethereal"] .panel {
+  border-color: transparent;
+}
+
+html[data-style="ethereal"] .page-heading h1,
+html[data-style="ethereal"] .board-hero h2 {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Swiss and Minimal share the refusal to decorate; Minimal goes one further and
+   removes the card surface entirely so only the type holds the page. */
+html[data-style="minimal"] .stat,
+html[data-style="minimal"] .board-card {
+  background: transparent;
+  border-color: var(--hairline);
+  box-shadow: none;
+}
+
+html[data-style="minimal"] .stat > strong {
+  font-weight: 500;
+}
+
+/* Cybercore and Pixel are machines: the readout labels are mono and tracked. */
+html[data-style="cybercore"] .stat-label,
+html[data-style="pixel"] .stat-label,
+html[data-style="cybercore"] th,
+html[data-style="pixel"] th {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+}
+
+/* Surreal: the page plane tilts, so the first card is oversized. */
+html[data-style="surreal"] .stat:nth-child(1) > strong {
+  font-size: 40px;
+}
+
+html[data-style="surreal"] .board-hero {
+  border-radius: 40px 12px 40px 12px;
+}
+
+/* Scrapbook and Sketch set type by hand; keep the labels out of caps. */
+html[data-style="scrapbook"] .eyebrow,
+html[data-style="sketch"] .eyebrow {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 12px;
+}
+
+/* ---------- 18n. Design Studio ---------- */
+
+/* The gallery compares styles, so its own chrome has to stay neutral: the
+   active theme tints it, but the previews inside each frame carry the look. */
+.studio {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.studio-bar .panel-heading {
+  margin-bottom: 12px;
+}
+
+.studio-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.studio-controls .search-field {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.studio-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.studio-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline-2);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.studio-chip:hover {
+  background: var(--field-hover);
+  color: var(--text);
+}
+
+.studio-chip.selected {
+  border-color: transparent;
+  background: var(--text);
+  color: var(--app-bg);
+}
+
+.studio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px;
+}
+
+.studio-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--card-solid);
+  text-align: left;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.studio-tile:hover {
+  border-color: var(--hairline-2);
+}
+
+.studio-tile.selected {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--lime) 26%, transparent);
+}
+
+/* The art tile is the style's own canvas with its accent stripe and two
+   surface chips, so a glance tells you paper from ink. */
+.studio-tile-art {
+  display: block;
+  height: 56px;
+  margin-bottom: 8px;
+  background: var(--sw-canvas);
+  border-bottom: 1px solid var(--hairline);
+  padding: 10px;
+}
+
+.studio-tile-art > span {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, var(--sw-accent) 0 34%, transparent 34%),
+    color-mix(in srgb, var(--sw-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sw-accent) 34%, transparent);
+}
+
+.studio-tile strong {
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.studio-tile small {
+  padding: 0 10px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.studio-tile-meta {
+  padding: 4px 10px 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.studio-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.studio-previews {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.studio-previews.is-split {
+  grid-template-columns: 1fr 1fr;
+}
+
+.studio-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.studio-frame figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.studio-frame figcaption strong {
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* The viewport is a real browser frame: it scales down inside the panel, and
+   the iframe inside it keeps a real viewport width. */
+.studio-viewport {
+  width: 100%;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--card-solid);
+  overflow: hidden;
+}
+
+.studio-iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
+.studio-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.studio-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.studio-facts span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.studio-facts strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-dot-row i {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 3px;
+  border: 1px solid var(--hairline-2);
+}
+
+/* Inside a preview frame the sample fills the document. */
+.studio-sample {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  min-height: 100%;
+  background: var(--app-bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+.studio-sample .page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.studio-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-sample-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* ---------- 19. Responsive ---------- */
 
-/* Tablet: rail narrows, labels move to tooltips in both themes. */
+/* Tablet: every side rail narrows and drops its labels, whatever material it
+   wears. keyed on data-layout so a new style inherits the behaviour. */
 @media (max-width: 1100px) {
-  html[data-style="classic"] {
+  html[data-layout="docked"],
+  html[data-layout="operator"] {
     --rail-w: 72px;
     --shell-pad-left: 88px;
+    /* A docked rail is flush to the edge. A style that insets it at full width
+       (neon floats at left:18px) would otherwise push its edge past the
+       content, so the inset is reset here with the width. */
+    --rail-left: 0;
+    --label-display: none;
   }
 
-  html[data-style="classic"] .floating-rail {
+  html[data-layout="float"] {
+    --rail-w: 64px;
+  }
+
+  html:is([data-layout="docked"],[data-layout="operator"]) .floating-rail {
     align-items: center;
     padding: 14px 0;
   }
 
-  html[data-style="classic"] .floating-rail button,
-  html[data-style="classic"] .glass-brand {
+  html:is([data-layout="docked"],[data-layout="operator"]) .floating-rail button,
+  html:is([data-layout="docked"],[data-layout="operator"]) .glass-brand {
     justify-content: center;
     gap: 0;
     width: 44px;
@@ -2716,11 +5090,14 @@ html[data-mode="light"] .badge.red {
     padding: 0;
   }
 
-  html[data-style="classic"] .rail-label {
-    display: none;
+  /* Titles survive in the docked and operator rails because the labels are the
+     only navigation cue once the text is gone. */
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-primary,
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-foot {
+    align-items: center;
   }
 
-  html[data-style="classic"] .rail-more-menu {
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-more-menu {
     left: 84px;
   }
 
@@ -2742,13 +5119,15 @@ html[data-mode="light"] .badge.red {
 }
 
 @media (max-width: 820px) {
+  /* A side rail steals too much width on a phone, so every shell that uses one
+     collapses to the same bottom bar. Keyed on data-layout, not style id. */
   .app,
-  html[data-style="classic"] .app {
+  html:is([data-layout="docked"],[data-layout="operator"]) .app {
     padding: 14px 14px 92px 14px;
   }
 
   .main-shell,
-  html[data-style="classic"] .main-shell {
+  html:is([data-layout="docked"],[data-layout="operator"]) .main-shell {
     min-height: calc(100dvh - 106px);
   }
 
@@ -2757,9 +5136,8 @@ html[data-mode="light"] .badge.red {
     gap: 14px;
   }
 
-  /* Both themes collapse to a bottom bar: a side rail steals too much width. */
   .floating-rail,
-  html[data-style="classic"] .floating-rail {
+  html:is([data-layout="docked"],[data-layout="operator"]) .floating-rail {
     top: auto;
     bottom: 14px;
     left: 50%;
@@ -2776,13 +5154,23 @@ html[data-mode="light"] .badge.red {
     overflow: visible;
   }
 
-  .rail-primary {
+  .rail-primary,
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-primary {
+    flex: 1 1 auto;
     flex-direction: row;
+    align-items: center;
     gap: 2px;
+    min-width: 0;
+    margin: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
 
-  .rail-foot {
+  .rail-foot,
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-foot {
+    flex: none;
     flex-direction: row;
+    align-items: center;
     margin: 0;
     padding: 0 0 0 6px;
     border-top: 0;
@@ -2790,8 +5178,15 @@ html[data-mode="light"] .badge.red {
     width: auto;
   }
 
+  .rail-primary button,
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-primary button {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
   .floating-rail button,
-  html[data-style="classic"] .floating-rail button {
+  html:is([data-layout="docked"],[data-layout="operator"]) .floating-rail button {
     width: 44px;
     height: 44px;
     padding: 0;
@@ -2801,14 +5196,16 @@ html[data-mode="light"] .badge.red {
   }
 
   .floating-rail .rail-label,
-  html[data-style="classic"] .rail-label {
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-label {
     display: none;
   }
 
-  .glass-brand {
+  .glass-brand,
+  html:is([data-layout="docked"],[data-layout="operator"]) .glass-brand {
     width: 40px;
     height: 44px;
     justify-content: center;
+    gap: 0;
     padding: 0;
   }
 
@@ -2817,7 +5214,7 @@ html[data-mode="light"] .badge.red {
   }
 
   .rail-more-menu,
-  html[data-style="classic"] .rail-more-menu {
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-more-menu {
     left: 50%;
     top: auto;
     bottom: 78px;
@@ -2838,17 +5235,26 @@ html[data-mode="light"] .badge.red {
   }
 
   .board-hero {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 18px;
-    padding: 20px;
+    gap: 20px;
     min-height: 0;
+    padding: 20px 20px 0;
   }
 
+  .board-hero h2 {
+    font-size: 25px;
+  }
+
+  /* The strip wraps to two rows instead of squashing four figures. */
   .board-hero-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-    gap: 12px 16px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 12px 22px;
+    margin: 0 -20px;
+    padding: 14px 16px;
+  }
+
+  .board-hero-stats > div {
+    flex: 1 1 40%;
   }
 
   .board-round {
@@ -2925,10 +5331,6 @@ html[data-mode="light"] .badge.red {
 }
 
 @media (max-width: 480px) {
-  .board-hero-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .board-hero-stats strong {
     font-size: 19px;
   }
@@ -2942,7 +5344,7 @@ html[data-mode="light"] .badge.red {
   }
 
   .floating-rail,
-  html[data-style="classic"] .floating-rail {
+  html:is([data-style="classic"],[data-style="signal"]) .floating-rail {
     width: calc(100% - 20px);
   }
 
@@ -2953,6 +5355,190 @@ html[data-mode="light"] .badge.red {
   .member-card-action,
   .member-card-icon {
     min-height: 44px;
+  }
+}
+
+/* ---------- 21. Themes 5-9 on small screens ----------
+
+   These shells set their own rail geometry with higher specificity than the
+   shared block in 19, so each one restates the collapsed bar here: every
+   layout becomes the same icon bar at the bottom, where a strip, a capsule or
+   a side column would eat the width. */
+
+@media (max-width: 820px) {
+  /* Ledger: the flush top strip drops to the shared bottom bar. */
+  html[data-layout="strip"] .app {
+    padding: 14px 14px 92px;
+  }
+
+  html[data-layout="strip"] .main-shell {
+    min-height: calc(100dvh - 106px);
+  }
+
+  html[data-layout="strip"] .floating-rail,
+  html[data-layout="index"] .floating-rail,
+  html[data-layout="clay"] .floating-rail {
+    top: auto;
+    bottom: 14px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(100% - 28px, 452px);
+    max-width: none;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2px;
+    padding: 8px 10px;
+    border: 1px solid var(--hairline-2);
+    border-radius: 22px;
+    background: var(--rail-bg);
+    box-shadow: var(--card-shadow);
+    overflow: visible;
+  }
+
+  html[data-layout="strip"] .rail-primary,
+  html[data-layout="index"] .rail-primary,
+  html[data-layout="clay"] .rail-primary {
+    flex: 1 1 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    margin: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  html[data-layout="strip"] .rail-foot,
+  html[data-layout="index"] .rail-foot,
+  html[data-layout="clay"] .rail-foot {
+    flex: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    margin: 0;
+    padding: 0 0 0 6px;
+    border-top: 0;
+    border-left: 1px solid var(--hairline);
+    width: auto;
+  }
+
+  html[data-layout="strip"] .floating-rail button,
+  html[data-layout="index"] .floating-rail button,
+  html[data-layout="clay"] .floating-rail button,
+  html[data-layout="strip"] .glass-brand,
+  html[data-layout="index"] .glass-brand,
+  html[data-layout="clay"] .glass-brand {
+    flex: 1 1 0;
+    justify-content: center;
+    gap: 0;
+    width: auto;
+    min-width: 0;
+    height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  html[data-layout="strip"] .floating-rail .rail-active,
+  html[data-layout="index"] .floating-rail .rail-active {
+    background: color-mix(in srgb, var(--lime) 20%, transparent);
+    box-shadow: none;
+    color: var(--lime);
+  }
+
+  html[data-layout="clay"] .floating-rail .rail-active {
+    background: var(--lime);
+    color: var(--on-accent);
+  }
+
+  html[data-layout="strip"] .rail-label,
+  html[data-layout="index"] .rail-label,
+  html[data-layout="clay"] .rail-label,
+  html[data-style="pocket"] .rail-label {
+    display: none;
+  }
+
+  html[data-layout="index"] .app {
+    padding: 14px 14px 92px;
+  }
+
+  html[data-layout="index"] .rail-more-menu,
+  html[data-layout="strip"] .rail-more-menu,
+  html[data-layout="clay"] .rail-more-menu {
+    top: auto;
+    bottom: 78px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(94vw, 320px);
+    max-height: 56dvh;
+  }
+
+  html[data-layout="clay"] .app {
+    padding: 14px 14px 100px;
+  }
+
+  /* Clay keeps its pillow radius but loses the floating pocket. */
+  html[data-layout="clay"] .main-shell {
+    border-radius: 24px;
+  }
+
+  html[data-layout="clay"] .topbar,
+  html[data-style="clay"] .topbar {
+    border-radius: 18px;
+    box-shadow: none;
+  }
+
+  /* Console's four-figure bar cannot fit one row, so it wraps to a grid. */
+  html[data-style="console"] .stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-style="console"] .stat {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  html[data-style="console"] .stat:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  /* Dispatch runs a big editorial rule across a narrow column. */
+  html[data-style="dispatch"] .page-heading h1 {
+    font-size: 30px;
+  }
+
+  html[data-style="dispatch"] .page-heading p {
+    font-size: 13px;
+  }
+
+  html[data-style="dispatch"] .stat > strong {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 480px) {
+  html[data-layout="strip"] .floating-rail,
+  html[data-layout="index"] .floating-rail,
+  html[data-layout="clay"] .floating-rail,
+  html[data-layout="tabs"] .floating-rail {
+    width: calc(100% - 20px);
+  }
+
+  html[data-style="console"] .stats {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-style="console"] .stat {
+    border-top: 1px solid var(--hairline);
+  }
+
+  html[data-style="console"] .stat:first-child {
+    border-top: 0;
   }
 }
 

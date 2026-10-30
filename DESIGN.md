@@ -152,6 +152,12 @@ The system is built for a front desk where one person is doing three jobs at onc
 - Depth from both shadow and translucency: a soft ambient shadow plus an inset white highlight on every raised edge.
 - Motion is a single confident entrance per view, then stillness.
 
+**This document describes the default language (Glassmorphism).** The product
+ships 26 design languages behind one switcher, so the sections below are the
+house style, not the only one. See [Design languages](#design-languages) for how
+a second language overrides type, colour, material and shell, and which rules
+every language must still obey.
+
 ## Colors
 
 An olive-and-cream ground, one electric accent, and three muted state colours that never read as decoration.
@@ -196,17 +202,38 @@ An olive-and-cream ground, one electric accent, and three muted state colours th
 
 ## Layout
 
-A fixed glass shell, not a full-bleed page. `.app` pads 64px top, 54px bottom, 110px left (clearing the rail) and 5% right; the shell inside is capped at 1440px and centred, with a 38px radius and hidden overflow. Content padding inside the shell is 32px horizontally at top level.
+A fixed shell, not a full-bleed page. `.app` pads the top, bottom and rail side
+from tokens (`--shell-pad-*`); the shell inside is capped at 1440px and centred,
+with a large radius and hidden overflow. Content padding inside the shell is
+32px horizontally at top level.
 
-The navigation rail is fixed to the left edge, vertically centred, 25px from the viewport, 50px wide and 460px tall, holding 38px circular icon buttons in a scrolling column. It floats free of the shell rather than sitting inside it — the one element allowed to break the frame.
+Navigation geometry is not one design, because seven shells share the same
+markup. The shell is chosen by `data-layout` on `<html>`, set from the theme
+record, and every rule that moves the rail or pads the page keys off it:
 
-Inside, the grid is 12-column in spirit: `.dashboard-grid` splits 1.65fr / 1fr with a 20px gap; `.stats` is a 4-up equal grid with 15px gaps; `.plan-grid` is 3-up with 20px; `.micro-metrics` is 7-up with 5px. Tables are full-width with 68px row height and 19px leading cell padding, so density stays low enough to tap.
+- `float` — full-height frosted icon rail down the left edge, free of the shell.
+- `docked` — labelled sidebar, flush left, part of the frame.
+- `strip` — a tab strip across the top of the shell.
+- `operator` — narrow icon rail plus an instrument bar.
+- `index` — a contents column on the right.
+- `tabs` — one phone-width column with a bottom bar.
+- `clay` — a floating capsule across the top.
 
-Responsive behaviour is a progressive collapse, not a reflow: 1150px tightens padding and shifts the rail to 210px; 1100px compresses the summary grid; 800px stacks the summary into one column; 600px drops stats to 2-up and stacks the page heading; 540px turns the rail into a bottom bar and lets the shell fill the viewport with a 24px radius. Below 600px the whole product is expected on a phone.
+Inside, the grid is 12-column in spirit: `.board` splits 1.85fr / 1fr with a
+14px gap; `.stats` is a 4-up equal grid; tables are full-width, so density stays
+low enough to tap.
 
-**The Floating Rail Rule.** Navigation never occupies layout width at desktop sizes. It overlays the canvas margin; content is offset by padding, not by a sidebar pushing it.
+Responsive behaviour is a progressive collapse, not a reflow: 1100px narrows
+docked rails and stacks the overview; 820px turns rails into a bottom bar and
+collapses the stat strip to two columns; 480px drops to one column.
 
-**The Section Padding Rule.** Panels pad 23px, stat tiles 18px/19px, table toolbars 15px/18px. Never mix these inside one column — the rhythm between cards is how the eye separates sections without dividers.
+**The Shell Declares Itself Rule.** A style picks a shell from the seven and
+never invents rail geometry of its own. New geometry means a new shell layout,
+declared once, not a style-name exception.
+
+**The Section Padding Rule.** Panels pad 23px, stat tiles 18px/19px, table
+toolbars 15px/18px. Never mix these inside one column — the rhythm between cards
+is how the eye separates sections without dividers.
 
 ## Elevation & Depth
 
@@ -271,6 +298,50 @@ The recurring decorative gesture is a single 1px translucent border on every sur
 - **Style:** 480px wide, 12px radius, 90vh max, near-solid warm fill (#ecefe4, or rgba(30,30,30,.96) in dark).
 - **Structure:** a heading block with title and one-line subtitle, a 24px-gapped body of labelled fields, then a footer with a top border and right-aligned Cancel plus the confirming action.
 - **Behaviour:** clicking the scrim closes it; clicking inside does not. Consequential actions state their consequence in the subtitle rather than relying on the button label.
+
+## Design languages
+
+The workspace owner picks one of 26 languages, and it applies to everyone in
+that gym. The picker lives in Settings; the Design Studio renders every language
+with real components so the choice is made by looking, not by reading a name.
+
+A language is data, not a forked component tree. Each one is a record in
+`src/lib/styles.ts` holding custom properties for colour, type, radius, blur and
+material, selected per mode:
+
+```
+StyleTokens { base?, dark: Palette, light: Palette }
+```
+
+`applyTheme` writes the active record's values onto `<html>` as inline custom
+properties, and removes any token the next language does not declare, so no
+language leaks into another. The nine oldest languages keep their token blocks
+in `index.css` instead; both routes arrive at the same custom properties, which
+is why no component is aware of any language by name.
+
+What a language may change:
+
+| Axis | Examples |
+|---|---|
+| Type | Archivo (Neo-Brutalism), Courier Prime (Scrapbook), Space Grotesk (Y2K, Bento), Fraunces (Luxury, Bohemian, Victorian, Wabi-Sabi), Instrument Serif (Ethereal), Caveat (Conceptual Sketch), mono (Pixel, Cyberpunk, Cybercore) |
+| Material | Glass blur, clay extrusion, neumorphic insets, 2px ink rules, engraved keylines, dashed pencil borders |
+| Shape | 0px (Swiss, Pixel, Brutalism), 4px radius, 19px, 36px (Surrealism), arch tops (Bohemian) |
+| Colour | Paper-and-ink, near-black neon, hazard yellow, oxblood, muted clay, chrome |
+| Shell | One of the seven layouts listed under Layout |
+| Signature | Rotated scrapbook cards, Swiss hairline stat columns, a two-tone rule under the heading, cut-off corners, a filled first bento tile |
+
+What every language must keep, because usability is not a style option:
+
+- **One accent per screen.** The accent token may be yellow, oxblood or violet, but it stays the only colour carrying a primary action.
+- **Contrast.** Body text is set in `--text` on `--card`, and every language's pair is chosen to stay readable. Muted text (`--text-2`, `--text-3`) is for labels and captions, never for the only copy in a row.
+- **State colours stay semantic.** `--ok`, `--warn`, `--err` may be retuned per language, but green still means good and red still means a problem.
+- **The shell is chosen, not invented.** Rail geometry comes from the layout, so a language cannot push content under a fixed rail.
+- **Reduced motion.** Signature details are structural; any animation still stops under `prefers-reduced-motion`.
+- **The photo is optional.** Only Glassmorphism and Synthwave keep the photographic canvas; every other language paints its own surface over the card token.
+
+**The Data Over Fork Rule.** A new language is one record (or one CSS block for
+backwards compatibility) plus an entry in the registry. If adding a language
+requires touching a component, the component is doing the theme's job.
 
 ### Toast
 - **Style:** bottom-right, 24px inset, near-black translucent fill with a blur and a 1px white border, 8px radius, 12px text, auto-dismissing after four seconds.

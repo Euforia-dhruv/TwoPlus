@@ -1,7 +1,6 @@
 // Shared dashboard UI primitives. Extracted from App.tsx so the platform
 // admin area (/admin) reuses the exact same components and styling.
 import type { ReactNode } from "react";
-import { Icon } from "../icons";
 
 // type="button" by default: without it every Button inside a <form> silently
 // submits. Form buttons opt in with an explicit type="submit".
@@ -96,21 +95,16 @@ export function Avatar({ name, small }: { name: string; small?: boolean }) {
   );
 }
 
-const STAT_ICONS = ["members", "check", "calendar", "wallet"] as const;
-
+// One strip, not a row of cards: figures read as a single instrument panel
+// and the shared edges stop every page looking like the same card grid.
 export function Stats({ items }: { items: string[][] }) {
   return (
     <div className="stats">
-      {items.map(([label, value, detail], i) => (
+      {items.map(([label, value, detail]) => (
         <section key={label} className="stat">
-          <div className="stat-label">
-            <span className="stat-chip">
-              <Icon name={STAT_ICONS[i % 4]} size={14} />
-            </span>
-            {label}
-          </div>
+          <span className="stat-label">{label}</span>
           <strong>{value}</strong>
-          <span>
+          <span className="stat-note">
             <span className={detail.startsWith("+") ? "positive" : ""}>
               {detail}
             </span>

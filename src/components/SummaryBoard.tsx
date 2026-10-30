@@ -1,5 +1,5 @@
-// Overview board: hero + right analytics column + attention table.
-// Every number comes from live workspace rows; nothing is sampled.
+// Overview: a photo hero with an overlaid stat strip, a right rail of live
+// cards, and a full-width attention table. Every figure comes from live rows.
 import { Icon } from "../icons"
 import { formatMoney, type DashboardStats, type ReportMonth } from "@/lib/types"
 
@@ -10,9 +10,6 @@ export type BoardMember = {
   expires: string
   due: string
 }
-
-const HERO_PHOTO =
-  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=80"
 
 function compact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`
@@ -80,22 +77,27 @@ export function SummaryBoard({
   }
   const topPlan = [...planCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null
 
-  const attention = members.filter((m) => m.status === "Expiring soon" || m.status === "Expired").slice(0, 5)
+  const attention = members
+    .filter((m) => m.status === "Expiring soon" || m.status === "Expired")
+    .slice(0, 6)
+
+  const peak = reports.length
+    ? reports.reduce((best, r) => (r.visits > best.visits ? r : best), reports[0])
+    : null
+
   const money = (minor: number) => formatMoney(minor, currency)
   const collectedPath = linePath(collected, 260, 90, 8)
-  const areaPath = collectedPath
-    ? `${collectedPath} L${252},82 L8,82 Z`
-    : ""
+  const areaPath = collectedPath ? `${collectedPath} L252,82 L8,82 Z` : ""
 
   return (
     <div className="board">
-      <section className="board-hero" style={{ backgroundImage: `linear-gradient(105deg,rgba(14,14,14,.92) 12%,rgba(20,18,16,.72) 45%,rgba(20,18,16,.25) 78%),url(${HERO_PHOTO})` }}>
+      <section className="board-hero">
         <div className="board-hero-body">
           <p className="board-eyebrow">Workspace overview</p>
           <h2>Optimize how your gym runs</h2>
           <p className="board-hero-sub">
             {loading
-              ? "Loading your workspace…"
+              ? "Loading your workspace"
               : stats && stats.totalMembers > 0
                 ? "Live figures from your members, memberships and payments."
                 : "Add your first member and these cards fill with real numbers."}
@@ -108,12 +110,12 @@ export function SummaryBoard({
 
         <div className="board-hero-stats">
           {[
-            ["Members", stats ? compact(stats.totalMembers) : "—", `${stats?.activeMembers ?? 0} active`],
-            ["Memberships", stats ? compact(stats.activeMemberships) : "—", `${stats?.expiringSoon ?? 0} expiring`],
-            ["Collected", stats ? money(stats.monthCollectionsMinor) : "—", "this month"],
-            ["Enquiries", stats ? compact(stats.newEnquiries) : "—", "this month"],
-          ].map(([label, value, note]) => (
-            <div key={label}>
+            ["Members", stats ? compact(stats.totalMembers) : "\u2014", "members", true],
+            ["Memberships", stats ? compact(stats.activeMemberships) : "\u2014", "active", false],
+            ["Collected", stats ? money(stats.monthCollectionsMinor) : "\u2014", "this month", false],
+            ["Enquiries", stats ? compact(stats.newEnquiries) : "\u2014", "this month", false],
+          ].map(([label, value, note, lit]) => (
+            <div key={String(label)} className={lit ? "is-lit" : undefined}>
               <strong>{value}</strong>
               <span>
                 <i className="board-dot" />
@@ -132,9 +134,9 @@ export function SummaryBoard({
           <div className="board-card-head">
             <div>
               <h3>Check-ins by month</h3>
-              <p>Last {reports.length || 0} months of attendance and joins</p>
+              <p>Attendance and joins, last {reports.length || 0} months</p>
             </div>
-            <span className="board-live"><i />Live</span>
+            {peak && peak.visits > 0 && <span className="board-peak">{peak.visits} peak</span>}
           </div>
 
           {reports.length > 1 ? (
@@ -152,8 +154,14 @@ export function SummaryBoard({
                 <span>{last?.label}</span>
               </div>
               <div className="board-key">
-                <span><i className="board-swatch board-swatch-accent" />Check-ins {stats?.attendanceToday ?? 0} today</span>
-                <span><i className="board-swatch board-swatch-muted" />New members {stats?.newEnquiries ?? 0} enquiries</span>
+                <span>
+                  <i className="board-swatch board-swatch-accent" />
+                  Check-ins {stats?.attendanceToday ?? 0} today
+                </span>
+                <span>
+                  <i className="board-swatch board-swatch-muted" />
+                  New members
+                </span>
               </div>
             </>
           ) : (
@@ -173,39 +181,44 @@ export function SummaryBoard({
             {delta !== null && (
               <span className={`board-delta ${delta < 0 ? "is-down" : ""}`}>
                 <Icon name="chart" size={12} />
-                {delta > 0 ? "+" : ""}{delta}%
+                {delta > 0 ? "+" : ""}
+                {delta}%
               </span>
             )}
           </div>
 
-          {collected.length > 1 ? (
-            <svg className="board-area" viewBox="0 0 260 90" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <linearGradient id="boardAreaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--lime)" stopOpacity=".42" />
-                  <stop offset="100%" stopColor="var(--lime)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path d={areaPath} fill="url(#boardAreaFill)" />
-              <path d={collectedPath} className="board-line board-line-accent" fill="none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-            </svg>
-          ) : (
-            <div className="board-flat" />
-          )}
-
-          <strong className="board-amount">{stats ? money(stats.monthCollectionsMinor) : "—"}</strong>
-          <p className="board-caption">Your recorded collections this month</p>
+          <div className="board-sales">
+            <div>
+              <strong className="board-amount">{stats ? money(stats.monthCollectionsMinor) : "\u2014"}</strong>
+              <p className="board-caption">Recorded this month</p>
+            </div>
+            {collected.length > 1 ? (
+              <svg className="board-spark" viewBox="0 0 120 44" preserveAspectRatio="none" aria-hidden="true">
+                <path d={areaPath} fill="none" className="board-line board-line-accent" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              </svg>
+            ) : null}
+          </div>
 
           <div className="board-split">
             <button onClick={onOpenPayments}>
               <span>Pending</span>
-              <strong>{stats ? money(stats.pendingPaymentsMinor) : "—"}</strong>
+              <strong>{stats ? money(stats.pendingPaymentsMinor) : "\u2014"}</strong>
             </button>
             <div>
               <span>Top plan</span>
-              <strong>{topPlan ? topPlan[0] : "—"}</strong>
+              <strong>{topPlan ? topPlan[0] : "\u2014"}</strong>
               <small>{topPlan ? `${topPlan[1]} members` : "No memberships yet"}</small>
             </div>
+          </div>
+        </section>
+
+        <section className="board-card board-tile">
+          <span className="board-tile-icon" aria-hidden="true">
+            <Icon name="ticket" size={20} />
+          </span>
+          <div>
+            <strong>{topPlan ? topPlan[0] : "No plan yet"}</strong>
+            <span>{topPlan ? `${topPlan[1]} members on this plan` : "Create a membership plan"}</span>
           </div>
         </section>
       </div>

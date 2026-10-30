@@ -35,3 +35,8 @@ dist-ssr
 supabase/.temp
 .vercel
 .env*
+
+# Playwright screenshots and reports
+screenshots
+test-results
+playwright-report
