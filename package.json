@@ -9,6 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "check": "npm run build && npm run lint",
+    "test": "playwright test",
+    "test:gate": "npm run check && npm run test",
     "audit:themes": "node scripts/_themes.mjs",
     "audit:contrast": "node scripts/_contrast.mjs",
     "audit:auth": "node scripts/_auth-theme.mjs && node scripts/_auth-contrast.mjs",

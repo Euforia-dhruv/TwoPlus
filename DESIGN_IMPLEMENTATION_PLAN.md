@@ -231,9 +231,15 @@ list before deploy.
 | --- | --- | --- |
 | Types + build | `npm run build` | pass, 94 modules, CSS 98.4 kB, JS 740.9 kB |
 | Lint | `npm run lint` (oxlint) | pass |
-| Every style × viewport × mode | `node scripts/_themes.mjs` | `ALL THEMES OK` (26 × 3 × 2, includes rail overlap and overflow) |
-| Contrast (WCAG from resolved tokens) | `node scripts/_contrast.mjs` | `ALL CONTRAST OK` (26 × 2, 8 pairs each) |
-| Studio behaviour | `node scripts/_studio.mjs` | 26 tiles, live iframe, apply works, no errors |
+| Everything | `npm run test:gate` | build + lint + all 87 browser tests |
+| Every style × viewport × mode | `npm test -- themes` | 27/27: applied style, shell, rail overlap, overflow |
+| Contrast (WCAG from resolved tokens) | `npm test -- contrast` | 27/27: 8 pairs per style per mode |
+| Auth screens (remembered style) | `npm test -- auth` | 28/28: themed, 5 pairs at 4.5:1 |
+| Studio behaviour | `npm test -- studio` | 5/5: gallery, search, apply, phone overflow |
+
+The suite needs `SHOT_EMAIL` and `SHOT_PASS` in the environment; without them the
+setup project skips and the signed-in specs are skipped rather than failing. Run
+it against a deployment with `AUDIT_URL=https://twoplus.fit npm test`.
 
 ---
 
@@ -243,8 +249,9 @@ list before deploy.
    the newer styles will not save.
 2. **Migrate the nine CSS-block styles to token records** and delete their
    pre-`styles.ts` CSS in the same commit, so nothing is silently overridden.
-3. **Promote `scripts/*.mjs` to `@playwright/test` specs** so the gates run in CI
-   rather than by hand.
+3. **Retire the superseded scripts.** `_themes.mjs`, `_contrast.mjs`, `_studio.mjs`,
+   `_auth-theme.mjs` and `_auth-contrast.mjs` are now covered by the specs above
+   and can go once the suite has run in CI a few times.
 4. **Split `App.tsx`** (134 KB) into shell / pages / modals.
 5. Decide Tailwind's fate: adopt or remove; do not leave both styling systems
    configured.

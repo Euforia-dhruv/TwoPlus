@@ -40,3 +40,5 @@ supabase/.temp
 screenshots
 test-results
 playwright-report
+# The suite's saved login. Never commit a session token.
+tests/.auth

@@ -22,7 +22,7 @@ Last updated against commit `50f56d6` plus the uncommitted design-engine work.
 | Icons | Hand-authored inline SVG set, `src/icons.tsx` (`IconName` union, ~30 glyphs). No icon package |
 | Motion | `gsap` for shell/panel transitions |
 | Charts | Hand-written SVG paths (`SummaryBoard.tsx`), no chart library |
-| Tests | **None.** No test runner, no `*.test.ts`. Verification has been manual + Playwright scripts under `scripts/` |
+| Tests | `@playwright/test` suite in `tests/` (87 tests: themes × viewport × mode, WCAG contrast, auth screens, Studio) |
 | Fonts | Inter requested by CSS but **not loaded** until this work added a `<link>` |
 
 ### Component inventory
@@ -169,10 +169,10 @@ Constraints the engine is required to respect, all verified after implementation
 
 - **`App.tsx` is 134 KB** in one file. Splitting it is the single largest
   maintainability win left, and is out of scope for a styling task.
-- **No automated test runner.** Verification is Playwright scripts in
-  `scripts/` (`_themes.mjs`, `_contrast.mjs`, `_studio.mjs`) plus
-  `npm run build`. Turning these into `@playwright/test` specs is the recommended
-  next step.
+- **Automated gates need credentials.** `npm test` runs 87 browser tests against
+  a live app. Without `SHOT_EMAIL`/`SHOT_PASS` the signed-in specs skip rather
+  than fail, so a bare `npm test` proves the build renders, not that the
+  workspace works. Run it with both set, or against a deployment with `AUDIT_URL`.
 - **9 of 26 styles are CSS-block styles** rather than token records (they
   predate `styles.ts`). They work and are verified; migrating them is mechanical
   but would need the pre-`styles.ts` CSS deleted in the same commit or the token
