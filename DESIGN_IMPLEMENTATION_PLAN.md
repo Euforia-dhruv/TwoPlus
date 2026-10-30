@@ -55,9 +55,9 @@ one language (a signature mark).
 **Consequence.** Adding a style that reuses a shell is now zero CSS for the
 shell. This is what made 26 styles tractable instead of a maintenance sink.
 
-*Verified:* `scripts/_shells.mjs` measures rail/shell bounding boxes for every
-style × 1440/1024/390 × light/dark and flags overlap plus horizontal overflow.
-Result: `ALL SHELLS OK`.
+*Verified:* `scripts/_themes.mjs` measures rail and shell bounding boxes for
+every style × 1440/1024/390 × light/dark and flags overlap plus horizontal
+overflow. Result: `ALL THEMES OK`.
 
 ---
 
@@ -231,8 +231,7 @@ list before deploy.
 | --- | --- | --- |
 | Types + build | `npm run build` | pass, 94 modules, CSS 98.4 kB, JS 740.9 kB |
 | Lint | `npm run lint` (oxlint) | pass |
-| Every style × viewport × mode | `node scripts/_themes.mjs` | `ALL THEMES OK` (26 × 3 × 2) |
-| Shell geometry / overlap | `node scripts/_shells.mjs` | `ALL SHELLS OK` |
+| Every style × viewport × mode | `node scripts/_themes.mjs` | `ALL THEMES OK` (26 × 3 × 2, includes rail overlap and overflow) |
 | Contrast (WCAG from resolved tokens) | `node scripts/_contrast.mjs` | `ALL CONTRAST OK` (26 × 2, 8 pairs each) |
 | Studio behaviour | `node scripts/_studio.mjs` | 26 tiles, live iframe, apply works, no errors |
 

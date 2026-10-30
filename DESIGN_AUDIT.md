@@ -170,7 +170,7 @@ Constraints the engine is required to respect, all verified after implementation
 - **`App.tsx` is 134 KB** in one file. Splitting it is the single largest
   maintainability win left, and is out of scope for a styling task.
 - **No automated test runner.** Verification is Playwright scripts in
-  `scripts/` (`_themes.mjs`, `_shells.mjs`, `_contrast.mjs`, `_studio.mjs`) plus
+  `scripts/` (`_themes.mjs`, `_contrast.mjs`, `_studio.mjs`) plus
   `npm run build`. Turning these into `@playwright/test` specs is the recommended
   next step.
 - **9 of 26 styles are CSS-block styles** rather than token records (they
