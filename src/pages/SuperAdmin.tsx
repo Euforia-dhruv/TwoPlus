@@ -1573,7 +1573,7 @@ export default function SuperAdmin() {
                       ["Due", formatDate(drawer.row.open_invoice.due_at)],
                     ]}
                   />
-                  <label style={{ display: "grid", gap: 8, marginTop: 14, fontSize: 11, color: "#6c7c5c" }}>
+                  <label className="field-stack" style={{ marginTop: 14 }}>
                     Payment reference
                     <Input
                       placeholder="UPI / bank reference"
@@ -1694,7 +1694,7 @@ export default function SuperAdmin() {
               <p style={{ marginTop: 16, lineHeight: 1.8 }}>
                 {drawer.row.body || "No details were provided."}
               </p>
-              <label style={{ display: "grid", gap: 8, marginTop: 20, fontSize: 11, color: "#6c7c5c" }}>
+              <label className="field-stack" style={{ marginTop: 20 }}>
                 Status
                 <Select
                   value={ticketDraft.status}

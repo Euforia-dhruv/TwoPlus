@@ -10,20 +10,12 @@ import ResetPassword from "@/pages/ResetPassword";
 import Onboarding from "@/pages/Onboarding";
 import SuperAdmin from "@/pages/SuperAdmin";
 
+// Shown while auth or the organization row resolves. Reads the design tokens so
+// it is painted by whichever language the workspace uses, never a fixed olive.
 function Splash({ text }: { text: string }) {
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 12,
-        letterSpacing: "1.5px",
-        color: "#6d756d",
-        textTransform: "uppercase",
-      }}
-    >
-      {text}
+    <div className="splash" role="status" aria-live="polite">
+      <span>{text}</span>
     </div>
   );
 }

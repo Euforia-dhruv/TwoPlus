@@ -5358,7 +5358,7 @@ html[data-style="sketch"] .eyebrow {
   }
 }
 
-/* ---------- 21. Themes 5-9 on small screens ----------
+/* ---------- 20. Themes 5-9 on small screens ----------
 
    These shells set their own rail geometry with higher specificity than the
    shared block in 19, so each one restates the collapsed bar here: every
@@ -5542,7 +5542,49 @@ html[data-style="sketch"] .eyebrow {
   }
 }
 
-/* ---------- 20. Motion preferences ---------- */
+/* ---------- 21. Loading splash ---------- */
+
+/* Shown while auth or the organization row resolves, so it can appear before
+   any workspace exists. It is painted from tokens only: the remembered theme
+   from localStorage supplies them, which is why it follows the chosen language
+   instead of flashing the default one. */
+.splash {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background-color: var(--app-bg);
+  background-image: var(--ws-bg);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.splash > span {
+  animation: splash-breathe 1.4s ease-in-out infinite;
+}
+
+@keyframes splash-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Labelled control stack, used where a label is not inside .modal-body. */
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+/* ---------- 22. Motion preferences ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   *,
