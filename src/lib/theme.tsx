@@ -164,6 +164,45 @@ export function applyTheme(theme: WorkspaceTheme) {
   } else {
     root.style.removeProperty("--workspace-image");
   }
+  persistTheme(theme);
+}
+
+// The appearance is remembered so the pages that render before a workspace
+// loads (sign in, sign up, reset) are painted in the gym's language instead of
+// a default. Read back on boot, overwritten by the organization row once it
+// arrives. Storage failures (private mode) are not fatal.
+const STORAGE_KEY = "twoplus.theme";
+
+function persistTheme(theme: WorkspaceTheme) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(theme));
+  } catch {
+    // No storage: the session still themes itself from the organization row.
+  }
+}
+
+function readStoredTheme(): WorkspaceTheme | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<WorkspaceTheme>;
+    if (!THEME_STYLES.some((s) => s.id === value.style)) return null;
+    return {
+      preset: THEME_PRESETS.some((p) => p.id === value.preset)
+        ? (value.preset as ThemePreset)
+        : DEFAULT_THEME.preset,
+      mode: value.mode === "dark" ? "dark" : "light",
+      style: value.style as ThemeStyle,
+      image: safeImageUrl(value.image),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Paints the remembered appearance before React mounts. */
+export function bootstrapTheme() {
+  applyTheme(readStoredTheme() ?? DEFAULT_THEME);
 }
 
 // Token records from styles.ts are written as custom properties on <html>, so a

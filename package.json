@@ -11,6 +11,7 @@
     "check": "npm run build && npm run lint",
     "audit:themes": "node scripts/_themes.mjs",
     "audit:contrast": "node scripts/_contrast.mjs",
+    "audit:auth": "node scripts/_auth-theme.mjs && node scripts/_auth-contrast.mjs",
     "audit:studio": "node scripts/_studio.mjs"
   },
   "dependencies": {
