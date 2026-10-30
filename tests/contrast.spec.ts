@@ -6,6 +6,13 @@ import { loadRegistry, contrastOn, round } from "./lib/style";
 // than passing on paper.
 const STYLES = loadRegistry();
 
+// Skipping must happen at collection time: a context built from a missing
+// storage state fails before any hook runs.
+test.skip(
+  !process.env.SHOT_EMAIL || !process.env.SHOT_PASS,
+  "Set SHOT_EMAIL and SHOT_PASS: this gate signs in."
+);
+
 // AA floors. 4.5 for text a member reads; 3.0 for labels and status colours,
 // which are larger or carry a shape as well as a hue.
 const FLOORS = {

@@ -5,6 +5,14 @@ import { loadRegistry, SIDE, LABELLED } from "./lib/style";
 // applies it, the shell matches its declared layout, and nothing overflows or
 // hides under the navigation. One test per style keeps a failure readable.
 const STYLES = loadRegistry();
+
+// Skipping must happen at collection time: a context built from a missing
+// storage state fails before any hook runs.
+test.skip(
+  !process.env.SHOT_EMAIL || !process.env.SHOT_PASS,
+  "Set SHOT_EMAIL and SHOT_PASS: this gate signs in."
+);
+
 const VIEWPORTS = [
   { tag: "1440", width: 1440, height: 900 },
   { tag: "1024", width: 1024, height: 800 },

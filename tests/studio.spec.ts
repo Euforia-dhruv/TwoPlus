@@ -7,6 +7,13 @@ import { loadRegistry } from "./lib/style";
 // document rather than only the tile.
 const STYLES = loadRegistry();
 
+// Skipping must happen at collection time: a context built from a missing
+// storage state fails before any hook runs.
+test.skip(
+  !process.env.SHOT_EMAIL || !process.env.SHOT_PASS,
+  "Set SHOT_EMAIL and SHOT_PASS: this gate signs in."
+);
+
 async function openStudio(page: import("@playwright/test").Page) {
   await page.goto("/", { waitUntil: "networkidle" });
   await page.click('button[aria-label="More sections"]');
