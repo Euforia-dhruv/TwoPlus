@@ -299,6 +299,17 @@ The recurring decorative gesture is a single 1px translucent border on every sur
 - **Structure:** a heading block with title and one-line subtitle, a 24px-gapped body of labelled fields, then a footer with a top border and right-aligned Cancel plus the confirming action.
 - **Behaviour:** clicking the scrim closes it; clicking inside does not. Consequential actions state their consequence in the subtitle rather than relying on the button label.
 
+### Toast
+- **Style:** bottom-right, 24px inset, translucent card fill with a blur and a 1px hairline border, `--radius-sm`, 12px text, auto-dismissing after four seconds.
+- **Content:** past tense, specific: "Payment recorded", not "Success". Demo or unsaved outcomes say so explicitly.
+
+### Auth and onboarding
+- **Structure:** a two-column split above 900px. The left panel carries the brand statement over a token-tinted gradient; the right centres one `.auth-card`. Below 900px the panel is dropped and the card becomes the page.
+- **Material:** the card is the ordinary card surface (`--card`, `--card-shadow`, `--inset-hi`, `--blur-card`) at a 410px max width. The left panel is `--card-solid`. The submit button is the accent fill with `--on-accent` text.
+- **No second style:** these screens name no language. They read the same custom properties as the workspace, so a new language themes login, signup, password reset and onboarding without a line of extra CSS.
+- **Why they can be themed at all:** they render before a workspace row exists, so they cannot read the organization. `bootstrapTheme()` in `main.tsx` applies the remembered theme (localStorage) before the first paint; a first-time visitor sees the default Glassmorphism.
+- **The Split Is Not a Hero Rule.** The brand panel exists only where there is width to hold it. It never compresses into a banner, and it never appears on a phone.
+
 ## Design languages
 
 The workspace owner picks one of 26 languages, and it applies to everyone in
@@ -354,10 +365,6 @@ What every language must keep, because usability is not a style option:
 **The Data Over Fork Rule.** A new language is one record (or one CSS block for
 backwards compatibility) plus an entry in the registry. If adding a language
 requires touching a component, the component is doing the theme's job.
-
-### Toast
-- **Style:** bottom-right, 24px inset, near-black translucent fill with a blur and a 1px white border, 8px radius, 12px text, auto-dismissing after four seconds.
-- **Content:** past tense, specific — "Payment recorded", not "Success". Demo or unsaved outcomes say so explicitly.
 
 ## Do's and Don'ts
 
