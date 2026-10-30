@@ -305,6 +305,18 @@ The workspace owner picks one of 26 languages, and it applies to everyone in
 that gym. The picker lives in Settings; the Design Studio renders every language
 with real components so the choice is made by looking, not by reading a name.
 
+| Family | Languages |
+|---|---|
+| Soft | Glassmorphism, Neumorphism, Claymorphism, Ethereal, Pocket |
+| Digital | Cybercore, Synthwave, Cyberpunk, Pixel Art, Y2K, Signal Console, Operator |
+| Print | Editorial, Luxury, Swiss, Minimalism, Bento Grid, Ledger |
+| Expressive | Neo-Brutalism, Maximalism, Surrealism, Scrapbook, Conceptual Sketch |
+| Period | Bohemian, Victorian, Wabi-Sabi |
+
+The brief named 22; four more (Ledger, Operator, Pocket, Signal Console) predate
+it and stay because they are implemented, verified and referenced by the
+`theme_style` check constraint. Every name above is a row in `THEME_STYLES`.
+
 A language is data, not a forked component tree. Each one is a record in
 `src/lib/styles.ts` holding custom properties for colour, type, radius, blur and
 material, selected per mode:
