@@ -227,6 +227,12 @@ create table if not exists public.workout_plans (
 );
 create index if not exists workout_plans_org_idx on public.workout_plans (organization_id, is_archived);
 
+-- Must exist before member_workout_assignments below declares its composite FK
+-- against (id, organization_id); Postgres requires the referenced unique key
+-- up front (error 42830 otherwise).
+alter table public.workout_plans
+  add constraint workout_plans_id_org_key unique (id, organization_id);
+
 create table if not exists public.workout_exercises (
   id            uuid primary key default gen_random_uuid(),
   plan_id       uuid not null references public.workout_plans(id) on delete cascade,
@@ -262,10 +268,6 @@ create table if not exists public.member_workout_assignments (
 );
 create index if not exists member_workout_assignments_member_idx
   on public.member_workout_assignments (member_id, effective_from desc);
-
--- Workout plans gained a tenant key only now; the FK above needs it.
-alter table public.workout_plans
-  add constraint workout_plans_id_org_key unique (id, organization_id);
 
 alter table public.workout_plans enable row level security;
 alter table public.workout_exercises enable row level security;
