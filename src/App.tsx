@@ -28,6 +28,7 @@ import {
   type DashboardStats,
   type Enquiry,
   type MembershipPlan,
+  type MemberMembership,
   type OrgMemberRow,
   type OrgRole,
   type Payment,
@@ -350,6 +351,8 @@ export default function App() {
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([])
   const [pendingTarget, setPendingTarget] = useState("")
   const [profileVisits, setProfileVisits] = useState<AttendanceRecord[]>([])
+  const [profilePayments, setProfilePayments] = useState<Payment[]>([])
+  const [profileMemberships, setProfileMemberships] = useState<MemberMembership[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loadingData, setLoadingData] = useState(true)
   const [dbError, setDbError] = useState("")
@@ -517,19 +520,30 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [org])
 
-  // Visits for whoever's drawer is open; cleared so one member's history never
-  // shows while another's is loading.
+  // Visits, payments and memberships for whoever's drawer is open; cleared so
+  // one member's history never shows while another's is loading.
   useEffect(() => {
     const memberId = profile?.memberId
     if (!org || !memberId) {
       setProfileVisits([])
+      setProfilePayments([])
+      setProfileMemberships([])
       return
     }
+    const orgId = org.organization.id
     let cancelled = false
     api
-      .listMemberAttendance(org.organization.id, memberId, 10)
+      .listMemberAttendance(orgId, memberId, 10)
       .then((visits) => { if (!cancelled) setProfileVisits(visits) })
       .catch(() => { if (!cancelled) setProfileVisits([]) })
+    api
+      .listPayments(orgId, { memberId, limit: 20 })
+      .then((rows) => { if (!cancelled) setProfilePayments(rows) })
+      .catch(() => { if (!cancelled) setProfilePayments([]) })
+    api
+      .listMembershipsForMember(orgId, memberId)
+      .then((rows) => { if (!cancelled) setProfileMemberships(rows) })
+      .catch(() => { if (!cancelled) setProfileMemberships([]) })
     return () => { cancelled = true }
   }, [org, profile?.memberId])
 
@@ -1915,6 +1929,36 @@ export default function App() {
                   ))
               ) : (
                 <p className="muted">Nothing outstanding for this member.</p>
+              )}
+              <Title>Membership history</Title>
+              {profileMemberships.length ? (
+                profileMemberships.map((m) => (
+                  <div className="detail-line" key={m.id}>
+                    <span>
+                      {m.plan_name}
+                      <br />
+                      {formatDate(m.start_date)} – {formatDate(m.end_date)}
+                    </span>
+                    <Badge>{m.status}</Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">No membership has been issued yet.</p>
+              )}
+              <Title>Payment history</Title>
+              {profilePayments.length ? (
+                profilePayments.map((p) => (
+                  <div className="detail-line" key={p.id}>
+                    <span>
+                      {formatMoney(p.amount_minor, p.currency)} · {p.method}
+                      <br />
+                      {formatDate(p.paid_on)}
+                    </span>
+                    <Badge>{p.status}</Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">No payment has been recorded for this member.</p>
               )}
               <div className="profile-actions">
                 <Button onClick={() => setModal("Renew membership")}>

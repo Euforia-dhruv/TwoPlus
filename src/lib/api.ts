@@ -331,7 +331,11 @@ export async function setMembershipStatus(
 
 export async function listPayments(
   orgId: string,
-  options: { status?: Payment["status"]; limit?: number } = {},
+  options: {
+    status?: Payment["status"];
+    memberId?: string;
+    limit?: number;
+  } = {},
 ): Promise<Payment[]> {
   let q = getSupabase()
     .from("payments")
@@ -340,6 +344,7 @@ export async function listPayments(
     .order("paid_on", { ascending: false })
     .limit(options.limit ?? 200);
   if (options.status) q = q.eq("status", options.status);
+  if (options.memberId) q = q.eq("member_id", options.memberId);
   const { data, error } = await q;
   throwIf(error, "Could not load payments");
   return (data ?? []) as Payment[];
