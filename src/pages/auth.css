@@ -129,8 +129,7 @@
   max-width: 480px;
   padding: 40px 38px;
   border-radius: var(--radius-lg);
-  background: var(--card);
-  border: 1px solid var(--hairline-2);
+  background: var(--card-solid);
   -webkit-backdrop-filter: blur(var(--blur-card)) saturate(150%);
   backdrop-filter: blur(var(--blur-card)) saturate(150%);
   color: var(--text);
@@ -169,7 +168,7 @@
 
 .auth-card > header p {
   margin-top: 8px;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.6;
   color: var(--text-2);
 }
