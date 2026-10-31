@@ -55,9 +55,9 @@ one language (a signature mark).
 **Consequence.** Adding a style that reuses a shell is now zero CSS for the
 shell. This is what made 26 styles tractable instead of a maintenance sink.
 
-*Verified:* `scripts/_themes.mjs` measures rail and shell bounding boxes for
-every style × 1440/1024/390 × light/dark and flags overlap plus horizontal
-overflow. Result: `ALL THEMES OK`.
+*Verified:* `tests/themes.spec.ts` measures rail and shell bounding boxes for
+every style × 1440/1024/390 × light/dark and fails on overlap plus horizontal
+overflow.
 
 ---
 
@@ -88,7 +88,7 @@ Note `--ws-bg` is a full backdrop (gradients, grids, paper grain) rather than a
 colour, which is what lets one token carry "graph paper", "scanlines" and
 "radial fog" without a rule per style.
 
-*Verified:* `scripts/_themes.mjs` reads computed `font-family`, accent and card
+*Verified:* `tests/contrast.spec.ts` reads computed `font-family`, accent and card
 colour per style and asserts they match the record.
 
 ---
@@ -144,7 +144,7 @@ listed in `DESIGN_ASSET_REGISTRY.md`.
 grotesque, luxury/victorian/wabi are serif, pixel/cyberpunk/cybercore are mono,
 sketch is handwritten.
 
-*Verified:* `scripts/_themes.mjs` asserts the computed `font-family` per style.
+*Verified:* `tests/themes.spec.ts` asserts the computed `font-family` per style.
 
 ---
 
@@ -182,11 +182,12 @@ viewport chips (1180 / 820 / 400 px), light/dark, "Compare with current" split
 view, per-style facts (type, accent, canvas, shell) and an explicit **Apply to
 workspace** button, plus honouring owner-only write permission.
 
-*Verified:* `scripts/_studio.mjs` opens More → Design Studio on the running app
-and asserts 26 tiles, 6 sheets copied into the frame, 91 live component nodes
-inside it, 4 fact rows, no console or page errors; then clicks a tile (selects
-only), clicks Apply, and confirms `dataset.style` / `dataset.layout` changed live,
-rail radius became `0px`, font became Inter, and no horizontal overflow at 390 px.
+*Verified:* `tests/studio.spec.ts` opens More → Design Studio on the running app
+and asserts the gallery lists every registered style, the preview frame carries
+live component nodes copied from the app's own stylesheets, 4 fact rows, and no
+console or page errors; then clicks a tile (selects only), clicks Apply, and
+confirms `dataset.style` / `dataset.layout` changed live, rail radius became
+`0px`, and no horizontal overflow at 390 px.
 
 ---
 
@@ -220,8 +221,8 @@ list before deploy.
 - Studio responsive: preview frames cap at the chosen viewport width, tiles use
   `auto-fill minmax(148px, 1fr)`, split compare collapses under 820 px.
 
-*Verified:* `scripts/_themes.mjs` at 1440/1024/390 for every style, both modes;
-`_studio.mjs` checks 390 px overflow.
+*Verified:* `tests/themes.spec.ts` at 1440/1024/390 for every style, both modes;
+`tests/studio.spec.ts` checks 390 px overflow.
 
 ---
 
@@ -231,11 +232,14 @@ list before deploy.
 | --- | --- | --- |
 | Types + build | `npm run build` | pass, 94 modules, CSS 98.4 kB, JS 740.9 kB |
 | Lint | `npm run lint` (oxlint) | pass |
-| Everything | `npm run test:gate` | build + lint + all 87 browser tests |
-| Every style × viewport × mode | `npm test -- themes` | 27/27: applied style, shell, rail overlap, overflow |
-| Contrast (WCAG from resolved tokens) | `npm test -- contrast` | 27/27: 8 pairs per style per mode |
-| Auth screens (remembered style) | `npm test -- auth` | 28/28: themed, 5 pairs at 4.5:1 |
-| Studio behaviour | `npm test -- studio` | 5/5: gallery, search, apply, phone overflow |
+| Everything | `npm run test:gate` | build + lint + 84 browser tests |
+| Every style × viewport × mode | `npm test -- themes` | 26/26: applied style, shell, rail overlap, overflow |
+| Contrast (WCAG from resolved tokens) | `npm test -- contrast` | 26/26: 8 pairs per style per mode |
+| Auth screens (remembered style) | `npm test -- auth` | 27/27: themed, 5 pairs at 4.5:1 |
+| Studio behaviour | `npm test -- studio` | 4/4: gallery, search, apply, phone overflow |
+
+Those counts are the app checks alone. A full `npm test` also runs the shared
+sign-in, so it reports 84: 83 app checks plus one setup test.
 
 The suite needs `SHOT_EMAIL` and `SHOT_PASS` in the environment; without them the
 setup project skips and the signed-in specs are skipped rather than failing. Run
@@ -249,11 +253,7 @@ it against a deployment with `AUDIT_URL=https://twoplus.fit npm test`.
    the newer styles will not save.
 2. **Migrate the nine CSS-block styles to token records** and delete their
    pre-`styles.ts` CSS in the same commit, so nothing is silently overridden.
-3. **Retire the superseded scripts.** `_themes.mjs`, `_contrast.mjs`, `_studio.mjs`,
-   `_auth-theme.mjs` and `_auth-contrast.mjs` are now covered by the specs above
-   and can go once the suite has run in CI a few times.
-4. **Split `App.tsx`** (134 KB) into shell / pages / modals.
-5. Decide Tailwind's fate: adopt or remove; do not leave both styling systems
+3. **Split `App.tsx`** (134 KB) into shell / pages / modals.
+4. Decide Tailwind's fate: adopt or remove; do not leave both styling systems
    configured.
-6. Update the stale Layout section of `DESIGN.md`.
-7. Audit per-style contrast ratios with a checker rather than by eye.
+5. Update the stale Layout section of `DESIGN.md`.

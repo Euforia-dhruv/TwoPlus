@@ -1,5 +1,6 @@
-// Reads the registry the same way scripts/_themes.mjs does, then reports what
-// the audit will actually iterate plus whether the migration accepts every id.
+// Reads the registry from theme.tsx, then reports what the audit iterates plus
+// whether the migration accepts every id. Guards backlog item 1: run before
+// applying 0006, so a style cannot become unsavable.
 import { readFileSync } from "node:fs";
 
 const registry = [...readFileSync(new URL("../src/lib/theme.tsx", import.meta.url), "utf8")
