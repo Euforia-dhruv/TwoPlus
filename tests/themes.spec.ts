@@ -24,7 +24,7 @@ for (const { id, layout } of STYLES) {
     const problems: string[] = [];
     page.on("pageerror", (e) => problems.push(`pageerror ${e.message}`));
 
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/app", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Settings", exact: true }).first().click();
     await expect(page.locator(".theme-grid")).toBeVisible({ timeout: 15_000 });
 

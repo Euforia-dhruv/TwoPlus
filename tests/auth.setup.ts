@@ -10,7 +10,7 @@ const STATE = "tests/.auth/state.json";
 setup("sign in and save the session", async ({ page }) => {
   setup.skip(!EMAIL || !PASS, "Set SHOT_EMAIL and SHOT_PASS to run the signed-in suite.");
 
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/app", { waitUntil: "networkidle" });
 
   // Already signed in (a reused server kept the session).
   if (!(await page.locator('input[type="email"]').count())) {

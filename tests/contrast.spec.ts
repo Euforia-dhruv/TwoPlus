@@ -26,7 +26,7 @@ const FLOORS = {
 
 for (const { id } of STYLES) {
   test(`${id}: readable in both modes`, async ({ page }) => {
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/app", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Settings", exact: true }).first().click();
     await expect(page.locator(".theme-grid")).toBeVisible({ timeout: 15_000 });
 

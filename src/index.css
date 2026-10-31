@@ -1119,7 +1119,7 @@ select.input {
   padding: 1px 6px;
   border-radius: var(--radius-pill);
   background: var(--field);
-  font-size: 10.5px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
 }
@@ -1179,7 +1179,7 @@ select.input {
   border: 1px solid var(--hairline-2);
   border-radius: 5px;
   font-family: inherit;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-3);
 }
 
@@ -1492,7 +1492,7 @@ tbody tr:last-child td {
   border-radius: var(--radius-pill);
   border: 1px solid var(--hairline-2);
   background: var(--field);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text);
@@ -1552,7 +1552,7 @@ html[data-mode="light"] .badge.red {
 .avatar.small {
   width: 28px;
   height: 28px;
-  font-size: 10.5px;
+  font-size: 11px;
 }
 
 .avatar.tone-0 {
@@ -2021,7 +2021,7 @@ html[data-mode] .member-card-photo .badge {
   border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--app-bg);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -2060,7 +2060,7 @@ html[data-mode] .member-card-photo .badge {
 
 .board-tick {
   fill: var(--text-3);
-  font-size: 9px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2144,7 +2144,7 @@ html[data-mode] .member-card-photo .badge {
   padding: 3px 8px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--warn) 16%, transparent);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: color-mix(in srgb, var(--warn) 82%, var(--text));
   white-space: nowrap;
@@ -2285,7 +2285,7 @@ html[data-mode] .member-card-photo .badge {
 }
 
 .theme-option small {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-2);
 }
 
@@ -3045,7 +3045,7 @@ html[data-style="signal"] .stat > span,
 html[data-style="signal"] th,
 html[data-style="signal"] th {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -3466,7 +3466,7 @@ html[data-style="ledger"] .page-heading h1 {
 
 html[data-style="ledger"] .eyebrow {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -3489,7 +3489,7 @@ html[data-style="ledger"] .board-hero-stats strong {
 
 html[data-style="ledger"] th {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -3610,7 +3610,7 @@ html[data-style="console"] .stat:first-child {
 
 html[data-style="console"] .stat-label {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -3637,7 +3637,7 @@ html[data-style="console"] .eyebrow,
 html[data-style="console"] .panel-heading p,
 html[data-style="console"] .page-footer {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -3805,7 +3805,7 @@ html[data-style="dispatch"] .page-heading p {
 
 html[data-style="dispatch"] .eyebrow {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -3836,7 +3836,7 @@ html[data-style="dispatch"] .panel-heading h2 {
 
 html[data-style="dispatch"] th {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   border-bottom: 1px solid var(--text);
@@ -4490,7 +4490,7 @@ html[data-style="luxury"] .stat-label,
 html[data-style="luxury"] th {
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 html[data-style="luxury"] .stat > strong,
@@ -4594,7 +4594,7 @@ html[data-style="pixel"] th {
   font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* Surreal: the page plane tilts, so the first card is oversized. */
@@ -4727,7 +4727,7 @@ html[data-style="sketch"] .eyebrow {
 
 .studio-tile small {
   padding: 0 10px;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.45;
   color: var(--text-2);
 }
@@ -4735,7 +4735,7 @@ html[data-style="sketch"] .eyebrow {
 .studio-tile-meta {
   padding: 4px 10px 0;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -4768,7 +4768,7 @@ html[data-style="sketch"] .eyebrow {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -4812,7 +4812,7 @@ html[data-style="sketch"] .eyebrow {
 }
 
 .studio-facts span {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -5023,6 +5023,12 @@ html[data-style="sketch"] .eyebrow {
     justify-content: center;
     gap: 0;
     padding: 0;
+  }
+
+  /* The wordmark is wider than the 40px button it sits in, so on a phone it
+     spilled past the button to 8px from the screen edge. Only the mark stays. */
+  .glass-brand > span {
+    display: none;
   }
 
   .glass-brand svg {

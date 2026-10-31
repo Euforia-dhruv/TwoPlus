@@ -507,7 +507,7 @@ export default function SuperAdmin() {
     );
   }
   if (!session) return <Navigate to="/login" replace />;
-  if (!isAdmin || role !== "super_admin") return <Navigate to="/" replace />;
+  if (!isAdmin || role !== "super_admin") return <Navigate to="/app" replace />;
 
   const statusCount = (status: OrgStatus) => metrics?.orgs_by_status[status] ?? 0;
   const heading = active.title;
@@ -552,7 +552,7 @@ export default function SuperAdmin() {
           </div>
           <div className="top-actions">
             <span className="demo-label">SUPER ADMIN</span>
-            <button className="platform-admin-link" onClick={() => navigate("/")}>
+            <button className="platform-admin-link" onClick={() => navigate("/app")}>
               Gym workspace
             </button>
             <span className="header-divider" />

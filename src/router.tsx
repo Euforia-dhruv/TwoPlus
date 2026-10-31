@@ -9,6 +9,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Onboarding from "@/pages/Onboarding";
 import SuperAdmin from "@/pages/SuperAdmin";
+import Marketing from "@/pages/Marketing";
 
 // Shown while auth or the organization row resolves. Reads the design tokens so
 // it is painted by whichever language the workspace uses, never a fixed olive.
@@ -34,7 +35,7 @@ function RequireNoOrg({ children }: { children: ReactNode }) {
   const { org, loading: orgLoading } = useOrg();
   if (authLoading || orgLoading) return <Splash text="Loading" />;
   if (!session) return <Navigate to="/login" replace />;
-  if (org) return <Navigate to="/" replace />;
+  if (org) return <Navigate to="/app" replace />;
   return <>{children}</>;
 }
 
@@ -56,8 +57,10 @@ export default function AppRoutes() {
           </RequireNoOrg>
         }
       />
+      {/* Public front door. Signed-in visitors are sent on to the workspace. */}
+      <Route path="/" element={<Marketing />} />
       <Route
-        path="/"
+        path="/app"
         element={
           <RequireAuth>
             {/* Owners without an org bounce to onboarding inside DashboardShell */}

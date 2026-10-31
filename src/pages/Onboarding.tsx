@@ -45,7 +45,7 @@ export default function Onboarding() {
   // Already onboarded → straight to the dashboard. Also covers a retried
   // onboarding after a network drop (the RPC is idempotent per owner).
   useEffect(() => {
-    if (!orgLoading && org) navigate("/", { replace: true });
+    if (!orgLoading && org) navigate("/app", { replace: true });
   }, [org, orgLoading, navigate]);
 
   async function onSubmit(e: FormEvent) {

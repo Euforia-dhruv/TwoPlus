@@ -1,0 +1,1165 @@
+/* Marketing site. Scoped under .mk so none of it can reach the dashboard.
+   Colours come from the app tokens in index.css, so the public page and the
+   product share one palette in both modes.
+
+   Type scale: six steps, used everywhere. No clamp(), so each viewport shows
+   exactly the same six sizes.
+     --t-xs 13  small print, captions, nav
+     --t-body 16  running text
+     --t-lead 20  standfirst, answers
+     --t-head 28  section headings, feature lines
+     --t-disp 44  page and section display
+     --t-big 76  the masthead title
+   Plus one mega size for the footer wordmark. */
+
+.mk {
+  --mk-axis: 42%;
+  --mk-margin: 40px;
+  --mk-gutter: 24px;
+
+  --t-xs: 13px;
+  --t-body: 16px;
+  --t-lead: 20px;
+  --t-head: 28px;
+  --t-disp: 44px;
+  --t-big: 76px;
+
+  /* Cool stone, not cream: the palette rule bans yellow-cream grounds. */
+  --page: #edf0ef;
+  --ink: #101615;
+  --soft: #4a5559;
+  --block: #e1e5e4;
+  --plate: #d3d8d7;
+
+  background: var(--page);
+  color: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: var(--t-body);
+  min-height: 100vh;
+}
+
+html[data-mode="dark"] .mk {
+  --page: #0e1315;
+  --ink: #eef1f0;
+  --soft: #a7b2b6;
+  --block: #1b2225;
+  --plate: #242c30;
+}
+
+.mk-splash {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  font-family: Fraunces, Georgia, serif;
+  font-size: var(--t-head);
+  letter-spacing: -0.02em;
+}
+
+/* Links inherit so plain links sit in the running ink. Buttons are excluded:
+   without that, this rule beats .mk-button and strips its text colour. */
+.mk a {
+  text-decoration: none;
+}
+
+.mk a:not(.mk-button) {
+  color: inherit;
+}
+
+.mk :focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}
+
+/* ---------- Navigation ---------- */
+
+.mk-nav {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 0 var(--mk-margin);
+  height: 72px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--page);
+}
+
+.mk-wordmark {
+  font-family: Fraunces, Georgia, serif;
+  font-size: var(--t-lead);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-right: auto;
+}
+
+.mk-nav-links {
+  display: flex;
+  gap: 26px;
+  font-size: var(--t-xs);
+  color: var(--soft);
+}
+
+.mk-nav-links a {
+  transition: color 160ms ease;
+}
+
+.mk-nav-links a:hover {
+  color: var(--ink);
+}
+
+.mk-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.mk-link {
+  font-size: var(--t-xs);
+  color: var(--soft);
+  transition: color 160ms ease;
+}
+
+.mk-link:hover {
+  color: var(--ink);
+}
+
+.mk-link--lg {
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+.mk-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--page);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.mk-button:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+.mk-button:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.mk-button--lg {
+  height: 48px;
+  padding: 0 28px;
+  font-size: var(--t-body);
+}
+
+.mk-button--wide {
+  width: 100%;
+  height: 44px;
+}
+
+/* ---------- Reveal ---------- */
+
+.mk-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 620ms ease, transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mk-reveal[data-revealed="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* The signature move: the masthead's widest plate opens from its left edge
+   while the picture inside settles from 1.12 to rest. */
+@keyframes mk-shutter {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes mk-settle {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.mk-plate--wide img {
+  animation: mk-shutter 1100ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    mk-settle 1600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .mk-plate--wide img {
+    animation: none;
+  }
+  .mk * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- Masthead ---------- */
+
+.mk-masthead {
+  padding: 0 var(--mk-margin) 0;
+}
+
+.mk-masthead-band {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 0.7fr;
+  gap: 8px;
+  height: 46vh;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.mk-plate {
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--plate);
+}
+
+.mk-plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.06);
+  display: block;
+}
+
+.mk-title-row {
+  display: grid;
+  grid-template-columns: var(--mk-axis) 1fr;
+  gap: var(--mk-gutter);
+  padding: 56px 0 88px;
+}
+
+.mk-axis-note {
+  margin: 0;
+  align-self: end;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--soft);
+  max-width: 30ch;
+}
+
+.mk-title-body h1 {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: var(--t-big);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  font-weight: 500;
+  max-width: 16ch;
+}
+
+.mk-standfirst {
+  margin: 26px 0 0;
+  font-size: var(--t-lead);
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 44ch;
+}
+
+.mk-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 34px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Features ---------- */
+
+.mk-features {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--mk-gutter);
+  padding: 40px var(--mk-margin) 96px;
+  align-items: start;
+}
+
+.mk-features-output {
+  grid-column: 1 / span 6;
+  position: sticky;
+  top: 96px;
+  background: var(--block);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+}
+
+.mk-window {
+  background: var(--page);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.mk-window-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--block);
+}
+
+.mk-window-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--soft);
+  opacity: 0.4;
+}
+
+.mk-window-name {
+  margin-left: 8px;
+  font-size: var(--t-xs);
+  color: var(--soft);
+}
+
+.mk-window-body {
+  padding: 22px 20px 8px;
+}
+
+.mk-window-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 18px;
+}
+
+.mk-window-label {
+  font-size: var(--t-xs);
+  color: var(--soft);
+}
+
+.mk-window-figure strong {
+  font-size: var(--t-disp);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mk-window-caption {
+  font-size: var(--t-xs);
+  color: var(--soft);
+}
+
+.mk-window-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-xs);
+}
+
+.mk-window-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--soft);
+  padding: 8px 8px 8px 0;
+}
+
+.mk-window-table td {
+  padding: 9px 8px 9px 0;
+  border-top: 1px solid color-mix(in srgb, var(--soft) 22%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.mk-window-note {
+  margin: 0;
+  padding: 12px 20px 18px;
+  font-size: var(--t-xs);
+  color: var(--soft);
+}
+
+.mk-features-read {
+  grid-column: 8 / span 5;
+  max-width: 44ch;
+}
+
+.mk-features-read h2 {
+  margin: 0 0 8px;
+  font-size: var(--t-disp);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  font-family: Fraunces, Georgia, serif;
+}
+
+.mk-feature-block {
+  padding: 56px 0 0;
+}
+
+.mk-feature-line {
+  margin: 0;
+  font-size: var(--t-head);
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+.mk-feature-text {
+  margin: 14px 0 0;
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 46ch;
+}
+
+.mk-control {
+  margin-top: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mk-control-label {
+  font-size: var(--t-xs);
+  color: var(--soft);
+}
+
+.mk-segmented {
+  display: inline-flex;
+  background: var(--block);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  width: fit-content;
+}
+
+.mk-segment {
+  border: 0;
+  background: transparent;
+  color: var(--soft);
+  font: inherit;
+  font-size: var(--t-xs);
+  font-weight: 500;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  min-height: 36px;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.mk-segment:active {
+  transform: scale(0.97);
+}
+
+.mk-segment[aria-pressed="true"] {
+  background: var(--page);
+  color: var(--ink);
+}
+
+/* ---------- Showcase band ---------- */
+
+.mk-showcase {
+  padding: 0 0 96px;
+}
+
+.mk-showcase h2 {
+  margin: 0 var(--mk-margin) 40px;
+  font-size: var(--t-disp);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  font-family: Fraunces, Georgia, serif;
+  max-width: 20ch;
+}
+
+.mk-band {
+  display: flex;
+  gap: 0;
+  height: 68svh;
+  min-height: 380px;
+  overflow: hidden;
+}
+
+.mk-band-panel {
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+  flex-basis: 0;
+  min-width: 0;
+  background: var(--plate);
+  transition: flex-grow 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mk-band-panel:hover {
+  flex-grow: 6;
+}
+
+.mk-band-panel img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.06);
+  display: block;
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mk-band-panel:hover img {
+  transform: scale(1.04);
+}
+
+/* A flat ink label rather than a text shadow, so the caption stays legible
+   over any crop without help from a gradient. */
+.mk-band-panel figcaption {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  margin: 0;
+  padding: 10px 14px;
+  max-width: 22ch;
+  font-size: var(--t-lead);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  color: var(--page);
+  background: var(--ink);
+}
+
+.mk-band-caption {
+  margin: 20px var(--mk-margin) 0;
+  font-size: var(--t-body);
+  color: var(--soft);
+  max-width: 52ch;
+}
+
+/* ---------- Steps ---------- */
+
+.mk-steps {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 18px var(--mk-gutter);
+  padding: 88px var(--mk-margin);
+}
+
+.mk-step {
+  grid-column: 1 / span 7;
+}
+
+.mk-step:nth-child(2) {
+  grid-column: 3 / span 7;
+}
+.mk-step:nth-child(3) {
+  grid-column: 5 / span 7;
+}
+.mk-step:nth-child(4) {
+  grid-column: 7 / span 6;
+}
+
+.mk-step + .mk-step {
+  margin-top: 8px;
+}
+
+.mk-step-line {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: var(--t-head);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  max-width: 24ch;
+}
+
+/* The accent carries the final stage as a solid block, the way a two-colour
+   print job would. Mint text on stone measured 1.6:1, so the colour has to be
+   the ground here, not the ink. */
+.mk-step--last .mk-step-line {
+  background: var(--lime);
+  color: var(--on-accent);
+  padding: 12px 16px;
+  max-width: 28ch;
+}
+
+.mk-step-text {
+  margin: 10px 0 0;
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 40ch;
+}
+
+/* ---------- Pricing ---------- */
+
+.mk-pricing {
+  padding: 88px var(--mk-margin);
+}
+
+.mk-pricing-head {
+  display: grid;
+  grid-template-columns: var(--mk-axis) 1fr;
+  gap: var(--mk-gutter);
+  padding-bottom: 48px;
+}
+
+.mk-pricing-head h2 {
+  margin: 0;
+  font-size: var(--t-disp);
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  font-family: Fraunces, Georgia, serif;
+  grid-column: 2;
+  max-width: 16ch;
+}
+
+.mk-pricing-head p {
+  margin: 12px 0 0;
+  grid-column: 2;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 44ch;
+}
+
+.mk-plan-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mk-plan-table thead th {
+  text-align: left;
+  vertical-align: top;
+  padding: 0 16px 24px 0;
+  width: 24%;
+}
+
+.mk-plan-table thead th:first-child {
+  width: 28%;
+}
+
+.mk-plan-name {
+  display: block;
+  font-size: var(--t-head);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.mk-plan-price {
+  display: block;
+  font-size: var(--t-head);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.mk-plan-note {
+  display: block;
+  font-size: var(--t-xs);
+  color: var(--soft);
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+/* The featured column sits on the accent, where the soft grey falls to 4.2:1. */
+.mk-plan-featured .mk-plan-note {
+  color: var(--on-accent);
+}
+
+.mk-plan-table tbody th {
+  text-align: left;
+  font-size: var(--t-body);
+  font-weight: 500;
+  color: var(--soft);
+  padding: 18px 16px 18px 0;
+  vertical-align: top;
+}
+
+.mk-plan-table tbody td {
+  font-size: var(--t-body);
+  line-height: 1.4;
+  padding: 18px 16px 18px 0;
+  vertical-align: top;
+  color: var(--ink);
+}
+
+.mk-plan-table tbody tr:nth-child(odd) > * {
+  background: var(--block);
+}
+
+.mk-plan-table tbody tr:nth-child(odd) > *:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  padding-left: 16px;
+}
+
+.mk-plan-table tbody tr:nth-child(odd) > *:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.mk-plan-featured {
+  background: var(--lime) !important;
+  color: var(--on-accent);
+  border-radius: var(--radius-sm);
+}
+
+.mk-plan-table tbody tr:last-child td {
+  padding-top: 20px;
+}
+
+.mk-plan-featured .mk-button,
+.mk .mk-plan-featured a.mk-button {
+  background: var(--on-accent);
+  color: var(--lime);
+}
+
+/* ---------- Questions ---------- */
+
+.mk-faq-band {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--mk-gutter);
+  padding: 56px var(--mk-margin);
+  background: var(--page);
+}
+
+.mk-faq-band--alt {
+  background: var(--block);
+}
+
+.mk-faq-band h3,
+.mk-faq-band h2 {
+  grid-column: 1 / span 5;
+  margin: 0;
+  font-size: var(--t-head);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  align-self: start;
+  max-width: 22ch;
+}
+
+.mk-faq-band p {
+  grid-column: 7 / span 6;
+  margin: 0;
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 58ch;
+}
+
+.mk-faq-band--head {
+  background: var(--lime);
+  color: var(--on-accent);
+  min-height: 34svh;
+  align-items: end;
+  padding-bottom: 48px;
+  padding-top: 96px;
+}
+
+.mk-faq-band--head h2 {
+  font-family: Fraunces, Georgia, serif;
+  font-size: var(--t-big);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  max-width: 14ch;
+}
+
+/* ---------- Close ---------- */
+
+.mk-close {
+  background: var(--ink);
+  color: var(--page);
+  min-height: 84svh;
+  padding: 96px var(--mk-margin) 184px;
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+}
+
+.mk-close h2 {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: var(--t-big);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+  font-weight: 500;
+  max-width: 14ch;
+}
+
+/* The middle of the close carries the three things a new owner needs to know,
+   so the field is not 700px of nothing between the title and the footer. */
+.mk-close-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  max-width: 70ch;
+}
+
+.mk-close-fact {
+  margin: 0;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--page) 82%, transparent);
+}
+
+.mk-close-fact strong {
+  display: block;
+  font-family: Fraunces, Georgia, serif;
+  font-size: var(--t-head);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  color: var(--page);
+}
+
+.mk-close-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.mk-close-foot p {
+  margin: 0;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  max-width: 44ch;
+  color: color-mix(in srgb, var(--page) 82%, transparent);
+}
+
+.mk-close .mk-button {
+  background: var(--lime);
+  color: var(--on-accent);
+}
+
+/* ---------- Footer ---------- */
+
+.mk-footer {
+  background: var(--ink);
+  color: var(--page);
+  padding: 0 var(--mk-margin) 32px;
+  overflow: hidden;
+}
+
+.mk-footer-mark {
+  margin: 0 0 -0.07em;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 200px;
+  line-height: 0.78;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+  padding-top: 24px;
+}
+
+.mk-footer-row {
+  display: grid;
+  grid-template-columns: var(--mk-axis) 1fr;
+  gap: var(--mk-gutter);
+  margin-top: 72px;
+}
+
+.mk-footer-places {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--t-lead);
+  letter-spacing: -0.02em;
+}
+
+.mk-footer-places span {
+  font-size: var(--t-xs);
+  color: color-mix(in srgb, var(--page) 62%, transparent);
+  letter-spacing: 0;
+}
+
+.mk-footer-places a:hover,
+.mk-footer-cols a:hover {
+  color: var(--lime);
+}
+
+.mk-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  font-size: var(--t-xs);
+}
+
+.mk-footer-cols > div {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.mk-footer-cols span {
+  color: color-mix(in srgb, var(--page) 62%, transparent);
+}
+
+.mk-footer-legal {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 96px;
+  font-size: var(--t-xs);
+  color: color-mix(in srgb, var(--page) 62%, transparent);
+}
+
+/* ---------- Tablet ---------- */
+
+@media (max-width: 1024px) {
+  .mk {
+    --mk-margin: 28px;
+    --t-big: 56px;
+    --t-disp: 36px;
+    --t-head: 26px;
+  }
+
+  .mk-features {
+    grid-template-columns: 1fr;
+  }
+
+  .mk-features-output {
+    grid-column: 1;
+    position: relative;
+    top: 0;
+    order: 2;
+    margin-top: 40px;
+  }
+
+  .mk-features-read {
+    grid-column: 1;
+    max-width: none;
+    order: 1;
+  }
+
+  .mk-masthead-band {
+    height: 40vh;
+  }
+
+  /* The staircase needs twelve columns to read. Below that the section is
+     full width instead of leaving 600px empty on the right. */
+  .mk-step,
+  .mk-step:nth-child(2),
+  .mk-step:nth-child(3),
+  .mk-step:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  /* Without the staircase these are the widest things in their sections, so the
+     ch caps come off and the copy sits across the whole measure instead of
+     leaving half the width empty. */
+  .mk-step-line,
+  .mk-step--last .mk-step-line,
+  .mk-step-text,
+  .mk-pricing-head h2,
+  .mk-pricing-head p {
+    max-width: none;
+  }
+
+  .mk-footer-row {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .mk-footer-mark {
+    font-size: 140px;
+  }
+
+  .mk-close {
+    min-height: auto;
+  }
+}
+
+/* ---------- Phone ---------- */
+
+@media (max-width: 768px) {
+  .mk {
+    --mk-margin: 20px;
+    --mk-gutter: 16px;
+    --t-big: 40px;
+    --t-disp: 32px;
+    --t-head: 24px;
+    --t-lead: 17px;
+  }
+
+  .mk-nav {
+    height: 64px;
+    gap: 16px;
+  }
+
+  .mk-nav-links {
+    display: none;
+  }
+
+  .mk-masthead-band {
+    grid-template-columns: 1fr 1fr;
+    height: 34vh;
+    min-height: 240px;
+    gap: 6px;
+  }
+
+  .mk-plate--narrow {
+    display: none;
+  }
+
+  .mk-title-row {
+    grid-template-columns: 1fr;
+    padding: 32px 0 56px;
+  }
+
+  .mk-axis-note {
+    order: 2;
+    margin-top: 28px;
+    color: var(--soft);
+  }
+
+  .mk-standfirst {
+    margin-top: 20px;
+    max-width: 34ch;
+  }
+
+  .mk-band {
+    height: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    min-height: 0;
+  }
+
+  .mk-band-panel {
+    height: 30svh;
+    min-height: 150px;
+  }
+
+  .mk-band-panel:hover img {
+    transform: none;
+  }
+
+  .mk-band-panel figcaption {
+    font-size: var(--t-body);
+    left: 0;
+    top: 0;
+    padding: 8px 12px;
+    margin: 20px;
+  }
+
+  .mk-steps {
+    padding: 56px var(--mk-margin);
+  }
+
+  /* Pricing stacks into blocks: label above answer. */
+  .mk-plan-table,
+  .mk-plan-table tbody,
+  .mk-plan-table tr,
+  .mk-plan-table th,
+  .mk-plan-table td {
+    display: block;
+    width: auto;
+  }
+
+  .mk-plan-table thead {
+    display: none;
+  }
+
+  .mk-plan-table tbody th {
+    background: none;
+    padding: 0;
+    font-size: var(--t-xs);
+  }
+
+  .mk-plan-table tbody tr {
+    background: none;
+    padding: 0;
+  }
+
+  .mk-plan-table tbody td {
+    padding: 2px 0 14px;
+    background: none !important;
+    border-radius: 0 !important;
+  }
+
+  .mk-plan-table tbody tr:nth-child(odd) > * {
+    background: none;
+    padding-left: 0;
+  }
+
+  .mk-pricing-head {
+    grid-template-columns: 1fr;
+    padding-bottom: 32px;
+  }
+
+  .mk-pricing-head h2,
+  .mk-pricing-head p {
+    grid-column: 1;
+  }
+
+  .mk-faq-band {
+    grid-template-columns: 1fr;
+    padding: 32px var(--mk-margin);
+    gap: 12px;
+  }
+
+  .mk-faq-band h3,
+  .mk-faq-band h2,
+  .mk-faq-band p {
+    grid-column: 1;
+  }
+
+  .mk-faq-band--head {
+    min-height: 26svh;
+    padding-top: 56px;
+  }
+
+  /* The close keeps its own screen: enough room under the CTA that the
+     footer wordmark never reads as a label sitting on top of the button. */
+  .mk-close {
+    min-height: auto;
+    padding: 64px var(--mk-margin) 132px;
+    gap: 48px;
+  }
+
+  .mk-close-facts {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .mk-close-foot {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 8px;
+  }
+
+  .mk-close-foot .mk-button {
+    width: 100%;
+    height: 52px;
+  }
+
+  .mk-footer-mark {
+    font-size: 84px;
+  }
+
+  .mk-footer-row {
+    margin-top: 40px;
+  }
+
+  .mk-footer-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mk-footer-legal {
+    margin-top: 40px;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
