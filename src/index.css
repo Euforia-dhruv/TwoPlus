@@ -144,6 +144,9 @@ table {
   --shell-bg: rgba(255, 255, 255, 0.05);
 
   --ws-photo: url("https://images.unsplash.com/photo-1671970922029-0430d2ae122c?auto=format&fit=crop&w=2400&q=85");
+  /* Solid ink band behind the figures on Overview. Themes may repaint the
+     element, so nothing else depends on this value. */
+  --hero-band: #10171a;
   --hero-image: linear-gradient(
       105deg,
       rgba(12, 12, 14, 0.94) 10%,
@@ -1542,8 +1545,8 @@ html[data-mode="light"] .badge.red {
   border-radius: 50%;
   font-size: 12.5px;
   font-weight: 600;
-  color: #04211d;
-  background: linear-gradient(145deg, #7ce3d4, #2fbfab);
+  color: var(--text);
+  background: color-mix(in srgb, hsl(174 60% 50% / 0.3) 60%, transparent);
 }
 
 .avatar.small {
@@ -1553,23 +1556,23 @@ html[data-mode="light"] .badge.red {
 }
 
 .avatar.tone-0 {
-  background: linear-gradient(145deg, #8fd8ff, #56a8e0);
+  background: color-mix(in srgb, hsl(205 60% 50% / 0.34) 60%, transparent);
 }
 
 .avatar.tone-1 {
-  background: linear-gradient(145deg, #ffc78f, #e09a56);
+  background: color-mix(in srgb, hsl(26 65% 50% / 0.34) 60%, transparent);
 }
 
 .avatar.tone-2 {
-  background: linear-gradient(145deg, #c9b4ff, #9182e0);
+  background: color-mix(in srgb, hsl(266 55% 50% / 0.34) 60%, transparent);
 }
 
 .avatar.tone-3 {
-  background: linear-gradient(145deg, #ffb6c8, #e07a96);
+  background: color-mix(in srgb, hsl(335 60% 50% / 0.34) 60%, transparent);
 }
 
 .avatar.tone-4 {
-  background: linear-gradient(145deg, #9fe6b6, #62b47f);
+  background: color-mix(in srgb, hsl(145 50% 50% / 0.34) 60%, transparent);
 }
 
 /* ---------- 14. Member cards ---------- */
@@ -1634,28 +1637,28 @@ html[data-mode="light"] .badge.red {
   font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.03em;
-  color: #04211d;
-  background: linear-gradient(145deg, #7ce3d4, #2fbfab);
+  color: var(--text);
+  background: color-mix(in srgb, hsl(174 60% 50% / 0.3) 60%, transparent);
 }
 
 .member-card-fallback.tone-0 {
-  background: linear-gradient(145deg, #8fd8ff, #56a8e0);
+  background: color-mix(in srgb, hsl(205 60% 50% / 0.34) 60%, transparent);
 }
 
 .member-card-fallback.tone-1 {
-  background: linear-gradient(145deg, #ffc78f, #e09a56);
+  background: color-mix(in srgb, hsl(26 65% 50% / 0.34) 60%, transparent);
 }
 
 .member-card-fallback.tone-2 {
-  background: linear-gradient(145deg, #c9b4ff, #9182e0);
+  background: color-mix(in srgb, hsl(266 55% 50% / 0.34) 60%, transparent);
 }
 
 .member-card-fallback.tone-3 {
-  background: linear-gradient(145deg, #ffb6c8, #e07a96);
+  background: color-mix(in srgb, hsl(335 60% 50% / 0.34) 60%, transparent);
 }
 
 .member-card-fallback.tone-4 {
-  background: linear-gradient(145deg, #9fe6b6, #62b47f);
+  background: color-mix(in srgb, hsl(145 50% 50% / 0.34) 60%, transparent);
 }
 
 .member-card-scrim {
@@ -1848,153 +1851,136 @@ html[data-mode] .member-card-photo .badge {
 
 /* ---------- 15. Overview board ---------- */
 
-/* Reference composition: a photo hero carrying the headline and its numbers,
-   a narrow column of live cards beside it, then a full-width table. */
+/* The figures first as one band, then the detail cards under it. Two columns so
+   no region is left empty when a gym has few records. */
 .board {
   display: grid;
-  grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
   align-items: start;
   gap: 14px;
 }
 
+/* A solid ink band, not a photo: figures read as data, not as marketing.
+   --band-ink carries the band's own text colour to its children, so a theme
+   that repaints the band as a light card only has to set this one value. */
 .board-hero {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 28px;
-  min-height: 330px;
-  padding: 26px 26px 0;
+  grid-column: 1 / -1;
+  --band-ink: #f4f7f6;
   border-radius: var(--radius-lg);
-  background-color: #10171a;
-  /* Photo lives in a token so a theme can drop it without !important. */
-  background-image: var(--hero-image);
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  color: #f4f7f6;
+  background: var(--hero-band, #10171a);
+  color: var(--band-ink);
   overflow: hidden;
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.34);
 }
 
-.board-hero-body {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 9px;
-  max-width: 34ch;
+.board-chart-card {
+  min-height: 232px;
 }
 
-.board-eyebrow {
-  font-size: 11px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.68);
+.board-table {
+  grid-column: 1 / -1;
 }
 
-.board-hero h2 {
-  font-size: clamp(24px, 2.6vw, 34px);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-}
-
-.board-hero-sub {
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.76);
-  max-width: 40ch;
-}
-
-.board-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 40px;
-  margin-top: 6px;
-  padding: 0 18px;
-  border-radius: var(--radius-pill);
-  background: var(--lime);
-  color: var(--on-accent);
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.board-cta:hover {
-  background: color-mix(in srgb, var(--lime) 86%, white);
-}
-
-/* The stat strip sits on the hero's lower edge, so it bleeds past the
-   hero padding and loses its own bottom radius. */
+/* Four figures, one band, separated by rules instead of four floating cards. */
 .board-hero-stats {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px 18px;
-  margin: 0 -26px;
-  padding: 16px 22px;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.09);
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+  background: transparent;
 }
 
 .board-hero-stats > div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
+  padding: 18px 20px;
 }
 
-.board-hero-stats strong {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-.board-hero-stats .is-lit strong {
-  color: var(--lime);
+.board-hero-stats > div + div {
+  border-left: 1px solid color-mix(in srgb, var(--band-ink) 16%, transparent);
 }
 
 .board-hero-stats span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.72);
+  font-size: 11.5px;
+  font-weight: 500;
+  /* 74% keeps the label above 4.5:1 whether the band is ink or a light card. */
+  color: color-mix(in srgb, var(--band-ink) 74%, transparent);
   white-space: nowrap;
 }
 
-.board-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--lime);
-  flex: none;
+.board-hero-stats strong {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
-.board-round {
+/* Deliberately no accent on the figure itself: at 24px a full-strength hue
+   reads as decoration. The chart line carries the accent instead, which also
+   keeps every theme legible when it repaints this band as a light card. */
+.board-hero-stats small {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--band-ink) 72%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Loading holds the value's own height, so the band never jumps on arrival. */
+.board-skeleton {
+  display: block;
+  width: 3.2ch;
+  height: 22px;
+  margin: 2px 0;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--band-ink) 18%, transparent);
+}
+
+/* The side card is a .board-card too, so it carries no layout of its own. */
+.board-figures {
   display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex: none;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
 }
 
-.board-round:hover {
-  background: rgba(255, 255, 255, 0.26);
-}
-
-.board-side {
+.board-figures > div {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 1px;
   min-width: 0;
+}
+
+.board-figures span {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.board-figures strong {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One sentence plus the action that fixes the empty state. */
+.board-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11.5px;
+  color: var(--text-2);
 }
 
 .board-card {
@@ -2041,23 +2027,6 @@ html[data-mode] .member-card-photo .badge {
   font-variant-numeric: tabular-nums;
 }
 
-.board-live {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10.5px;
-  font-weight: 500;
-  color: var(--text-2);
-  white-space: nowrap;
-}
-
-.board-live i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ok);
-}
-
 .board-chart {
   width: 100%;
   height: 104px;
@@ -2085,159 +2054,38 @@ html[data-mode] .member-card-photo .badge {
 .board-chart-foot {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-3);
 }
 
-.board-key {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 10.5px;
-  color: var(--text-2);
-}
-
-.board-key span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.board-swatch {
-  width: 12px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--text-3);
-}
-
-.board-swatch-accent {
-  background: var(--lime);
-}
-
-.board-swatch-muted {
-  background: var(--text-3);
-  opacity: 0.6;
-}
-
-.board-sales {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.board-spark {
-  width: 92px;
-  height: 40px;
-  flex: none;
-}
-
-.board-amount {
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
+.board-tick {
+  fill: var(--text-3);
+  font-size: 9px;
   font-variant-numeric: tabular-nums;
 }
 
-.board-caption {
-  font-size: 11px;
-  color: var(--text-2);
+.board-axis {
+  stroke: var(--hairline-2);
+  stroke-width: 1;
 }
 
-.board-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline);
-}
 
-.board-split > * {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  text-align: left;
-}
 
-.board-split span {
-  font-size: 10.5px;
-  color: var(--text-3);
-}
 
-.board-split strong {
-  font-size: 13.5px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-.board-split small {
-  font-size: 10.5px;
-  color: var(--text-2);
-}
 
-.board-split button:hover strong {
-  color: var(--lime);
-}
 
-.board-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--ok) 16%, transparent);
-  font-size: 10.5px;
-  font-weight: 600;
-  color: color-mix(in srgb, var(--ok) 80%, var(--text));
-  white-space: nowrap;
-}
 
-.board-delta.is-down {
-  background: color-mix(in srgb, var(--err) 16%, transparent);
-  color: color-mix(in srgb, var(--err) 84%, var(--text));
-}
 
-/* Standalone tile, the "product card" slot of the reference column. */
-.board-tile {
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-}
 
-.board-tile-icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  flex: none;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--lime) 16%, transparent);
-  color: var(--lime);
-}
 
-.board-tile > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
 
-.board-tile strong {
-  font-size: 13px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* The tile exists only as the empty-workspace prompt, so it sits in the flow
+   beside the money card rather than being absolutely placed. */
 
-.board-tile span {
-  font-size: 11px;
-  color: var(--text-2);
-}
+
+
+
 
 .board-table {
   grid-column: 1 / -1;
@@ -2327,6 +2175,14 @@ html[data-mode] .member-card-photo .badge {
   padding: 24px 0;
   color: var(--text-2);
   font-size: 12px;
+}
+
+/* In a card with a reserved height, the message centres in the space instead of
+   leaving a void under it. */
+.board-chart-card .board-empty {
+  flex: 1;
+  justify-content: center;
+  padding: 0;
 }
 
 .board-empty svg {
@@ -3187,9 +3043,7 @@ html[data-style="signal"] .eyebrow,
 html[data-style="signal"] .stat-label,
 html[data-style="signal"] .stat > span,
 html[data-style="signal"] th,
-html[data-style="signal"] .board-eyebrow,
-html[data-style="signal"] .rail-more-group p,
-html[data-style="signal"] .page-footer {
+html[data-style="signal"] th {
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 500;
@@ -3197,26 +3051,15 @@ html[data-style="signal"] .page-footer {
   text-transform: uppercase;
 }
 
-/* The overview hero carries hardcoded white text over a photo; replace both.
-   The stat strip stays a dark band: it sits on the photo, not on the card. */
+/* The figures band on Overview becomes a plain panel in this language. The
+   band inherits its own text colour, so nothing here is hardcoded white. */
 html[data-style="signal"] .board-hero {
+  --band-ink: var(--text);
   background-image: none;
   background-color: var(--card);
   border: 1px solid var(--hairline);
   color: var(--text);
   box-shadow: none;
-}
-
-html[data-style="signal"] .board-hero h2 {
-  letter-spacing: -0.02em;
-}
-
-html[data-style="signal"] .board-eyebrow {
-  color: var(--text-3);
-}
-
-html[data-style="signal"] .board-hero-sub {
-  color: var(--text-2);
 }
 
 html[data-style="signal"] .board-hero-stats {
@@ -3226,12 +3069,9 @@ html[data-style="signal"] .board-hero-stats {
   -webkit-backdrop-filter: none;
 }
 
-html[data-style="signal"] .board-hero-stats span {
-  color: var(--text-3);
-}
-
 /* Theme 4 has no photo either: the hero is a glowing panel. */
 html[data-style="neon"] .board-hero {
+  --band-ink: var(--text);
   background-image: none;
   background-color: var(--card-solid);
   border: 1px solid var(--hairline);
@@ -3246,12 +3086,7 @@ html[data-style="neon"] .board-hero-stats {
   -webkit-backdrop-filter: none;
 }
 
-html[data-style="neon"] .board-hero-stats span,
-html[data-style="neon"] .board-eyebrow {
-  color: var(--text-2);
-}
-
-html[data-style="neon"] .board-hero-sub {
+html[data-style="neon"] .board-hero-stats span {
   color: var(--text-2);
 }
 
@@ -3646,7 +3481,7 @@ html[data-style="ledger"] .member-card {
 }
 
 html[data-style="ledger"] .stat > strong,
-html[data-style="ledger"] .board-amount {
+html[data-style="ledger"] .board-hero-stats strong {
   font-family: var(--font-mono);
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -3993,7 +3828,6 @@ html[data-style="dispatch"] .stat > strong {
   letter-spacing: -0.01em;
 }
 
-html[data-style="dispatch"] .board-hero h2,
 html[data-style="dispatch"] .panel-heading h2 {
   font-family: var(--font-serif);
   font-weight: 500;
@@ -4436,6 +4270,7 @@ html[data-style="clay"] .page-heading h1 {
    as one exclusion instead of a list of style ids: a new style inherits it.
    Neon is excluded because its own block already gives the hero a solid fill. */
 html:not([data-style="glass"]):not([data-style="neon"]) .board-hero {
+  --band-ink: var(--text);
   --hero-image: none;
   background-image: none;
   background-color: var(--card);
@@ -4451,19 +4286,8 @@ html:not([data-style="glass"]):not([data-style="neon"]) .board-hero-stats {
   -webkit-backdrop-filter: none;
 }
 
-html:not([data-style="glass"]):not([data-style="neon"]) .board-hero-stats span,
-html:not([data-style="glass"]):not([data-style="neon"]) .board-eyebrow {
+html:not([data-style="glass"]):not([data-style="neon"]) .board-hero-stats span {
   color: var(--text-3);
-}
-
-html:not([data-style="glass"]):not([data-style="neon"]) .board-hero-sub {
-  color: var(--text-2);
-}
-
-html:not([data-style="glass"]):not([data-style="neon"]) .board-round {
-  border-color: var(--hairline-2);
-  background: var(--card-hover);
-  color: var(--text);
 }
 
 /* ---------- 18k. Swatches for the new picker tiles ---------- */
@@ -4535,7 +4359,7 @@ html[data-style="pixel"] .tabs button {
 }
 
 html[data-style="pixel"] .stat > strong,
-html[data-style="pixel"] .board-amount {
+html[data-style="pixel"] .board-hero-stats strong {
   letter-spacing: 0;
   font-weight: 700;
 }
@@ -4556,14 +4380,13 @@ html[data-style="sketch"] .board-hero {
 }
 
 html[data-style="sketch"] .btn,
-html[data-style="sketch"] .board-cta,
 html[data-style="sketch"] .board-filter {
   border: 1.5px dashed var(--hairline-2);
   border-radius: 14px 18px 13px 20px;
 }
 
 html[data-style="sketch"] .stat > strong,
-html[data-style="sketch"] .board-amount {
+html[data-style="sketch"] .board-hero-stats strong {
   font-weight: 700;
 }
 
@@ -4576,11 +4399,6 @@ html[data-style="scrapbook"] .stat:nth-child(even) {
   transform: rotate(0.7deg);
 }
 
-html[data-style="scrapbook"] .board-tile:nth-child(3) {
-  transform: rotate(-0.8deg);
-}
-
-html[data-style="scrapbook"] .board-hero-title,
 html[data-style="scrapbook"] .page-heading h1 {
   text-shadow: 1px 1px 0 rgba(42, 33, 23, 0.18);
 }
@@ -4606,15 +4424,13 @@ html[data-style="swiss"] .stat > strong {
   letter-spacing: -0.05em;
 }
 
-html[data-style="swiss"] .page-heading h1,
-html[data-style="swiss"] .board-hero h2 {
+html[data-style="swiss"] .page-heading h1 {
   font-weight: 600;
   letter-spacing: -0.045em;
 }
 
 /* Neo-brutalism: the offset shadow is real, and pressed buttons lose it. */
-html[data-style="brutal"] .btn,
-html[data-style="brutal"] .board-cta {
+html[data-style="brutal"] .btn {
   border: 2px solid var(--hairline-2);
   box-shadow: 3px 3px 0 var(--hairline-2);
 }
@@ -4631,8 +4447,7 @@ html[data-style="brutal"] .directory {
   border: 2px solid var(--hairline-2);
 }
 
-html[data-style="brutal"] .page-heading h1,
-html[data-style="brutal"] .board-hero h2 {
+html[data-style="brutal"] .page-heading h1 {
   font-weight: 800;
   letter-spacing: -0.03em;
   text-transform: uppercase;
@@ -4663,8 +4478,7 @@ html[data-style="victorian"] .directory {
   outline-offset: -5px;
 }
 
-html[data-style="victorian"] .page-heading h1,
-html[data-style="victorian"] .board-hero h2 {
+html[data-style="victorian"] .page-heading h1 {
   font-weight: 600;
   font-variant: small-caps;
   letter-spacing: 0.02em;
@@ -4680,7 +4494,7 @@ html[data-style="luxury"] th {
 }
 
 html[data-style="luxury"] .stat > strong,
-html[data-style="luxury"] .board-amount {
+html[data-style="luxury"] .board-hero-stats strong {
   font-weight: 400;
   font-size: 30px;
 }
@@ -4731,8 +4545,7 @@ html[data-style="cyberpunk"] .rail-active {
   box-shadow: inset 3px 0 0 var(--lime);
 }
 
-html[data-style="cyberpunk"] .page-heading h1,
-html[data-style="cyberpunk"] .board-hero h2 {
+html[data-style="cyberpunk"] .page-heading h1 {
   text-transform: uppercase;
   letter-spacing: 0.01em;
 }
@@ -4755,8 +4568,7 @@ html[data-style="ethereal"] .panel {
   border-color: transparent;
 }
 
-html[data-style="ethereal"] .page-heading h1,
-html[data-style="ethereal"] .board-hero h2 {
+html[data-style="ethereal"] .page-heading h1 {
   font-weight: 400;
   letter-spacing: -0.01em;
 }
@@ -5120,10 +4932,14 @@ html[data-style="sketch"] .eyebrow {
 
 @media (max-width: 820px) {
   /* A side rail steals too much width on a phone, so every shell that uses one
-     collapses to the same bottom bar. Keyed on data-layout, not style id. */
+     collapses to the same bottom bar. Keyed on data-layout, not style id.
+     Classic and signal are named too: their own .app rule carries the sidebar
+     inset at higher specificity, which would otherwise survive the breakpoint
+     and push the page 96px to the right on a phone. */
   .app,
-  html:is([data-layout="docked"],[data-layout="operator"]) .app {
-    padding: 14px 14px 92px 14px;
+  html:is([data-layout="docked"],[data-layout="operator"]) .app,
+  html:is([data-style="classic"],[data-style="signal"]) .app {
+    padding: 14px 14px 104px 14px;
   }
 
   .main-shell,
@@ -5235,30 +5051,24 @@ html[data-style="sketch"] .eyebrow {
   }
 
   .board-hero {
-    gap: 20px;
-    min-height: 0;
-    padding: 20px 20px 0;
+    padding: 0;
   }
 
-  .board-hero h2 {
-    font-size: 25px;
-  }
-
-  /* The strip wraps to two rows instead of squashing four figures. */
+  /* Two rows of two, so no figure is squashed on a phone. */
   .board-hero-stats {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 12px 22px;
-    margin: 0 -20px;
-    padding: 14px 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .board-hero-stats > div {
-    flex: 1 1 40%;
+    padding: 14px 16px;
   }
 
-  .board-round {
-    display: none;
+  .board-hero-stats > div:nth-child(2n) {
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .board-hero-stats > div:nth-child(n + 3) {
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
   }
 
   .stats {
@@ -5332,11 +5142,13 @@ html[data-style="sketch"] .eyebrow {
 
 @media (max-width: 480px) {
   .board-hero-stats strong {
-    font-size: 19px;
+    font-size: 20px;
   }
 
+  /* Four short figures still fit two-up, so they stay two-up: a full-width
+     card per figure would cost a screen of scroll for no extra clarity. */
   .stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .member-grid {

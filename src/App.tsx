@@ -109,6 +109,7 @@ const navigationIcons = {
 const descriptions: Record<string, string> = {
   Members: "A little more personal. Manage every member, all in one place.",
   Overview: "Your gym at a glance. Here’s what’s happening today.",
+  Reports: "Every month side by side, straight from your records.",
   Community: "Keep your members connected, in and out of the gym.",
   Memberships: "Flexible plans that grow with your members.",
   Payments: "Every payment, receipt, and outstanding balance in one place.",
@@ -834,6 +835,17 @@ export default function App() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   )
+  // Overview's one-line answer: the fact in today's data that needs a human.
+  // Derived from the same stats the board prints, so the two never disagree.
+  const summary = !stats
+    ? "Loading today's figures."
+    : stats.totalMembers === 0
+      ? "No members yet. Add the first one and these figures start counting."
+      : stats.expiringSoon > 0
+        ? `${stats.expiringSoon} ${stats.expiringSoon === 1 ? "membership ends" : "memberships end"} in the next 7 days.`
+        : stats.pendingPaymentsMinor > 0
+          ? `${formatMoney(stats.pendingPaymentsMinor, org?.organization.currency)} in dues is still outstanding.`
+          : "Every membership is current and nothing is due this week."
   const exportData = () => {
     const rows =
       active === "Members"
@@ -1057,27 +1069,18 @@ export default function App() {
             </div>
           )}
         <main ref={mainRef}>
-          {active === "Overview" && <SummaryBoard
-            stats={stats}
-            reports={reports}
-            currency={org?.organization.currency ?? "INR"}
-            members={members}
-            loading={loadingData}
-            onAddMember={() => setModal("Add member")}
-            onOpenMembers={() => go("Members")}
-            onOpenPayments={() => go("Payments")}
-          />}
-
-          <div className="page-heading" hidden={active === "Overview"}>
+          <div className="page-heading">
             <div>
               <div className="eyebrow">
                 {(org?.organization.name ?? "YOUR GYM").toUpperCase()} <span>/</span> {branch.toUpperCase()}
               </div>
               <h1>{active === "Members" ? "Members" : active}</h1>
               <p>
-                {descriptions[active] ||
-                  module?.sub ||
-                  "One connected workspace for your gym."}
+                {active === "Overview" && summary
+                  ? summary
+                  : descriptions[active] ||
+                    module?.sub ||
+                    "One connected workspace for your gym."}
               </p>
             </div>
             <div className="heading-actions">
@@ -1089,7 +1092,7 @@ export default function App() {
                   Export
                 </Button>
               )}
-              {active !== "Settings" && (
+              {active !== "Settings" && active !== "Reports" && (
                 <Button
                 disabled={addBlocked || !canWrite}
                 title={
@@ -1129,6 +1132,17 @@ export default function App() {
               )}
             </div>
           </div>
+
+          {active === "Overview" && <SummaryBoard
+            stats={stats}
+            reports={reports}
+            currency={org?.organization.currency ?? "INR"}
+            members={members}
+            loading={loadingData}
+            onAddMember={() => setModal("Add member")}
+            onOpenMembers={() => go("Members")}
+            onOpenPayments={() => go("Payments")}
+          />}
 
           {active === "Members" && (
             <>
@@ -1435,7 +1449,6 @@ export default function App() {
 
           {module && active !== "Reports" && (
             <>
-              <Stats items={[["Records", String((records[active] || []).length), isSaved(active) ? "Saved to your workspace" : needsMigration(active) ? "Needs migration 0004" : "This session only"]]} />
               {["Payments", "Reminders", "Access & roles"].includes(active) && (
                 <div className="integration-note">
                   <Icon name="settings" size={15} />
@@ -1454,16 +1467,11 @@ export default function App() {
                         ? "Employee payroll"
                         : `${active} directory`}
                     </Title>
-                    <p>{module.sub}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Badge>
-                      {isSaved(active)
-                        ? "Saved"
-                        : needsMigration(active)
-                          ? "Needs migration"
-                          : "Session only"}
-                    </Badge>
+                    {isSaved(active) ? null : (
+                      <Badge>{needsMigration(active) ? "Needs migration" : "Session only"}</Badge>
+                    )}
                     {active === "Attendance" && (
                       <Button
                         secondary
@@ -1619,13 +1627,6 @@ export default function App() {
                 </div>
                 <div className="table-footer">
                   <span>All records · {branch}</span>
-                  <span>
-                    {isSaved(active)
-                      ? "Saved to your workspace"
-                      : needsMigration(active)
-                        ? "Needs migration 0004"
-                        : "Not available — no database storage yet"}
-                  </span>
                 </div>
               </section>
             </>

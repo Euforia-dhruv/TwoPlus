@@ -9,7 +9,11 @@ const OUT = process.argv[3] ?? "screenshots";
 const EMAIL = process.env.SHOT_EMAIL;
 const PASS = process.env.SHOT_PASS;
 
-const PAGES = ["Overview", "Members", "Payments", "Settings"];
+// SHOT_PAGES="Members,Reports" narrows the run; default covers the four core
+// screens. Styles and modes are comma lists for the same reason.
+const PAGES = (process.env.SHOT_PAGES ?? "Overview,Members,Payments,Settings").split(",").map((s) => s.trim());
+const STYLES = (process.env.SHOT_STYLES ?? "glass,classic").split(",").map((s) => s.trim());
+const MODES = (process.env.SHOT_MODES ?? "dark,light").split(",").map((s) => s.trim());
 const VIEWPORTS = [
   { name: "1440", width: 1440, height: 900 },
   { name: "1024", width: 1024, height: 768 },
@@ -42,11 +46,14 @@ async function shoot(style, mode, vp, pages) {
   }
 
   // Screenshot only once the workspace has finished loading, otherwise the
-  // board shows "Loading your workspace..." and placeholder dashes.
+  // board shows "Loading your workspace..." and placeholder bars.
   await page
-    .waitForFunction(() => !document.body.innerText.includes("Loading your workspace"), {
-      timeout: 15000,
-    })
+    .waitForFunction(
+      () =>
+        !document.body.innerText.includes("Loading your workspace") &&
+        !document.querySelector(".board-skeleton"),
+      { timeout: 20000 },
+    )
     .catch(() => problems.push(`${vp.name} ${style}/${mode}: workspace never finished loading`));
 
   // Theme is applied from the org row; override the root dataset so the
@@ -100,8 +107,8 @@ async function shoot(style, mode, vp, pages) {
 }
 
 for (const vp of VIEWPORTS) {
-  for (const style of ["glass", "classic"]) {
-    for (const mode of ["dark", "light"]) {
+  for (const style of STYLES) {
+    for (const mode of MODES) {
       await shoot(style, mode, vp, PAGES);
     }
   }

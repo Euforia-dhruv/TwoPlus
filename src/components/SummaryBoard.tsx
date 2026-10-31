@@ -1,5 +1,9 @@
-// Overview: a photo hero with an overlaid stat strip, a right rail of live
-// cards, and a full-width attention table. Every figure comes from live rows.
+// Overview: the screen answers one question first, "is the gym okay this month,
+// and what needs me today?". A KPI band, the attendance chart, the money card,
+// and the memberships that need action. Every figure comes from live rows.
+//
+// Class names (.board-*, .board-hero-stats) are the vocabulary the 26 theme
+// blocks in index.css target, so the composition changed and the hooks stayed.
 import { Icon } from "../icons"
 import { formatMoney, type DashboardStats, type ReportMonth } from "@/lib/types"
 
@@ -17,29 +21,19 @@ function compact(n: number): string {
   return String(n)
 }
 
-// Smooth cardinal spline through the points, clamped so it cannot bulge
-// past the chart box on sparse data.
-function linePath(values: number[], w: number, h: number, pad = 8): string {
-  if (values.length < 2) return ""
-  const max = Math.max(...values)
-  const min = Math.min(...values)
-  const span = max - min || 1
-  const clamp = (v: number) => Math.min(h - pad, Math.max(pad, v))
-  const pts = values.map((v, i) => [
-    pad + (i * (w - pad * 2)) / (values.length - 1),
-    clamp(h - pad - ((v - min) / span) * (h - pad * 2)),
-  ])
-  let d = `M${pts[0][0]},${pts[0][1]}`
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] ?? pts[i]
-    const p1 = pts[i]
-    const p2 = pts[i + 1]
-    const p3 = pts[i + 2] ?? p2
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, clamp(p1[1] + (p2[1] - p0[1]) / 6)]
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, clamp(p2[1] - (p3[1] - p1[1]) / 6)]
-    d += ` C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p2[0]},${p2[1]}`
-  }
-  return d
+// Straight segments on a rounded scale: a smoothed curve invents values between
+// monthly totals (app-screens.md §6.4).
+function plot(values: number[], w: number, h: number, pad: { l: number; r: number; t: number; b: number }) {
+  const max = Math.max(...values, 0)
+  // A round step so the top tick sits above the peak instead of on the plot edge.
+  const step = max <= 4 ? 1 : Math.ceil(max / 4)
+  const top = Math.max(step * Math.ceil(max / step), step)
+  const innerW = w - pad.l - pad.r
+  const innerH = h - pad.t - pad.b
+  const x = (i: number) => pad.l + (values.length === 1 ? innerW / 2 : (i * innerW) / (values.length - 1))
+  const y = (v: number) => pad.t + innerH - (v / top) * innerH
+  const d = values.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(" ")
+  return { d, top, x, y, mid: top / 2 }
 }
 
 export function SummaryBoard({
@@ -62,10 +56,9 @@ export function SummaryBoard({
   onOpenPayments: () => void
 }) {
   const visits = reports.map((r) => r.visits)
-  const joins = reports.map((r) => r.newMembers)
-  const collected = reports.map((r) => r.collectedMinor)
   const last = reports[reports.length - 1]
   const prev = reports[reports.length - 2]
+  // Percent change needs a baseline, and a zero baseline makes it meaningless.
   const delta =
     last && prev && prev.collectedMinor > 0
       ? Math.round(((last.collectedMinor - prev.collectedMinor) / prev.collectedMinor) * 100)
@@ -79,149 +72,137 @@ export function SummaryBoard({
 
   const attention = members
     .filter((m) => m.status === "Expiring soon" || m.status === "Expired")
-    .slice(0, 6)
-
-  const peak = reports.length
-    ? reports.reduce((best, r) => (r.visits > best.visits ? r : best), reports[0])
-    : null
+    .slice(0, 5)
 
   const money = (minor: number) => formatMoney(minor, currency)
-  const collectedPath = linePath(collected, 260, 90, 8)
-  const areaPath = collectedPath ? `${collectedPath} L252,82 L8,82 Z` : ""
+  const chart = plot(visits, 300, 120, { l: 30, r: 6, t: 10, b: 18 })
+  const maxVisits = Math.max(...visits, 0)
+
+  const cells: Array<[string, string, string]> = [
+    ["Members", stats ? compact(stats.totalMembers) : "", `${stats?.activeMembers ?? 0} active`],
+    ["Memberships", stats ? compact(stats.activeMemberships) : "", "active this month"],
+    [
+      "Collected",
+      stats ? money(stats.monthCollectionsMinor) : "",
+      stats && delta !== null ? `${delta > 0 ? "+" : ""}${delta}% vs ${prev?.label}` : "this month",
+    ],
+    [
+      "Dues",
+      stats ? money(stats.pendingPaymentsMinor) : "",
+      stats && stats.pendingPaymentsMinor > 0 ? "needs chasing" : "all settled",
+    ],
+  ]
+
+  // While the rows are still arriving, the slot holds a bar at the value's own
+  // height rather than a dash, so nothing shifts when the number lands.
+  const pending = !stats
+
+  // The side card carries only figures the band above does not already show.
+  const side: Array<[string, string]> = [
+    ["Expenses", stats ? money(stats.monthExpensesMinor) : "\u2014"],
+    [
+      "Net",
+      stats ? money(stats.monthCollectionsMinor - stats.monthExpensesMinor) : "\u2014",
+    ],
+    ["New enquiries", stats ? String(stats.newEnquiries) : "\u2014"],
+    ["Top plan", topPlan ? `${topPlan[0]}` : "\u2014"],
+  ]
 
   return (
     <div className="board">
-      <section className="board-hero">
-        <div className="board-hero-body">
-          <p className="board-eyebrow">Workspace overview</p>
-          <h2>Optimize how your gym runs</h2>
-          <p className="board-hero-sub">
-            {loading
-              ? "Loading your workspace"
-              : stats && stats.totalMembers > 0
-                ? "Live figures from your members, memberships and payments."
-                : "Add your first member and these cards fill with real numbers."}
-          </p>
-          <button className="board-cta" onClick={onAddMember}>
-            <Icon name="plus" size={15} />
-            Add member
-          </button>
-        </div>
-
+      {/* The answer strip. Labels above values, one container split by rules. */}
+      <section className="board-hero" aria-label="Key figures">
         <div className="board-hero-stats">
-          {[
-            ["Members", stats ? compact(stats.totalMembers) : "\u2014", "members", true],
-            ["Memberships", stats ? compact(stats.activeMemberships) : "\u2014", "active", false],
-            ["Collected", stats ? money(stats.monthCollectionsMinor) : "\u2014", "this month", false],
-            ["Enquiries", stats ? compact(stats.newEnquiries) : "\u2014", "this month", false],
-          ].map(([label, value, note, lit]) => (
-            <div key={String(label)} className={lit ? "is-lit" : undefined}>
-              <strong>{value}</strong>
-              <span>
-                <i className="board-dot" />
-                {label} · {note}
-              </span>
+          {cells.map(([label, value, note]) => (
+            <div key={label}>
+              <span>{label}</span>
+              {pending ? <i className="board-skeleton" aria-hidden="true" /> : <strong>{value}</strong>}
+              <small>{note}</small>
             </div>
           ))}
-          <button className="board-round" onClick={onOpenMembers} aria-label="Open member directory">
-            <Icon name="arrow" size={16} />
-          </button>
         </div>
       </section>
 
-      <div className="board-side">
-        <section className="board-card">
-          <div className="board-card-head">
-            <div>
-              <h3>Check-ins by month</h3>
-              <p>Attendance and joins, last {reports.length || 0} months</p>
-            </div>
-            {peak && peak.visits > 0 && <span className="board-peak">{peak.visits} peak</span>}
-          </div>
-
-          {reports.length > 1 ? (
-            <>
-              <svg className="board-chart" viewBox="0 0 300 130" preserveAspectRatio="none" aria-hidden="true">
-                {[0.25, 0.5, 0.75].map((t) => (
-                  <line key={t} x1="0" x2="300" y1={130 * t} y2={130 * t} className="board-grid" vectorEffect="non-scaling-stroke" />
-                ))}
-                <path d={linePath(joins, 300, 130, 12)} className="board-line board-line-muted" fill="none" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-                <path d={linePath(visits, 300, 130, 12)} className="board-line board-line-accent" fill="none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-              </svg>
-              <div className="board-chart-foot">
-                <span>{reports[0]?.label}</span>
-                <span>{reports[Math.floor(reports.length / 2)]?.label}</span>
-                <span>{last?.label}</span>
-              </div>
-              <div className="board-key">
-                <span>
-                  <i className="board-swatch board-swatch-accent" />
-                  Check-ins {stats?.attendanceToday ?? 0} today
-                </span>
-                <span>
-                  <i className="board-swatch board-swatch-muted" />
-                  New members
-                </span>
-              </div>
-            </>
-          ) : (
-            <div className="board-empty">
-              <Icon name="chart" size={22} />
-              <p>Two months of attendance unlock this chart.</p>
-            </div>
-          )}
-        </section>
-
-        <section className="board-card board-collect">
-          <div className="board-card-head">
-            <div>
-              <h3>Latest collections</h3>
-              <p>{last?.label ?? "This month"}</p>
-            </div>
-            {delta !== null && (
-              <span className={`board-delta ${delta < 0 ? "is-down" : ""}`}>
-                <Icon name="chart" size={12} />
-                {delta > 0 ? "+" : ""}
-                {delta}%
-              </span>
-            )}
-          </div>
-
-          <div className="board-sales">
-            <div>
-              <strong className="board-amount">{stats ? money(stats.monthCollectionsMinor) : "\u2014"}</strong>
-              <p className="board-caption">Recorded this month</p>
-            </div>
-            {collected.length > 1 ? (
-              <svg className="board-spark" viewBox="0 0 120 44" preserveAspectRatio="none" aria-hidden="true">
-                <path d={areaPath} fill="none" className="board-line board-line-accent" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-              </svg>
-            ) : null}
-          </div>
-
-          <div className="board-split">
-            <button onClick={onOpenPayments}>
-              <span>Pending</span>
-              <strong>{stats ? money(stats.pendingPaymentsMinor) : "\u2014"}</strong>
-            </button>
-            <div>
-              <span>Top plan</span>
-              <strong>{topPlan ? topPlan[0] : "\u2014"}</strong>
-              <small>{topPlan ? `${topPlan[1]} members` : "No memberships yet"}</small>
-            </div>
-          </div>
-        </section>
-
-        <section className="board-card board-tile">
-          <span className="board-tile-icon" aria-hidden="true">
-            <Icon name="ticket" size={20} />
-          </span>
+      <section className="board-card board-chart-card">
+        <div className="board-card-head">
           <div>
-            <strong>{topPlan ? topPlan[0] : "No plan yet"}</strong>
-            <span>{topPlan ? `${topPlan[1]} members on this plan` : "Create a membership plan"}</span>
+            <h3>Check-ins by month</h3>
+            <p>
+              {reports.length > 1
+                ? `${reports[0].label} to ${last.label} · ${stats?.attendanceToday ?? 0} today`
+                : "Attendance recorded in your gym"}
+            </p>
           </div>
-        </section>
-      </div>
+          {maxVisits > 0 && <span className="board-peak">{maxVisits} best</span>}
+        </div>
+
+        {maxVisits > 0 && reports.length > 1 ? (
+          <>
+            <svg
+              className="board-chart"
+              viewBox="0 0 300 120"
+              role="img"
+              aria-label={`Check-ins per month, highest ${maxVisits}`}
+            >
+              {[chart.top, chart.mid].map((t) => (
+                <g key={t}>
+                  <line x1="30" x2="294" y1={chart.y(t)} y2={chart.y(t)} className="board-grid" />
+                  <text x="24" y={chart.y(t) + 3} className="board-tick" textAnchor="end">
+                    {t}
+                  </text>
+                </g>
+              ))}
+              <line x1="30" x2="294" y1={chart.y(0)} y2={chart.y(0)} className="board-axis" />
+              <path d={chart.d} className="board-line board-line-accent" strokeWidth="2" fill="none" />
+            </svg>
+            <div className="board-chart-foot">
+              <span>{reports[0]?.label}</span>
+              <span>{last?.label}</span>
+            </div>
+          </>
+        ) : (
+          <div className="board-empty">
+            <Icon name="chart" size={20} />
+            <p>
+              {reports.length > 1
+                ? "No check-ins recorded in these months yet."
+                : "Two months of check-ins unlock this chart."}
+            </p>
+          </div>
+        )}
+      </section>
+
+      <section className="board-card board-side">
+        <div className="board-card-head">
+          <div>
+            <h3>This month</h3>
+            <p>{last?.label ?? "No months recorded yet"}</p>
+          </div>
+          <button className="board-filter" onClick={onOpenPayments}>
+            Payments
+            <Icon name="arrow" size={13} />
+          </button>
+        </div>
+
+        <div className="board-figures">
+          {side.map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
+
+        {!loading && (!stats || stats.totalMembers === 0) && (
+          <div className="board-note">
+            <span>Nothing to count yet.</span>
+            <button className="board-filter" onClick={onAddMember}>
+              <Icon name="plus" size={13} />
+              Add member
+            </button>
+          </div>
+        )}
+      </section>
 
       <section className="board-card board-table">
         <div className="board-card-head">
@@ -251,9 +232,9 @@ export function SummaryBoard({
             ))}
           </div>
         ) : (
-          <div className="board-empty board-empty-row">
+          <div className="board-empty">
             <Icon name="check" size={20} />
-            <p>Nothing expiring in the next 7 days. Good place to be.</p>
+            <p>Nothing expiring in the next 7 days.</p>
           </div>
         )}
       </section>

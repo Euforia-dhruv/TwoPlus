@@ -38,6 +38,8 @@ supabase/.temp
 
 # Playwright screenshots and reports
 screenshots
+# Design review captures (re-generate with scripts/shots.mjs)
+.taste-skill
 test-results
 playwright-report
 # The suite's saved login. Never commit a session token.
