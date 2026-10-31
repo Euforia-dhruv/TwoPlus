@@ -13,7 +13,12 @@ on port 4173), not the dev server.
 | Lint | `npm run lint` | Pass, 3 pre-existing warnings |
 | Automated tests | `npx playwright test` | **84 / 84 pass** in 5.3m |
 | Design gate, marketing | `inspect.mjs http://localhost:4173/` | **0 FAIL**, 3 accepted WARN |
-| Design gate, auth | `inspect.mjs http://localhost:4173/login` | **0 FAIL**, 1 accepted WARN |
+| Design gate, auth | `inspect.mjs http://localhost:4173/login --app` | **0 FAIL**, 1 accepted WARN |
+
+The `--app` flag matters. Auth is an app screen, not a marketing page. Without the
+flag the tool applies marketing rules (pictures, video, scroll motion) to a login form
+and reports four failures that do not apply. With it, the tool judges the screen by
+`references/app-screens.md` and the real result is 0 FAIL.
 
 ### The 84 tests
 
@@ -118,8 +123,13 @@ Read-only throughout: the QA pass performed zero-row `select`s and no writes.
 
 - `saveOrganizationTheme` (`src/lib/api.ts:161-171`) still carries a retry-without-theme_style
   branch. It is correct defensive code today and should be deleted once 0006 lands.
-- Super Admin works but predates the design system.
-- No member detail page: the tables exist, the screen does not.
+- Super Admin was suspected of predating the design system. Measured signed-in with
+  `inspect.mjs --app`: it renders `Platform overview` with four real sections, zero
+  console errors, no phone overflow, and styles itself entirely through `var(--)`
+  tokens with no inline colours or pixel values. The suspicion was wrong; it needs
+  no restyle.
+- The member profile drawer now shows real membership, payment and attendance
+  history (`adb0741`). It is a drawer, not a routed detail page.
 - 11 sections have no backend at all. They are listed in the roadmap with an order.
 
 ### The structural gap worth stating plainly

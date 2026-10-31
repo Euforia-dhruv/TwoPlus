@@ -91,11 +91,15 @@ editor for project `qhxgqyzrzqxwvriugnya`, or set `SUPABASE_ACCESS_TOKEN` and ru
 
 ### P1: finish the surfaces that already have data
 
-4. **Member detail page.** The tables exist; the UI does not. Profile, contact,
-   membership, payment history, attendance history, trainer assignment. Every field
-   comes from `members`, `member_memberships`, `payments`, `attendance`, `staff`.
-5. **Super Admin restyle.** It works but predates the design system. Bring it onto the
-   shared tokens; do not rewrite its queries.
+4. ~~**Member detail page.**~~ **Done.** The profile drawer now loads real
+   `member_memberships`, `payments` and `attendance` history per member through
+   `listMembershipsForMember`, `listPayments({ memberId })` and
+   `listMemberAttendance`. Empty states state plainly that nothing has been recorded.
+5. ~~**Super Admin restyle.**~~ **Not needed: the premise was wrong.** Measured with
+   `inspect.mjs --app` while signed in: it renders `Platform overview` with four real
+   sections, zero console errors, no phone overflow, and it already styles itself
+   entirely through `var(--)` tokens with no inline colours or pixel values. It reuses
+   the shared `directory` / `table-toolbar` / `profile-drawer` classes. Leave it alone.
 6. **Exercise library and workout plans UI.** Tables arrive with 0006
    (`workout_plans`, `workout_exercises`, `member_workout_assignments`). Build the UI
    only after 0006 is applied and the policies are exercised.
