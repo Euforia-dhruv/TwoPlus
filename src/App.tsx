@@ -2790,6 +2790,9 @@ export default function App() {
                       const taken = classBookings.filter(
                         (b) => b.class_id === classId && b.status !== "cancelled",
                       ).length
+                      // shortcut: capacity is checked in the browser, so two
+                      // simultaneous bookings can both pass; a DB trigger is the
+                      // real fix if overbooking ever happens.
                       if (!alreadyOn && target && taken >= target.capacity)
                         throw new Error(
                           `${target.name} is full (${taken} of ${target.capacity} seats)`,
