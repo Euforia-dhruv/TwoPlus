@@ -85,7 +85,15 @@ const groups = [
     "Design Studio",
   ],
 ]
-const railPrimary = ["Overview", "Members", "Memberships", "Attendance", "Classes & PT", "Payments"]
+// Every section rendered directly in the rail, grouped for visual order only
+// (Settings stays pinned in the rail foot, so it is excluded here).
+const navGroups: Array<[string, string[]]> = [
+  ...groups.map(([label, ...items]) => [
+    label,
+    items.filter((item) => item !== "Settings"),
+  ] as [string, string[]]),
+  ["Extras", ["Member app", "Customer support"]],
+]
 const navigationIcons = {
   Overview: "dashboard",
   Members: "members",
@@ -322,15 +330,6 @@ export default function App() {
   const { org, reload: reloadOrg } = useOrg()
   const { role: platformRole } = usePlatformAdmin()
   const [active, setActive] = useState("Overview")
-  const [railMore, setRailMore] = useState(false)
-  useEffect(() => {
-    if (!railMore) return
-    const close = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest(".rail-more-wrap,.rail-more-menu")) setRailMore(false)
-    }
-    document.addEventListener("click", close)
-    return () => document.removeEventListener("click", close)
-  }, [railMore])
   const [members, setMembers] = useState<Member[]>([])
   const [tab, setTab] = useState("All members")
   const [query, setQuery] = useState("")
@@ -1210,18 +1209,16 @@ export default function App() {
           <span className="rail-label" aria-hidden="true">TwoPlus</span>
         </button>
         <div className="rail-primary">
-          {railPrimary.map((item) => (
-            <button key={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
-              <Icon name={navigationIcons[item as keyof typeof navigationIcons]} size={19} />
-              <span className="rail-label" aria-hidden="true">{item}</span>
-            </button>
+          {navGroups.map(([label, items]) => (
+            <div key={label} className="rail-group">
+              {items.map((item) => (
+                <button key={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
+                  <Icon name={navigationIcons[item as keyof typeof navigationIcons]} size={19} />
+                  <span className="rail-label" aria-hidden="true">{item}</span>
+                </button>
+              ))}
+            </div>
           ))}
-          <div className="rail-more-wrap">
-            <button aria-label="More sections" aria-expanded={railMore} className={railMore || !railPrimary.includes(active) ? "rail-active" : ""} onClick={() => setRailMore(!railMore)}>
-              <Icon name="grid" size={19} />
-              <span className="rail-label" aria-hidden="true">More</span>
-            </button>
-          </div>
         </div>
         <div className="rail-foot">
           <button aria-label="Settings" aria-current={active === "Settings" ? "page" : undefined} className={active === "Settings" ? "rail-active" : ""} onClick={() => go("Settings")}>
@@ -1230,25 +1227,6 @@ export default function App() {
           </button>
         </div>
       </nav>
-      {/* Rendered outside the rail: the rail's transform makes position:fixed relative to it, which clipped the menu. */}
-      {railMore && (
-        <div className="rail-more-menu" role="menu">
-          {groups.map(([label, ...items]) => (
-            <div key={label} className="rail-more-group">
-              <p>{label}</p>
-              {items.map((item) => (
-                <button key={item} role="menuitem" className={active === item ? "rail-more-active" : ""} onClick={() => { go(item); setRailMore(false) }}>{item}</button>
-              ))}
-            </div>
-          ))}
-          <div className="rail-more-group">
-            <p>Extras</p>
-            {["Member app", "Customer support"].map((item) => (
-              <button key={item} role="menuitem" className={active === item ? "rail-more-active" : ""} onClick={() => { go(item); setRailMore(false) }}>{item}</button>
-            ))}
-          </div>
-        </div>
-      )}
       <div className="main-shell">
         <header className="topbar">
           <div className="topbar-context">

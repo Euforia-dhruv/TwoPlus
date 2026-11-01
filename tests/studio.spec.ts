@@ -16,8 +16,7 @@ test.skip(
 
 async function openStudio(page: import("@playwright/test").Page) {
   await page.goto("/app", { waitUntil: "networkidle" });
-  await page.click('button[aria-label="More sections"]');
-  await page.click('.rail-more-menu button:has-text("Design Studio")');
+  await page.click('button[aria-label="Design Studio"]');
   await expect(page.locator(".studio-grid")).toBeVisible({ timeout: 15_000 });
 }
 

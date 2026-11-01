@@ -416,6 +416,24 @@ html:is([data-style="classic"],[data-style="signal"]) .glass-brand svg {
   align-items: center;
   gap: 6px;
   min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.rail-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--hairline);
+  width: 100%;
+}
+
+.rail-group:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
 }
 
 html:is([data-style="classic"],[data-style="signal"]) .rail-primary {
@@ -423,6 +441,14 @@ html:is([data-style="classic"],[data-style="signal"]) .rail-primary {
   gap: 2px;
   margin-top: 14px;
   overflow-y: auto;
+}
+
+html:is([data-style="classic"],[data-style="signal"]) .rail-group {
+  align-items: stretch;
+  gap: 2px;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom-color: var(--hairline-2);
 }
 
 .rail-foot {
@@ -4091,6 +4117,23 @@ html[data-layout="tabs"] .rail-primary {
   overflow-x: auto;
 }
 
+html[data-layout="tabs"] .rail-group {
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  margin: 0;
+  border-bottom: 0;
+  border-right: 1px solid var(--hairline);
+  padding-right: 2px;
+  width: auto;
+}
+
+html[data-layout="tabs"] .rail-group:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
 html[data-layout="tabs"] .rail-foot {
   flex: none;
   flex-direction: row;
@@ -5121,6 +5164,25 @@ html[data-style="sketch"] .eyebrow {
     overflow-y: hidden;
   }
 
+  .rail-group,
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    margin: 0;
+    border-bottom: 0;
+    border-right: 1px solid var(--hairline);
+    padding-right: 2px;
+    width: auto;
+  }
+
+  .rail-group:last-child,
+  html:is([data-layout="docked"],[data-layout="operator"]) .rail-group:last-child {
+    border-right: 0;
+    padding-right: 0;
+  }
+
   .rail-foot,
   html:is([data-layout="docked"],[data-layout="operator"]) .rail-foot {
     flex: none;
@@ -5135,9 +5197,8 @@ html[data-style="sketch"] .eyebrow {
 
   .rail-primary button,
   html:is([data-layout="docked"],[data-layout="operator"]) .rail-primary button {
-    flex: 1 1 0;
-    width: auto;
-    min-width: 0;
+    flex: none;
+    width: 44px;
   }
 
   .floating-rail button,
