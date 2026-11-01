@@ -4,6 +4,7 @@ import { getSupabase } from "./supabase";
 import type {
   AppNotification,
   AttendanceRecord,
+  Branch,
   DashboardStats,
   DietMealWithItems,
   DietPlan,
@@ -630,6 +631,57 @@ export async function createClass(
     .single();
   throwIf(error, "Could not schedule the class");
   return data as GymClass;
+}
+
+// Seats taken per class. Cancelled bookings do not count, so a class that has
+// been emptied reads as 0 / capacity rather than showing stale interest.
+export async function listClassBookingCounts(
+  orgId: string,
+): Promise<Record<string, number>> {
+  const { data, error } = await getSupabase()
+    .from("class_bookings")
+    .select("class_id, status")
+    .eq("organization_id", orgId)
+    .neq("status", "cancelled")
+    .limit(1000);
+  throwIf(error, "Could not load class bookings");
+  const counts: Record<string, number> = {};
+  for (const row of (data ?? []) as { class_id: string }[])
+    counts[row.class_id] = (counts[row.class_id] ?? 0) + 1;
+  return counts;
+}
+
+// ---------------------------------------------------------------------------
+// Branches
+// ---------------------------------------------------------------------------
+
+export async function listBranches(orgId: string): Promise<Branch[]> {
+  const { data, error } = await getSupabase()
+    .from("branches")
+    .select("id, organization_id, name, address, is_primary, is_archived")
+    .eq("organization_id", orgId)
+    .order("is_primary", { ascending: false })
+    .order("name", { ascending: true })
+    .limit(100);
+  throwIf(error, "Could not load branches");
+  return (data ?? []) as Branch[];
+}
+
+export async function createBranch(
+  orgId: string,
+  input: { name: string; address?: string },
+): Promise<Branch> {
+  const { data, error } = await getSupabase()
+    .from("branches")
+    .insert({
+      organization_id: orgId,
+      name: input.name.trim(),
+      address: input.address?.trim() || null,
+    })
+    .select("*")
+    .single();
+  throwIf(error, "Could not add the branch");
+  return data as Branch;
 }
 
 // ---------------------------------------------------------------------------

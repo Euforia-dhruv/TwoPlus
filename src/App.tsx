@@ -270,13 +270,7 @@ const modules: Record<string, Module> = {
   Branches: {
     sub: "One business. Every location in view.",
     action: "Add branch",
-    columns: [
-      "Branch",
-      "Manager",
-      "Active members",
-      "Monthly revenue",
-      "Status",
-    ],
+    columns: ["Branch", "Address", "Scope", "Status"],
     rows: [],
     stats: [],
   },
@@ -307,6 +301,7 @@ const dbModules = [
   "Invoices",
   "Trainers & staff",
   "Expenses",
+  "Branches",
   "Workouts",
   "Diet & nutrition",
 ] as const
@@ -743,7 +738,10 @@ export default function App() {
             ]),
           }))
         } else if (active === "Classes & PT") {
-          const rows = await api.listClasses(orgId)
+          const [rows, booked] = await Promise.all([
+            api.listClasses(orgId),
+            api.listClassBookingCounts(orgId),
+          ])
           const fmt = (iso: string) =>
             new Date(iso).toLocaleString("en-IN", {
               day: "2-digit",
@@ -757,8 +755,19 @@ export default function App() {
               r.name,
               r.trainer_id ? (staffNames[r.trainer_id] ?? "Unassigned") : "Unassigned",
               fmt(r.starts_at),
-              `${r.capacity} seats`,
+              `${booked[r.id] ?? 0} / ${r.capacity}`,
               r.status.charAt(0).toUpperCase() + r.status.slice(1),
+            ]),
+          }))
+        } else if (active === "Branches") {
+          const rows = await api.listBranches(orgId)
+          setRecords((prev) => ({
+            ...prev,
+            Branches: rows.map((r) => [
+              r.name,
+              r.address || "—",
+              r.is_primary ? "Primary" : "Branch",
+              r.is_archived ? "Archived" : "Active",
             ]),
           }))
         } else if (active === "Enquiries") {
@@ -1112,6 +1121,8 @@ export default function App() {
     Invoices: ["owner", "manager", "finance", "receptionist"],
     "Trainers & staff": ["owner", "manager"],
     Expenses: ["owner", "manager", "finance"],
+    // Mirrors 0001: branches are written by owner and manager.
+    Branches: ["owner", "manager"],
     // Mirrors 0006: plan write = owner/manager/trainer, measurements = those
     // plus receptionist.
     Workouts: ["owner", "manager", "trainer"],
@@ -2707,6 +2718,14 @@ export default function App() {
                       setModal("")
                       notify("Expense recorded")
                       go("Expenses")
+                    } else if (modal === "Add branch") {
+                      await api.createBranch(orgId, {
+                        name: String(data.get("name") || ""),
+                        address: String(data.get("address") || "") || undefined,
+                      })
+                      setModal("")
+                      notify("Branch added")
+                      go("Branches")
                     } else if (modal === "Schedule class") {
                       const startsAt = String(data.get("starts") || "")
                       if (!startsAt) throw new Error("Pick a start time")
@@ -3317,6 +3336,17 @@ export default function App() {
                     <label>
                       Description
                       <Input name="description" placeholder="e.g. Treadmill belt replacement" />
+                    </label>
+                  </>
+                ) : modal === "Add branch" ? (
+                  <>
+                    <label>
+                      Branch name
+                      <Input name="name" required placeholder="Koramangala" autoFocus />
+                    </label>
+                    <label>
+                      Address
+                      <textarea name="address" placeholder="Street, area, city" />
                     </label>
                   </>
                 ) : modal === "Schedule class" ? (
@@ -4151,7 +4181,9 @@ export default function App() {
                         ? "Add member"
                         : modal === "Create plan"
                           ? "Create plan"
-                          : modal === "Freeze memberships"
+                          : modal === "Add branch"
+                            ? "Add branch"
+                            : modal === "Freeze memberships"
                             ? "Freeze memberships"
                             : modal === "Archive member"
                               ? "Archive member"
