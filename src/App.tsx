@@ -2303,7 +2303,7 @@ export default function App() {
                   </div>
                 ))
               ) : (
-                <p className="muted">This membership has never been renewed.</p>
+                <p className="muted">This member has never renewed.</p>
               )}
               <Title>Payment history</Title>
               {profilePayments.length ? (
@@ -2321,7 +2321,15 @@ export default function App() {
                 <p className="muted">No payment has been recorded for this member.</p>
               )}
               <div className="profile-actions">
-                <Button onClick={() => setModal("Renew membership")}>
+                <Button
+                  disabled={!profile.membershipId}
+                  title={
+                    profile.membershipId
+                      ? undefined
+                      : "This member has no membership to renew"
+                  }
+                  onClick={() => setModal("Renew membership")}
+                >
                   Renew membership
                 </Button>
                 <Button secondary onClick={() => setModal("Edit member")}>
