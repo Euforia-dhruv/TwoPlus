@@ -558,6 +558,9 @@ export default function App() {
   // Raw text field value; kept separate so a mistyped URL can be corrected
   // without applying a broken preview.
   const [imageInput, setImageInput] = useState("")
+  // Hidden file picker for uploading a custom background image from disk.
+  const bgFileRef = useRef<HTMLInputElement>(null)
+  const [uploadBusy, setUploadBusy] = useState(false)
   useEffect(() => {
     const next = org ? themeFromOrg(org.organization) : DEFAULT_THEME
     setTheme(next)
@@ -592,6 +595,38 @@ export default function App() {
       )
     } finally {
       setThemeBusy(false)
+    }
+  }
+
+  // Uploads a local image as the workspace background. The file goes to the
+  // workspace-media bucket (0008); the returned public URL becomes the image
+  // value, waiting for the owner to save.
+  const handleUploadBackground = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file || !org) return
+    if (!file.type.startsWith("image/")) {
+      setThemeError("That file is not an image.")
+      return
+    }
+    if (file.size > 6 * 1024 * 1024) {
+      setThemeError("Images must be under 6 MB.")
+      return
+    }
+    setUploadBusy(true)
+    setThemeError("")
+    try {
+      const url = await api.uploadWorkspaceImage(org.organization.id, file)
+      setImageInput(url)
+      updateTheme({ image: url })
+    } catch (error) {
+      setThemeError(
+        error instanceof Error ? error.message : "Could not upload the image",
+      )
+    } finally {
+      setUploadBusy(false)
     }
   }
 
@@ -1758,6 +1793,28 @@ export default function App() {
                   </div>
                 </div>
                 <div className="theme-actions">
+                  <input
+                    ref={bgFileRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    disabled={!isOwner || uploadBusy}
+                    onChange={handleUploadBackground}
+                  />
+                  <Button
+                    secondary
+                    type="button"
+                    disabled={!isOwner || uploadBusy}
+                    title={
+                      !isOwner
+                        ? "Only the workspace owner can change the appearance"
+                        : undefined
+                    }
+                    onClick={() => bgFileRef.current?.click()}
+                  >
+                    <Icon name="plus" size={15} />
+                    {uploadBusy ? "Uploading…" : "Upload image"}
+                  </Button>
                   <Button
                     secondary
                     type="button"

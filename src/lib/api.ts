@@ -964,3 +964,23 @@ export async function loadDashboardStats(org: OrgContext): Promise<DashboardStat
     upcomingClasses: classesRes.count ?? 0,
   };
 }
+
+// Uploads a workspace background image and returns its public URL. Objects
+// live in the workspace-media bucket under <org>/<file>, which the storage
+// policies (0008) authorize on the first path segment alone.
+export async function uploadWorkspaceImage(
+  orgId: string,
+  file: File,
+): Promise<string> {
+  const ext = (file.name.split(".").pop() ?? "jpg")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  const path = `${orgId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await getSupabase()
+    .storage
+    .from("workspace-media")
+    .upload(path, file, { cacheControl: "31536000", upsert: false });
+  throwIf(error, "Could not upload the image");
+  const { data } = getSupabase().storage.from("workspace-media").getPublicUrl(path);
+  return data.publicUrl;
+}
