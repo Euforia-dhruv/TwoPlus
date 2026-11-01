@@ -1307,7 +1307,8 @@ export default function App() {
                             {r.body && <p>{r.body}</p>}
                             <div className="bell-meta">
                               <span>
-                                {formatDate(r.created_at)} · {r.type}
+                                {r.type.charAt(0).toUpperCase() + r.type.slice(1)} ·{" "}
+                                {formatDate(r.created_at)}
                               </span>
                               {r.read_at ? (
                                 <span>Read</span>
