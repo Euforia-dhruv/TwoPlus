@@ -31,9 +31,7 @@ it. Details in `TWOPLUS_IMPLEMENTATION_ROADMAP.md`.
 1. **Class attendance status.** Mark a booked member `attended` from the class details
    modal. `class_bookings.status` already allows it. Decide whether it also writes an
    `attendance` row.
-2. **Membership renewals view.** `membership_renewals` exists and is unused. An owner
-   wants to see what was renewed, when, and at what price.
-3. **Member internal notes.** `member_internal_notes` exists and is unused. Staff-only
+2. **Member internal notes.** `member_internal_notes` exists and is unused. Staff-only
    notes on the member drawer.
 4. **Progress photos.** `member_progress_photos` exists, and `workspace-media` is the
    only storage bucket (0008). Needs a bucket for member photos plus RLS on
@@ -43,6 +41,8 @@ it. Details in `TWOPLUS_IMPLEMENTATION_ROADMAP.md`.
 6. **Branch switching.** Branches list, but nothing filters by branch.
 7. **Invoice print view.** Product decision needed first: print CSS or a PDF library.
 8. **Payroll.** No table. Needs a migration before any UI.
+9. **Mark a class booking attended.** `class_bookings.status` allows `attended`, but
+   nothing sets it. Decide whether attendance also writes an `attendance` row.
 
 ---
 
@@ -54,6 +54,7 @@ it. Details in `TWOPLUS_IMPLEMENTATION_ROADMAP.md`.
 | `48e89b3` | Book a member into a class; attendee list in class details |
 | `3bdde4b` | Capacity guard on booking |
 | `e7f0d4d` | Bookings not attached to the wrong session when names repeat |
+| `6f2e4eb` | Membership renewals logged with date, days, amount and note |
 
 ---
 

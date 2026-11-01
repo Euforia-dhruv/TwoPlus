@@ -40,9 +40,9 @@ This closes both former blockers: member sign-in (0007) and the member CRM table
 
 ## Built and connected to the database
 
-- **Directory**: members, memberships and plans, attendance with check-out, enquiries
-  and follow-ups, payments, invoices (raise, void, settle against payments), expenses,
-  trainers and staff, branches.
+- **Directory**: members, memberships and plans with a logged renewal history,
+  attendance with check-out, enquiries and follow-ups, payments, invoices (raise, void,
+  settle against payments), expenses, trainers and staff, branches.
 - **Training**: workout plans with exercises, diet plans with meals and items,
   measurements with per-member history, plan assignment to members, plan contents in
   the details modal.
@@ -61,8 +61,7 @@ Nothing. Both database blockers are cleared.
 
 1. **Class attendance status.** Staff can book a member into a class and see who is
    booked, but nothing marks a member as `attended`. `class_bookings.status` already
-   allows it. Needs a status control in the class details modal, and a decision on
-   whether attending a class should also create an `attendance` row.
+   allows it. Tracked on the building board, item 9.
 2. **Invoices to receipts.** The invoice renders as a table row. A print view or PDF is
    still a product decision, not a code gap.
 3. **Branches**: rows, add form, and the primary/branch flag are live. There is no
