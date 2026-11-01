@@ -39,52 +39,104 @@ alter table public.organizations
 -- ---------------------------------------------------------------------------
 -- Tenancy anchors
 -- ---------------------------------------------------------------------------
--- Composite FKs need a unique key on the referenced pair.
-alter table public.members
-  add constraint members_id_org_key unique (id, organization_id);
+-- Composite FKs need a unique key on the referenced pair. Guarded so a
+-- partially-applied run can be re-run safely.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'members_id_org_key') then
+    alter table public.members
+      add constraint members_id_org_key unique (id, organization_id);
+  end if;
+end $$;
 
-alter table public.staff
-  add constraint staff_id_org_key unique (id, organization_id);
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'staff_id_org_key') then
+    alter table public.staff
+      add constraint staff_id_org_key unique (id, organization_id);
+  end if;
+end $$;
 
-alter table public.membership_plans
-  add constraint membership_plans_id_org_key unique (id, organization_id);
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'membership_plans_id_org_key') then
+    alter table public.membership_plans
+      add constraint membership_plans_id_org_key unique (id, organization_id);
+  end if;
+end $$;
 
-alter table public.member_memberships
-  add constraint member_memberships_id_org_key unique (id, organization_id);
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'member_memberships_id_org_key') then
+    alter table public.member_memberships
+      add constraint member_memberships_id_org_key unique (id, organization_id);
+  end if;
+end $$;
 
 -- Re-point the child tables at the pair. The single-column FKs stay (they
--- cascade on delete); these add the tenant check.
-alter table public.member_memberships
-  add constraint member_memberships_member_org_fk
-  foreign key (member_id, organization_id)
-  references public.members (id, organization_id) on delete cascade;
+-- cascade on delete); these add the tenant check. Guarded so a
+-- partially-applied run can be re-run safely.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'member_memberships_member_org_fk') then
+    alter table public.member_memberships
+      add constraint member_memberships_member_org_fk
+      foreign key (member_id, organization_id)
+      references public.members (id, organization_id) on delete cascade;
+  end if;
+end $$;
 
 -- staff.trainer_id must point at staff in the same gym.
-alter table public.members
-  add constraint members_trainer_org_fk
-  foreign key (trainer_id, organization_id)
-  references public.staff (id, organization_id) on delete set null;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'members_trainer_org_fk') then
+    alter table public.members
+      add constraint members_trainer_org_fk
+      foreign key (trainer_id, organization_id)
+      references public.staff (id, organization_id) on delete set null;
+  end if;
+end $$;
 
-alter table public.payments
-  add constraint payments_member_org_fk
-  foreign key (member_id, organization_id)
-  references public.members (id, organization_id) on delete cascade;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'payments_member_org_fk') then
+    alter table public.payments
+      add constraint payments_member_org_fk
+      foreign key (member_id, organization_id)
+      references public.members (id, organization_id) on delete cascade;
+  end if;
+end $$;
 
-alter table public.payments
-  add constraint payments_membership_org_fk
-  foreign key (membership_id, organization_id)
-  references public.member_memberships (id, organization_id) on delete set null;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'payments_membership_org_fk') then
+    alter table public.payments
+      add constraint payments_membership_org_fk
+      foreign key (membership_id, organization_id)
+      references public.member_memberships (id, organization_id) on delete set null;
+  end if;
+end $$;
 
-alter table public.attendance
-  add constraint attendance_member_org_fk
-  foreign key (member_id, organization_id)
-  references public.members (id, organization_id) on delete cascade;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'attendance_member_org_fk') then
+    alter table public.attendance
+      add constraint attendance_member_org_fk
+      foreign key (member_id, organization_id)
+      references public.members (id, organization_id) on delete cascade;
+  end if;
+end $$;
 
 -- Enough digits to be a real phone number, not a free-text field. NOT VALID
 -- so pre-existing rows cannot block the migration; new writes are checked.
-alter table public.members
-  add constraint members_phone_shape
-  check (phone ~ '^[0-9+() -]{6,20}$') not valid;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'members_phone_shape') then
+    alter table public.members
+      add constraint members_phone_shape
+      check (phone ~ '^[0-9+() -]{6,20}$') not valid;
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Member code counter — collision-safe, per gym, no client input
@@ -229,9 +281,14 @@ create index if not exists workout_plans_org_idx on public.workout_plans (organi
 
 -- Must exist before member_workout_assignments below declares its composite FK
 -- against (id, organization_id); Postgres requires the referenced unique key
--- up front (error 42830 otherwise).
-alter table public.workout_plans
-  add constraint workout_plans_id_org_key unique (id, organization_id);
+-- up front (error 42830 otherwise). Guarded for safe re-runs.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'workout_plans_id_org_key') then
+    alter table public.workout_plans
+      add constraint workout_plans_id_org_key unique (id, organization_id);
+  end if;
+end $$;
 
 create table if not exists public.workout_exercises (
   id            uuid primary key default gen_random_uuid(),
@@ -379,13 +436,23 @@ create table if not exists public.member_diet_assignments (
 create index if not exists member_diet_assignments_member_idx
   on public.member_diet_assignments (member_id, effective_from desc);
 
-alter table public.diet_plans
-  add constraint diet_plans_id_org_key unique (id, organization_id);
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'diet_plans_id_org_key') then
+    alter table public.diet_plans
+      add constraint diet_plans_id_org_key unique (id, organization_id);
+  end if;
+end $$;
 
-alter table public.member_diet_assignments
-  add constraint member_diet_assignments_plan_org_fk
-  foreign key (plan_id, organization_id)
-  references public.diet_plans (id, organization_id) on delete restrict;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'member_diet_assignments_plan_org_fk') then
+    alter table public.member_diet_assignments
+      add constraint member_diet_assignments_plan_org_fk
+      foreign key (plan_id, organization_id)
+      references public.diet_plans (id, organization_id) on delete restrict;
+  end if;
+end $$;
 
 alter table public.diet_plans enable row level security;
 alter table public.diet_meals enable row level security;
