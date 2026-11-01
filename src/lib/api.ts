@@ -5,6 +5,7 @@ import type {
   AppNotification,
   AttendanceRecord,
   Branch,
+  ClassBookingRow,
   DashboardStats,
   DietMealWithItems,
   DietPlan,
@@ -633,25 +634,44 @@ export async function createClass(
   return data as GymClass;
 }
 
-// Seats taken per class. Cancelled bookings do not count, so a class that has
-// been emptied reads as 0 / capacity rather than showing stale interest.
-// shortcut: counts at most 1000 booking rows per org, so a very busy gym can
+// Bookings for every class in one query, so the counts and the attendee names
+// come from the same read and cannot disagree.
+// shortcut: reads at most 1000 booking rows per org, so a very busy gym can
 // undercount; move to a count(*) per class if that ever shows up.
-export async function listClassBookingCounts(
+export async function listClassBookings(
   orgId: string,
-): Promise<Record<string, number>> {
+): Promise<ClassBookingRow[]> {
   const { data, error } = await getSupabase()
     .from("class_bookings")
-    .select("class_id, status")
+    .select("id, class_id, member_id, status, member:members(first_name, last_name)")
     .eq("organization_id", orgId)
-    .neq("status", "cancelled")
+    .order("created_at", { ascending: true })
     .limit(1000);
   throwIf(error, "Could not load class bookings");
-  const counts: Record<string, number> = {};
-  for (const row of (data ?? []) as { class_id: string }[])
-    counts[row.class_id] = (counts[row.class_id] ?? 0) + 1;
-  return counts;
+  return (data ?? []) as unknown as ClassBookingRow[];
 }
+
+// Cancelled rows are flipped rather than deleted, so a member who drops out and
+// rejoins later does not hit the unique (class_id, member_id) constraint.
+export async function bookMemberIntoClass(
+  orgId: string,
+  classId: string,
+  memberId: string,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("class_bookings")
+    .upsert(
+      {
+        organization_id: orgId,
+        class_id: classId,
+        member_id: memberId,
+        status: "booked",
+      },
+      { onConflict: "class_id,member_id" },
+    );
+  throwIf(error, "Could not book the member into that class");
+}
+
 
 // ---------------------------------------------------------------------------
 // Branches

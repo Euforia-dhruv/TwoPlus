@@ -187,6 +187,14 @@ export type GymClass = {
   status: "scheduled" | "completed" | "cancelled";
 };
 
+export type ClassBookingRow = {
+  id: string;
+  class_id: string;
+  member_id: string;
+  status: "booked" | "cancelled" | "attended";
+  member: { first_name: string; last_name: string } | null;
+};
+
 export type Expense = {
   id: string;
   organization_id: string;

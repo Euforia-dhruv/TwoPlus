@@ -25,10 +25,12 @@ import {
   formatMoney,
   type AppNotification,
   type AttendanceRecord,
+  type ClassBookingRow,
   type DashboardStats,
   type DietPlanListRow,
   type Enquiry,
   type FitnessMeasurement,
+  type GymClass,
   type InvoiceListRow,
   type MembershipPlan,
   type MemberMembership,
@@ -352,6 +354,8 @@ export default function App() {
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanListRow[]>([])
   const [dietPlans, setDietPlans] = useState<DietPlanListRow[]>([])
   const [invoices, setInvoices] = useState<InvoiceListRow[]>([])
+  const [classes, setClasses] = useState<GymClass[]>([])
+  const [classBookings, setClassBookings] = useState<ClassBookingRow[]>([])
   // Contents of the plan whose Details modal is open. Keyed by plan name so a
   // slow fetch for one plan can never render under another plan's heading.
   const [planDetail, setPlanDetail] = useState<{ name: string; lines: string[] } | null>(null)
@@ -738,10 +742,12 @@ export default function App() {
             ]),
           }))
         } else if (active === "Classes & PT") {
-          const [rows, booked] = await Promise.all([
+          const [rows, bookings] = await Promise.all([
             api.listClasses(orgId),
-            api.listClassBookingCounts(orgId),
+            api.listClassBookings(orgId),
           ])
+          setClasses(rows)
+          setClassBookings(bookings)
           const fmt = (iso: string) =>
             new Date(iso).toLocaleString("en-IN", {
               day: "2-digit",
@@ -755,7 +761,11 @@ export default function App() {
               r.name,
               r.trainer_id ? (staffNames[r.trainer_id] ?? "Unassigned") : "Unassigned",
               fmt(r.starts_at),
-              `${booked[r.id] ?? 0} / ${r.capacity}`,
+              `${
+                bookings.filter(
+                  (b) => b.class_id === r.id && b.status !== "cancelled",
+                ).length
+              } / ${r.capacity}`,
               r.status.charAt(0).toUpperCase() + r.status.slice(1),
             ]),
           }))
@@ -1820,6 +1830,22 @@ export default function App() {
                         Assign to member
                       </Button>
                     )}
+                    {active === "Classes & PT" && (
+                      <Button
+                        secondary
+                        disabled={!classes.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot manage class bookings"
+                            : classes.length
+                              ? undefined
+                              : "Schedule a class first"
+                        }
+                        onClick={() => setModal("Book member")}
+                      >
+                        Book member
+                      </Button>
+                    )}
                     {active === "Workouts" && (
                       <Button
                         secondary
@@ -2538,6 +2564,37 @@ export default function App() {
                     )}
                   </>
                 )}
+                {active === "Classes & PT" &&
+                  classes.some((c) => c.name === modal.slice(9)) && (
+                    <>
+                      <Title>Booked members</Title>
+                      {(() => {
+                        const cls = classes.find((c) => c.name === modal.slice(9))
+                        const booked = classBookings.filter(
+                          (b) =>
+                            b.class_id === cls?.id && b.status !== "cancelled",
+                        )
+                        if (!booked.length)
+                          return (
+                            <p className="muted">
+                              Nobody is booked into this class yet.
+                            </p>
+                          )
+                        return booked.map((b) => (
+                          <div className="detail-line" key={b.id}>
+                            <span>
+                              {b.status === "attended" ? "Attended" : "Booked"}
+                            </span>
+                            <strong>
+                              {b.member
+                                ? `${b.member.first_name} ${b.member.last_name}`.trim()
+                                : "Member"}
+                            </strong>
+                          </div>
+                        ))
+                      })()}
+                    </>
+                  )}
                 <p className="muted">
                   {isSaved(active)
                     ? "Saved to your workspace."
@@ -2718,6 +2775,15 @@ export default function App() {
                       setModal("")
                       notify("Expense recorded")
                       go("Expenses")
+                    } else if (modal === "Book member") {
+                      const classId = String(data.get("class") || "")
+                      const memberId = String(data.get("member") || "")
+                      if (!classId || !memberId)
+                        throw new Error("Pick a class and a member")
+                      await api.bookMemberIntoClass(orgId, classId, memberId)
+                      setModal("")
+                      notify("Member booked into the class")
+                      setModuleTick((t) => t + 1)
                     } else if (modal === "Add branch") {
                       await api.createBranch(orgId, {
                         name: String(data.get("name") || ""),
@@ -3337,6 +3403,37 @@ export default function App() {
                       Description
                       <Input name="description" placeholder="e.g. Treadmill belt replacement" />
                     </label>
+                  </>
+                ) : modal === "Book member" ? (
+                  <>
+                    <label>
+                      Class
+                      <Select name="class" required autoFocus>
+                        <option value="">Select a class…</option>
+                        {classes
+                          .filter((c) => c.status === "scheduled")
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} · {formatDate(c.starts_at)}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Member
+                      <Select name="member" required>
+                        <option value="">Select a member…</option>
+                        {members.map((m) => (
+                          <option key={m.memberId} value={m.memberId}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <p>
+                      Booking a member who is already on the list reactivates
+                      their seat instead of creating a duplicate.
+                    </p>
                   </>
                 ) : modal === "Add branch" ? (
                   <>
@@ -4183,7 +4280,9 @@ export default function App() {
                           ? "Create plan"
                           : modal === "Add branch"
                             ? "Add branch"
-                            : modal === "Freeze memberships"
+                            : modal === "Book member"
+                              ? "Book member"
+                              : modal === "Freeze memberships"
                             ? "Freeze memberships"
                             : modal === "Archive member"
                               ? "Archive member"
