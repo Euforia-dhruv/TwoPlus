@@ -33,6 +33,7 @@ import {
   type GymClass,
   type InvoiceListRow,
   type MembershipPlan,
+  type MembershipRenewal,
   type MemberMembership,
   type OrgMemberRow,
   type OrgRole,
@@ -373,6 +374,7 @@ export default function App() {
   const [profileVisits, setProfileVisits] = useState<AttendanceRecord[]>([])
   const [profilePayments, setProfilePayments] = useState<Payment[]>([])
   const [profileMemberships, setProfileMemberships] = useState<MemberMembership[]>([])
+  const [profileRenewals, setProfileRenewals] = useState<MembershipRenewal[]>([])
   const [profileMeasurements, setProfileMeasurements] = useState<FitnessMeasurement[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loadingData, setLoadingData] = useState(true)
@@ -549,6 +551,7 @@ export default function App() {
       setProfileVisits([])
       setProfilePayments([])
       setProfileMemberships([])
+      setProfileRenewals([])
       setProfileMeasurements([])
       return
     }
@@ -566,6 +569,10 @@ export default function App() {
       .listMembershipsForMember(orgId, memberId)
       .then((rows) => { if (!cancelled) setProfileMemberships(rows) })
       .catch(() => { if (!cancelled) setProfileMemberships([]) })
+    api
+      .listRenewals(orgId, memberId, 10)
+      .then((rows) => { if (!cancelled) setProfileRenewals(rows) })
+      .catch(() => { if (!cancelled) setProfileRenewals([]) })
     api
       .listMeasurements(orgId, memberId, 10)
       .then((rows) => { if (!cancelled) setProfileMeasurements(rows) })
@@ -2279,6 +2286,25 @@ export default function App() {
               ) : (
                 <p className="muted">No membership has been issued yet.</p>
               )}
+              <Title>Renewals</Title>
+              {profileRenewals.length ? (
+                profileRenewals.map((r) => (
+                  <div className="detail-line" key={r.id}>
+                    <span>
+                      {formatDate(r.previous_end_date)} → {formatDate(r.new_end_date)}
+                      <br />
+                      +{r.extended_days} days
+                      {r.amount_minor
+                        ? ` · ${formatMoney(r.amount_minor, org?.organization.currency)}`
+                        : ""}
+                      {r.note ? ` · ${r.note}` : ""}
+                    </span>
+                    <Badge>{formatDate(r.created_at)}</Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">This membership has never been renewed.</p>
+              )}
               <Title>Payment history</Title>
               {profilePayments.length ? (
                 profilePayments.map((p) => (
@@ -2661,9 +2687,15 @@ export default function App() {
                       notify("Member saved to your workspace")
                       reload()
                     } else if (modal === "Renew membership" && profile?.membershipId) {
+                      const rupees = Number(String(data.get("amount") || "0"))
+                      if (!(rupees >= 0)) throw new Error("Enter a valid amount")
                       await api.updateMembershipExpiry(
                         profile.membershipId,
                         String(data.get("expires") || ""),
+                        {
+                          amount_minor: Math.round(rupees * 100),
+                          note: String(data.get("note") || "") || undefined,
+                        },
                       )
                       setModal("")
                       notify("Membership renewed")
@@ -3236,7 +3268,18 @@ export default function App() {
                       <span>Plan</span>
                       <strong>{profile?.plan}</strong>
                     </div>
-                    <label>New expiry date<Input name="expires" type="date" required /></label><p>This updates the membership date only. No payment will be collected and outstanding dues are unchanged.</p>
+                    <label>New expiry date<Input name="expires" type="date" required /></label>
+                    <div className="form-row">
+                      <label>
+                        Amount collected (₹)
+                        <Input name="amount" type="number" min="0" step="1" defaultValue={0} />
+                      </label>
+                      <label>
+                        Note
+                        <Input name="note" placeholder="e.g. 3-month extension" />
+                      </label>
+                    </div>
+                    <p>This updates the membership date and logs the renewal. Recording the money here is optional; use Record payment to collect it properly.</p>
                   </>
                 ) : modal === "Record payment" ? (
                   <>

@@ -19,6 +19,7 @@ import type {
   Member,
   MemberMembership,
   MembershipPlan,
+  MembershipRenewal,
   OrgContext,
   OrgMemberRow,
   OrgRole,
@@ -293,15 +294,72 @@ export async function assignMembership(
   return data as MemberMembership;
 }
 
+// A renewal is two writes: move the end date, then log what changed. The log
+// row is what lets an owner answer "when did he renew, and for how much" later;
+// member_memberships only holds the current date.
 export async function updateMembershipExpiry(
   membershipId: string,
   endDate: string,
+  opts: { amount_minor?: number; note?: string } = {},
 ): Promise<void> {
-  const { error } = await getSupabase()
+  const supabase = getSupabase();
+  const { data: current, error: readError } = await supabase
+    .from("member_memberships")
+    .select("organization_id, member_id, end_date")
+    .eq("id", membershipId)
+    .single();
+  throwIf(readError, "Could not load the membership");
+  if (!current) throw err("That membership no longer exists");
+  if (endDate <= current.end_date)
+    throw err(
+      `The new expiry must be after the current end date (${current.end_date})`,
+    );
+  const { error } = await supabase
     .from("member_memberships")
     .update({ end_date: endDate, status: "active" })
     .eq("id", membershipId);
   throwIf(error, "Could not renew the membership");
+  const { data: userData } = await supabase.auth.getUser();
+  const days = Math.round(
+    (Date.parse(`${endDate}T00:00:00`) -
+      Date.parse(`${current.end_date}T00:00:00`)) /
+      86_400_000,
+  );
+  const { error: logError } = await supabase
+    .from("membership_renewals")
+    .insert({
+      organization_id: current.organization_id,
+      membership_id: membershipId,
+      member_id: current.member_id,
+      previous_end_date: current.end_date,
+      new_end_date: endDate,
+      extended_days: days,
+      amount_minor: opts.amount_minor ?? 0,
+      note: opts.note?.trim() || null,
+      renewed_by: userData.user?.id ?? null,
+    });
+  // The date already moved, so say exactly what happened rather than implying
+  // the renewal failed.
+  throwIf(
+    logError,
+    "The expiry date was updated, but the renewal could not be logged",
+  );
+}
+
+export async function listRenewals(
+  orgId: string,
+  memberId: string,
+  limit = 20,
+): Promise<MembershipRenewal[]> {
+  const { data, error } = await getSupabase()
+    .from("membership_renewals")
+    .select("*")
+    .eq("organization_id", orgId)
+    .eq("member_id", memberId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  throwIf(error, "Could not load the renewal history");
+  return (data ?? []) as MembershipRenewal[];
 }
 
 export async function setMembershipStatus(

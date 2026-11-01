@@ -99,6 +99,18 @@ export type MemberMembership = {
   price_minor: number;
 };
 
+export type MembershipRenewal = {
+  id: string;
+  membership_id: string;
+  member_id: string;
+  previous_end_date: string;
+  new_end_date: string;
+  extended_days: number;
+  amount_minor: number;
+  note: string | null;
+  created_at: string;
+};
+
 export type PaymentMethod = "cash" | "upi" | "card" | "bank_transfer" | "other";
 export type PaymentStatus = "paid" | "pending" | "failed" | "refunded";
 
