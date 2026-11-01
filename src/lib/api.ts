@@ -635,6 +635,8 @@ export async function createClass(
 
 // Seats taken per class. Cancelled bookings do not count, so a class that has
 // been emptied reads as 0 / capacity rather than showing stale interest.
+// shortcut: counts at most 1000 booking rows per org, so a very busy gym can
+// undercount; move to a count(*) per class if that ever shows up.
 export async function listClassBookingCounts(
   orgId: string,
 ): Promise<Record<string, number>> {
