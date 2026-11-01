@@ -2780,6 +2780,20 @@ export default function App() {
                       const memberId = String(data.get("member") || "")
                       if (!classId || !memberId)
                         throw new Error("Pick a class and a member")
+                      const target = classes.find((c) => c.id === classId)
+                      const alreadyOn = classBookings.some(
+                        (b) =>
+                          b.class_id === classId &&
+                          b.member_id === memberId &&
+                          b.status !== "cancelled",
+                      )
+                      const taken = classBookings.filter(
+                        (b) => b.class_id === classId && b.status !== "cancelled",
+                      ).length
+                      if (!alreadyOn && target && taken >= target.capacity)
+                        throw new Error(
+                          `${target.name} is full (${taken} of ${target.capacity} seats)`,
+                        )
                       await api.bookMemberIntoClass(orgId, classId, memberId)
                       setModal("")
                       notify("Member booked into the class")

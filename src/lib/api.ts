@@ -672,7 +672,6 @@ export async function bookMemberIntoClass(
   throwIf(error, "Could not book the member into that class");
 }
 
-
 // ---------------------------------------------------------------------------
 // Branches
 // ---------------------------------------------------------------------------
