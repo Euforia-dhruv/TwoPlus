@@ -765,6 +765,21 @@ export async function bookMemberIntoClass(
   throwIf(error, "Could not book the member into that class");
 }
 
+// Marking a booking attended is a class-level record only. It deliberately does
+// not write an attendance row: that table allows one open check-in per member
+// and drives the floor/visit count, so a class sign-in alone must not fabricate
+// a gym visit.
+export async function setClassBookingStatus(
+  bookingId: string,
+  status: "booked" | "attended" | "cancelled",
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("class_bookings")
+    .update({ status })
+    .eq("id", bookingId);
+  throwIf(error, "Could not update that booking");
+}
+
 // ---------------------------------------------------------------------------
 // Branches
 // ---------------------------------------------------------------------------

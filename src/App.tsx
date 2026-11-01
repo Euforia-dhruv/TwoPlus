@@ -416,6 +416,27 @@ export default function App() {
     // Re-run the module loader so tables show fresh rows after same-page writes
     setModuleTick((t) => t + 1)
   }
+  // Booking status changes happen inside the Details modal, which has no form.
+  // Refetch rather than patching local state, so the class count and the
+  // attendee list can never drift apart.
+  const updateBooking = async (
+    bookingId: string,
+    status: "booked" | "attended" | "cancelled",
+  ) => {
+    try {
+      await api.setClassBookingStatus(bookingId, status)
+      notify(
+        status === "cancelled"
+          ? "Seat released"
+          : status === "attended"
+            ? "Marked attended"
+            : "Marked booked",
+      )
+      setModuleTick((t) => t + 1)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Could not update that booking")
+    }
+  }
 
   // ---- Real data loading (org-scoped; RLS enforces the same scope) ----
   const reload = async () => {
@@ -2660,13 +2681,42 @@ export default function App() {
                       return booked.map((b) => (
                         <div className="detail-line" key={b.id}>
                           <span>
-                            {b.status === "attended" ? "Attended" : "Booked"}
-                          </span>
-                          <strong>
                             {b.member
                               ? `${b.member.first_name} ${b.member.last_name}`.trim()
                               : "Member"}
-                          </strong>
+                          </span>
+                          <span style={{ display: "flex", gap: 8 }}>
+                            <Badge>
+                              {b.status === "attended" ? "Attended" : "Booked"}
+                            </Badge>
+                            {canWrite && (
+                              <>
+                                <Button
+                                  secondary
+                                  type="button"
+                                  onClick={() =>
+                                    void updateBooking(
+                                      b.id,
+                                      b.status === "attended"
+                                        ? "booked"
+                                        : "attended",
+                                    )
+                                  }
+                                >
+                                  {b.status === "attended"
+                                    ? "Mark booked"
+                                    : "Mark attended"}
+                                </Button>
+                                <Button
+                                  secondary
+                                  type="button"
+                                  onClick={() => void updateBooking(b.id, "cancelled")}
+                                >
+                                  Cancel seat
+                                </Button>
+                              </>
+                            )}
+                          </span>
                         </div>
                       ))
                     })()}
