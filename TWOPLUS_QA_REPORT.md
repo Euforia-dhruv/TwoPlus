@@ -53,11 +53,12 @@ query returned.
 
 ## Known limitations in the code
 
-- **Class attendance is not recorded.** Staff can book a member into a class and see
-  the attendee list, but nothing sets `class_bookings.status = 'attended'` yet. Booking
-  counts stop at 1000 rows per org (see the `shortcut:` comment in
-  `listClassBookings`), and the capacity check runs in the browser, so two simultaneous
-  bookings can both pass.
+- **Class seats carry their own status.** A seat can be booked, attended or cancelled
+  from the class details modal. Marking it attended does **not** create an `attendance`
+  row: that table allows one open check-in per member and drives the visit count, so a
+  class sign-in must not fabricate a gym visit. Booking counts stop at 1000 rows per
+  org (see the `shortcut:` comment in `listClassBookings`), and the capacity check runs
+  in the browser, so two simultaneous bookings can both pass.
 - **Branches are listed, not switched.** Rows, an add form and a primary flag are live;
   branch-scoped filtering and revenue rollups are not.
 - **Invoices render as rows.** No print view or PDF.

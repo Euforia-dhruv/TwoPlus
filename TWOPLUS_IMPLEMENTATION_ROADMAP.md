@@ -47,7 +47,11 @@ This closes both former blockers: member sign-in (0007) and the member CRM table
   measurements with per-member history, plan assignment to members, plan contents in
   the details modal.
 - **Classes**: real booking counts per class, a book-a-member flow with a capacity
-  guard, and the attendee list in the class details modal.
+  guard, the attendee list in the class details modal, and attended/cancelled status
+  per seat.
+- **Member drawer**: membership history with logged renewals, payment history,
+  attendance history, measurements, and staff-only internal notes (owner and manager
+  only, enforced by RLS).
 
 ---
 
@@ -59,13 +63,12 @@ Nothing. Both database blockers are cleared.
 
 ### P1: finish the surfaces that already have data
 
-1. **Class attendance status.** Staff can book a member into a class and see who is
-   booked, but nothing marks a member as `attended`. `class_bookings.status` already
-   allows it. Tracked on the building board, item 9.
-2. **Invoices to receipts.** The invoice renders as a table row. A print view or PDF is
+1. **Invoices to receipts.** The invoice renders as a table row. A print view or PDF is
    still a product decision, not a code gap.
-3. **Branches**: rows, add form, and the primary/branch flag are live. There is no
+2. **Branches**: rows, add form, and the primary/branch flag are live. There is no
    branch switcher, no per-branch member or revenue rollup, and no archive action.
+3. **Progress photos.** The table exists but there is no storage bucket for member
+   photos, so upload cannot be wired yet.
 
 ### P2: features with no backend yet
 

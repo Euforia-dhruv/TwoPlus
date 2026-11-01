@@ -28,17 +28,14 @@ Rules:
 Ordered. Each is self-contained and has a real table or a real product decision behind
 it. Details in `TWOPLUS_IMPLEMENTATION_ROADMAP.md`.
 
-1. **Class attendance status.** Mark a booked member `attended` from the class details
-   modal. `class_bookings.status` already allows it. Decide whether it also writes an
-   `attendance` row.
-2. **Progress photos.** `member_progress_photos` exists, and `workspace-media` is the
+1. **Progress photos.** `member_progress_photos` exists, and `workspace-media` is the
    only storage bucket (0008). Needs a bucket for member photos plus RLS on
    `storage.objects` before upload can be wired.
-3. **Notifications inbox.** `notifications` has an INSERT policy from 0004 and rows
+2. **Notifications inbox.** `notifications` has an INSERT policy from 0004 and rows
    exist, but the bell only shows a count.
-4. **Branch switching.** Branches list, but nothing filters by branch.
-5. **Invoice print view.** Product decision needed first: print CSS or a PDF library.
-6. **Payroll.** No table. Needs a migration before any UI.
+3. **Branch switching.** Branches list, but nothing filters by branch.
+4. **Invoice print view.** Product decision needed first: print CSS or a PDF library.
+5. **Payroll.** No table. Needs a migration before any UI.
 
 ---
 
@@ -52,6 +49,7 @@ it. Details in `TWOPLUS_IMPLEMENTATION_ROADMAP.md`.
 | `e7f0d4d` | Bookings not attached to the wrong session when names repeat |
 | `6f2e4eb` | Membership renewals logged with date, days, amount and note |
 | `2566f50` | Staff-only internal notes on the member drawer |
+| `5165c92` | Mark a class seat attended or cancelled from the details modal |
 
 ---
 
