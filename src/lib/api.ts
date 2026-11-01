@@ -17,6 +17,7 @@ import type {
   Invoice,
   InvoiceListRow,
   Member,
+  MemberInternalNote,
   MemberMembership,
   MembershipPlan,
   MembershipRenewal,
@@ -371,6 +372,40 @@ export async function setMembershipStatus(
     .update({ status })
     .eq("id", membershipId);
   throwIf(error, "Could not update the membership status");
+}
+
+// Staff-only notes. RLS restricts both read and write to owner and manager, so
+// other roles get an empty list rather than an error.
+export async function listInternalNotes(
+  orgId: string,
+  memberId: string,
+  limit = 20,
+): Promise<MemberInternalNote[]> {
+  const { data, error } = await getSupabase()
+    .from("member_internal_notes")
+    .select("id, member_id, body, created_at")
+    .eq("organization_id", orgId)
+    .eq("member_id", memberId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  throwIf(error, "Could not load the internal notes");
+  return (data ?? []) as MemberInternalNote[];
+}
+
+export async function addInternalNote(
+  orgId: string,
+  memberId: string,
+  body: string,
+): Promise<void> {
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  const { error } = await supabase.from("member_internal_notes").insert({
+    organization_id: orgId,
+    member_id: memberId,
+    body: body.trim(),
+    created_by: userData.user?.id ?? null,
+  });
+  throwIf(error, "Could not save the note");
 }
 
 // ---------------------------------------------------------------------------

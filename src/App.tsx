@@ -34,6 +34,7 @@ import {
   type InvoiceListRow,
   type MembershipPlan,
   type MembershipRenewal,
+  type MemberInternalNote,
   type MemberMembership,
   type OrgMemberRow,
   type OrgRole,
@@ -375,6 +376,7 @@ export default function App() {
   const [profilePayments, setProfilePayments] = useState<Payment[]>([])
   const [profileMemberships, setProfileMemberships] = useState<MemberMembership[]>([])
   const [profileRenewals, setProfileRenewals] = useState<MembershipRenewal[]>([])
+  const [profileNotes, setProfileNotes] = useState<MemberInternalNote[]>([])
   const [profileMeasurements, setProfileMeasurements] = useState<FitnessMeasurement[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loadingData, setLoadingData] = useState(true)
@@ -552,6 +554,7 @@ export default function App() {
       setProfilePayments([])
       setProfileMemberships([])
       setProfileRenewals([])
+      setProfileNotes([])
       setProfileMeasurements([])
       return
     }
@@ -573,6 +576,10 @@ export default function App() {
       .listRenewals(orgId, memberId, 10)
       .then((rows) => { if (!cancelled) setProfileRenewals(rows) })
       .catch(() => { if (!cancelled) setProfileRenewals([]) })
+    api
+      .listInternalNotes(orgId, memberId, 20)
+      .then((rows) => { if (!cancelled) setProfileNotes(rows) })
+      .catch(() => { if (!cancelled) setProfileNotes([]) })
     api
       .listMeasurements(orgId, memberId, 10)
       .then((rows) => { if (!cancelled) setProfileMeasurements(rows) })
@@ -2378,6 +2385,29 @@ export default function App() {
               >
                 Record measurement
               </Button>
+              {/* Notes are read and written only by owner and manager (RLS in
+                  0006), so other roles never see this section at all. */}
+              {(org?.role === "owner" || org?.role === "manager") && (
+                <>
+                  <Title>Internal notes</Title>
+                  <p className="muted">
+                    Staff only. Members never see these.
+                  </p>
+                  {profileNotes.length ? (
+                    profileNotes.map((n) => (
+                      <div className="detail-line" key={n.id}>
+                        <span>{formatDate(n.created_at)}</span>
+                        <strong>{n.body}</strong>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="muted">No internal notes yet.</p>
+                  )}
+                  <Button secondary onClick={() => setModal("Add note")}>
+                    Add internal note
+                  </Button>
+                </>
+              )}
               <Title>Attendance history</Title>
               {profileVisits.length ? (
                 profileVisits.map((v) => (
@@ -2708,6 +2738,13 @@ export default function App() {
                       setModal("")
                       notify("Membership renewed")
                       reload()
+                    } else if (modal === "Add note" && profile?.memberId) {
+                      const body = String(data.get("body") || "").trim()
+                      if (!body) throw new Error("Write the note first")
+                      await api.addInternalNote(orgId, profile.memberId, body)
+                      setModal("")
+                      notify("Note saved")
+                      setModuleTick((t) => t + 1)
                     } else if (modal === "Freeze memberships") {
                       const ids = members
                         .filter((m) => selected.includes(m.name) && m.membershipId)
@@ -3515,6 +3552,23 @@ export default function App() {
                       Booking a member who is already on the list reactivates
                       their seat instead of creating a duplicate.
                     </p>
+                  </>
+                ) : modal === "Add note" ? (
+                  <>
+                    <div className="detail-line">
+                      <span>Member</span>
+                      <strong>{profile?.name}</strong>
+                    </div>
+                    <label>
+                      Note
+                      <textarea
+                        name="body"
+                        required
+                        autoFocus
+                        placeholder="e.g. Asked to pause for a month after surgery"
+                      />
+                    </label>
+                    <p>Only owners and managers can read these notes.</p>
                   </>
                 ) : modal === "Add branch" ? (
                   <>
@@ -4401,7 +4455,9 @@ export default function App() {
                                                             ? "Raise invoice"
                                                             : modal === "Void invoice"
                                                               ? "Void invoice"
-                                                              : "Save changes"}
+                                                              : modal === "Add note"
+                                                                ? "Save note"
+                                                                : "Save changes"}
                   </Button>
                 </div>
               </form>

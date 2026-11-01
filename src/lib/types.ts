@@ -99,6 +99,13 @@ export type MemberMembership = {
   price_minor: number;
 };
 
+export type MemberInternalNote = {
+  id: string;
+  member_id: string;
+  body: string;
+  created_at: string;
+};
+
 export type MembershipRenewal = {
   id: string;
   membership_id: string;
