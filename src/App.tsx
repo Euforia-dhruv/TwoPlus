@@ -2685,7 +2685,7 @@ export default function App() {
                               ? `${b.member.first_name} ${b.member.last_name}`.trim()
                               : "Member"}
                           </span>
-                          <span style={{ display: "flex", gap: 8 }}>
+                          <span className="detail-actions">
                             <Badge>
                               {b.status === "attended" ? "Attended" : "Booked"}
                             </Badge>

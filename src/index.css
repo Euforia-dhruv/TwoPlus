@@ -2629,6 +2629,15 @@ html[data-mode] .member-card-photo .badge {
   text-align: right;
 }
 
+/* A detail line whose right side holds controls, not a value. */
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .profile-actions {
   display: flex;
   flex-wrap: wrap;
