@@ -46,9 +46,8 @@ This closes both former blockers: member sign-in (0007) and the member CRM table
 - **Training**: workout plans with exercises, diet plans with meals and items,
   measurements with per-member history, plan assignment to members, plan contents in
   the details modal.
-- **Member app** (`/member`): self-service dashboard over the member's own membership,
-  payments and attendance, with an account claim flow.
-- **Classes**: real booking counts per class, read from `class_bookings`.
+- **Classes**: real booking counts per class, a book-a-member flow with a capacity
+  guard, and the attendee list in the class details modal.
 
 ---
 
@@ -60,10 +59,10 @@ Nothing. Both database blockers are cleared.
 
 ### P1: finish the surfaces that already have data
 
-1. **Class bookings UI.** Counts are shown, but nobody can book a member into a class
-   from the app yet. `class_bookings` already has the policies
-   (`owner/manager/receptionist/trainer` may write). Needs a "Book member" modal and a
-   per-class attendee list.
+1. **Class attendance status.** Staff can book a member into a class and see who is
+   booked, but nothing marks a member as `attended`. `class_bookings.status` already
+   allows it. Needs a status control in the class details modal, and a decision on
+   whether attending a class should also create an `attendance` row.
 2. **Invoices to receipts.** The invoice renders as a table row. A print view or PDF is
    still a product decision, not a code gap.
 3. **Branches**: rows, add form, and the primary/branch flag are live. There is no

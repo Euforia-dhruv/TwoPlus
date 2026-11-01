@@ -53,10 +53,11 @@ query returned.
 
 ## Known limitations in the code
 
-- **Class bookings are counted, not managed.** The Classes table shows
-  `booked / capacity` from `class_bookings`, but there is no UI to book a member in or
-  list attendees. Counts are capped at 1000 booking rows per org (see the `shortcut:`
-  comment in `listClassBookingCounts`).
+- **Class attendance is not recorded.** Staff can book a member into a class and see
+  the attendee list, but nothing sets `class_bookings.status = 'attended'` yet. Booking
+  counts stop at 1000 rows per org (see the `shortcut:` comment in
+  `listClassBookings`), and the capacity check runs in the browser, so two simultaneous
+  bookings can both pass.
 - **Branches are listed, not switched.** Rows, an add form and a primary flag are live;
   branch-scoped filtering and revenue rollups are not.
 - **Invoices render as rows.** No print view or PDF.
