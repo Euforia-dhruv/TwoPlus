@@ -29,6 +29,7 @@ import {
   type DietPlanListRow,
   type Enquiry,
   type FitnessMeasurement,
+  type InvoiceListRow,
   type MembershipPlan,
   type MemberMembership,
   type OrgMemberRow,
@@ -70,6 +71,7 @@ const groups = [
   [
     "Finance & business",
     "Payments",
+    "Invoices",
     "Expenses",
     "Reports",
     "Marketplace",
@@ -179,6 +181,13 @@ const modules: Record<string, Module> = {
     sub: "Track collections, outstanding dues, and receipts",
     action: "Record payment",
     columns: ["Member", "Description", "Date", "Amount", "Status"],
+    rows: [],
+    stats: [],
+  },
+  Invoices: {
+    sub: "Bill members, track what is owed, settle against payments",
+    action: "Raise invoice",
+    columns: ["Invoice", "Member", "Issued", "Due", "Total", "Status"],
     rows: [],
     stats: [],
   },
@@ -295,6 +304,7 @@ const dbModules = [
   "Enquiries",
   "Follow-ups",
   "Payments",
+  "Invoices",
   "Trainers & staff",
   "Expenses",
   "Workouts",
@@ -346,6 +356,7 @@ export default function App() {
   const [reminders, setReminders] = useState<AppNotification[]>([])
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanListRow[]>([])
   const [dietPlans, setDietPlans] = useState<DietPlanListRow[]>([])
+  const [invoices, setInvoices] = useState<InvoiceListRow[]>([])
   // Contents of the plan whose Details modal is open. Keyed by plan name so a
   // slow fetch for one plan can never render under another plan's heading.
   const [planDetail, setPlanDetail] = useState<{ name: string; lines: string[] } | null>(null)
@@ -808,6 +819,8 @@ export default function App() {
           }))
         } else if (active === "Payments") {
           const rows = await api.listPayments(orgId, { limit: 100 })
+          // Open invoices, so a receipt can be applied to one.
+          setInvoices(await api.listInvoices(orgId))
           const nameOf = new Map(members.map((m) => [m.memberId, m.name]))
           setRecords((prev) => ({
             ...prev,
@@ -887,6 +900,30 @@ export default function App() {
               r.target_protein_g ? `${r.target_protein_g} g` : "—",
               assignees(r.assignments),
               r.is_archived ? "Archived" : "Active",
+            ]),
+          }))
+        } else if (active === "Invoices") {
+          const rows = await api.listInvoices(orgId)
+          setInvoices(rows)
+          const statusOf = (r: InvoiceListRow) => {
+            if (r.status === "void") return "Void"
+            const paid = r.payments
+              .filter((p) => p.status === "paid")
+              .reduce((sum, p) => sum + p.amount_minor, 0)
+            if (paid >= r.total_minor) return "Paid"
+            return paid > 0 ? "Partial" : "Issued"
+          }
+          setRecords((prev) => ({
+            ...prev,
+            Invoices: rows.map((r) => [
+              r.invoice_number,
+              r.member
+                ? `${r.member.first_name} ${r.member.last_name}`.trim()
+                : "Member",
+              formatDate(r.issued_on),
+              r.due_on ? formatDate(r.due_on) : "—",
+              formatMoney(r.total_minor, org.organization.currency),
+              statusOf(r),
             ]),
           }))
         }
@@ -1070,6 +1107,9 @@ export default function App() {
     Enquiries: ["owner", "manager", "receptionist"],
     "Follow-ups": ["owner", "manager", "receptionist"],
     Payments: ["owner", "manager", "receptionist", "finance"],
+    // Mirrors 0006: invoice insert = owner/manager/finance/receptionist,
+    // update (void) = owner/manager/finance.
+    Invoices: ["owner", "manager", "finance", "receptionist"],
     "Trainers & staff": ["owner", "manager"],
     Expenses: ["owner", "manager", "finance"],
     // Mirrors 0006: plan write = owner/manager/trainer, measurements = those
@@ -1719,6 +1759,22 @@ export default function App() {
                         onClick={() => setModal("Settle payment")}
                       >
                         Settle payment
+                      </Button>
+                    )}
+                    {active === "Invoices" && (
+                      <Button
+                        secondary
+                        disabled={!invoices.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot void invoices"
+                            : invoices.length
+                              ? undefined
+                              : "Raise an invoice first"
+                        }
+                        onClick={() => setModal("Void invoice")}
+                      >
+                        Void invoice
                       </Button>
                     )}
                     {active === "Workouts" && (
@@ -2553,9 +2609,16 @@ export default function App() {
                       if (!target?.memberId) throw new Error("Select a member")
                       const rupees = Number(String(data.get("amount") || "0"))
                       if (!(rupees > 0)) throw new Error("Enter a valid amount")
+                      const invoiceId = String(data.get("invoice") || "")
+                      if (invoiceId) {
+                        const invoice = invoices.find((i) => i.id === invoiceId)
+                        if (invoice && invoice.member_id !== target.memberId)
+                          throw new Error("That invoice belongs to a different member")
+                      }
                       await api.recordPayment(orgId, {
                         member_id: target.memberId,
                         membership_id: target.membershipId ?? null,
+                        invoice_id: invoiceId || null,
                         amount_minor: Math.round(rupees * 100),
                         method: String(data.get("method") || "cash") as PaymentMethod,
                         status: String(data.get("status") || "paid") as "paid" | "pending",
@@ -2565,6 +2628,28 @@ export default function App() {
                       notify("Payment recorded")
                       setModuleTick((t) => t + 1)
                       reload()
+                    } else if (modal === "Raise invoice") {
+                      const memberId = String(data.get("member") || "")
+                      if (!memberId) throw new Error("Select a member")
+                      const rupees = Number(String(data.get("total") || "0"))
+                      if (!(rupees > 0)) throw new Error("Enter a total above zero")
+                      await api.createInvoice(orgId, {
+                        member_id: memberId,
+                        total_minor: Math.round(rupees * 100),
+                        issued_on: String(data.get("issued") || "") || undefined,
+                        due_on: String(data.get("due") || "") || undefined,
+                        notes: String(data.get("notes") || "") || undefined,
+                      })
+                      setModal("")
+                      notify("Invoice raised")
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Void invoice") {
+                      const invoiceId = String(data.get("invoice") || "")
+                      if (!invoiceId) throw new Error("Select an invoice")
+                      await api.voidInvoice(invoiceId)
+                      setModal("")
+                      notify("Invoice voided")
+                      setModuleTick((t) => t + 1)
                     } else if (modal === "Check in member") {
                       const name = String(data.get("member") || "")
                       const target = members.find((m) => m.name === name)
@@ -3075,6 +3160,24 @@ export default function App() {
                     <label>
                       Description
                       <Input name="description" placeholder="e.g. Monthly membership fee" />
+                    </label>
+                    <label>
+                      Apply to invoice (optional)
+                      <Select name="invoice" defaultValue="">
+                        <option value="">Not linked to an invoice</option>
+                        {invoices
+                          .filter((i) => i.status !== "void")
+                          .map((i) => (
+                            <option key={i.id} value={i.id}>
+                              {i.invoice_number} ·{" "}
+                              {i.member
+                                ? `${i.member.first_name} ${i.member.last_name}`.trim()
+                                : "Member"}{" "}
+                              ·{" "}
+                              {formatMoney(i.total_minor, org?.organization.currency)}
+                            </option>
+                          ))}
+                      </Select>
                     </label>
                     <div className="integration-note">
                       <Icon name="settings" size={15} />
@@ -3931,6 +4034,72 @@ export default function App() {
                       &quot;Oats · 60 g&quot;.
                     </p>
                   </>
+                ) : modal === "Raise invoice" ? (
+                  <>
+                    <label>
+                      Member
+                      <Select name="member" required autoFocus>
+                        <option value="">Select a member…</option>
+                        {members.map((m) => (
+                          <option key={m.memberId} value={m.memberId}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Total (₹)
+                        <Input
+                          name="total"
+                          type="number"
+                          min="1"
+                          step="1"
+                          required
+                          placeholder="2500"
+                        />
+                      </label>
+                      <label>
+                        Due date
+                        <Input name="due" type="date" />
+                      </label>
+                    </div>
+                    <label>
+                      Issued on
+                      <Input name="issued" type="date" />
+                    </label>
+                    <label>
+                      Notes
+                      <textarea name="notes" placeholder="What this bill covers" />
+                    </label>
+                    <p>
+                      The invoice number is assigned automatically. Record a
+                      payment against it to settle it.
+                    </p>
+                  </>
+                ) : modal === "Void invoice" ? (
+                  <>
+                    <label>
+                      Invoice
+                      <Select name="invoice" required autoFocus>
+                        <option value="">Select an invoice…</option>
+                        {invoices
+                          .filter((i) => i.status !== "void")
+                          .map((i) => (
+                            <option key={i.id} value={i.id}>
+                              {i.invoice_number} ·{" "}
+                              {i.member
+                                ? `${i.member.first_name} ${i.member.last_name}`.trim()
+                                : "Member"}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <p>
+                      Voiding keeps the row and its number for your records. It
+                      cannot be undone.
+                    </p>
+                  </>
                 ) : module ? (
                   module.columns.map((c, i) => (
                     <label key={c}>
@@ -4016,7 +4185,11 @@ export default function App() {
                                                         ? "Assign plan"
                                                         : modal === "Record measurement"
                                                           ? "Save measurement"
-                                                          : "Save changes"}
+                                                          : modal === "Raise invoice"
+                                                            ? "Raise invoice"
+                                                            : modal === "Void invoice"
+                                                              ? "Void invoice"
+                                                              : "Save changes"}
                   </Button>
                 </div>
               </form>

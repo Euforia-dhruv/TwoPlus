@@ -115,6 +115,28 @@ export type Payment = {
   description: string | null;
 };
 
+export type InvoiceStatus = "draft" | "issued" | "partial" | "paid" | "void";
+
+export type Invoice = {
+  id: string;
+  organization_id: string;
+  member_id: string;
+  membership_id: string | null;
+  invoice_number: string;
+  issued_on: string;
+  due_on: string | null;
+  total_minor: number;
+  status: InvoiceStatus;
+  notes: string | null;
+};
+
+// An invoice row as the directory renders it: the member's name comes back in
+// the same query, and payments linked to it decide what is still owed.
+export type InvoiceListRow = Invoice & {
+  member: { first_name: string; last_name: string } | null;
+  payments: { amount_minor: number; status: PaymentStatus }[];
+};
+
 export type AttendanceRecord = {
   id: string;
   organization_id: string;

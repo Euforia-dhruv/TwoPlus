@@ -12,6 +12,8 @@ import type {
   Expense,
   FitnessMeasurement,
   GymClass,
+  Invoice,
+  InvoiceListRow,
   Member,
   MemberMembership,
   MembershipPlan,
@@ -343,6 +345,7 @@ export async function recordPayment(
   input: {
     member_id: string;
     membership_id?: string | null;
+    invoice_id?: string | null;
     amount_minor: number;
     method: PaymentMethod;
     status: Payment["status"];
@@ -358,6 +361,7 @@ export async function recordPayment(
       organization_id: orgId,
       member_id: input.member_id,
       membership_id: input.membership_id ?? null,
+      invoice_id: input.invoice_id ?? null,
       amount_minor: input.amount_minor,
       method: input.method,
       status: input.status,
@@ -1314,6 +1318,80 @@ export async function recordMeasurement(
     { onConflict: "member_id,measured_on" },
   );
   throwIf(error, "Could not save the measurement");
+}
+
+// ---------------------------------------------------------------------------
+// Invoices (migration 0006)
+// ---------------------------------------------------------------------------
+
+export async function listInvoices(orgId: string): Promise<InvoiceListRow[]> {
+  const { data, error } = await getSupabase()
+    .from("invoices")
+    .select(
+      "id, organization_id, member_id, membership_id, invoice_number, issued_on, due_on, total_minor, status, notes, member:members(first_name, last_name), payments(amount_minor, status)",
+    )
+    .eq("organization_id", orgId)
+    .order("issued_on", { ascending: false })
+    .limit(200);
+  throwIf(error, "Could not load invoices");
+  return (data ?? []) as unknown as InvoiceListRow[];
+}
+
+// The invoice number is the only client-supplied identifier in the table and it
+// must be unique per gym. Counting the year's existing rows gives a readable
+// series; the unique constraint is the real guard, so a concurrent create fails
+// loudly instead of overwriting.
+// shortcut: number derives from a count, so a deleted invoice can reuse a
+// number; switch to a per-org counter table if numbering must never repeat.
+export async function createInvoice(
+  orgId: string,
+  input: {
+    member_id: string;
+    membership_id?: string | null;
+    total_minor: number;
+    issued_on?: string;
+    due_on?: string;
+    notes?: string;
+  },
+): Promise<Invoice> {
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  const year = new Date().getFullYear();
+  const prefix = `INV-${year}-`;
+  const { count, error: countError } = await supabase
+    .from("invoices")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId)
+    .like("invoice_number", `${prefix}%`);
+  throwIf(countError, "Could not number the invoice");
+  const { data, error } = await supabase
+    .from("invoices")
+    .insert({
+      organization_id: orgId,
+      member_id: input.member_id,
+      membership_id: input.membership_id ?? null,
+      invoice_number: `${prefix}${String((count ?? 0) + 1).padStart(4, "0")}`,
+      issued_on: input.issued_on || new Date().toISOString().slice(0, 10),
+      due_on: input.due_on || null,
+      total_minor: input.total_minor,
+      notes: input.notes?.trim() || null,
+      created_by: userData.user?.id ?? null,
+    })
+    .select("*")
+    .single();
+  throwIf(error, "Could not create the invoice");
+  return data as Invoice;
+}
+
+// Voiding keeps the row so the numbering series and the audit trail survive.
+export async function voidInvoice(invoiceId: string): Promise<void> {
+  const { data, error } = await getSupabase()
+    .from("invoices")
+    .update({ status: "void" })
+    .eq("id", invoiceId)
+    .select("id");
+  throwIf(error, "Could not void the invoice");
+  if (!data?.length) throw err("You cannot void this invoice");
 }
 
 // Uploads a workspace background image and returns its public URL. Objects
