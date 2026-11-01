@@ -149,7 +149,7 @@ export default function Marketing() {
 
   // Owners who are already signed in belong in the product, not on the pitch.
   if (loading) return <div className="mk-splash">TwoPlus</div>;
-  if (session) return <Navigate to="/app" replace />;
+  if (session) return <Navigate to="/home" replace />;
 
   return (
     <div className="mk">

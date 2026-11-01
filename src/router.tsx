@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/org";
+import { myHomePath } from "@/lib/member-api";
 import Dashboard from "./App";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -10,6 +12,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Onboarding from "@/pages/Onboarding";
 import SuperAdmin from "@/pages/SuperAdmin";
 import Marketing from "@/pages/Marketing";
+import Member from "@/pages/Member";
 
 // Shown while auth or the organization row resolves. Reads the design tokens so
 // it is painted by whichever language the workspace uses, never a fixed olive.
@@ -27,6 +30,22 @@ function RequireAuth({ children }: { children: ReactNode }) {
   if (loading) return <Splash text="Loading" />;
   if (!session) return <Navigate to="/login" replace />;
   return <>{children}</>;
+}
+
+// Decide where a signed-in user belongs: member app or staff workspace.
+function HomeRedirect() {
+  const [target, setTarget] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    myHomePath().then((path) => {
+      if (!cancelled) setTarget(path);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (!target) return <Splash text="Loading" />;
+  return <Navigate to={target} replace />;
 }
 
 // Onboarding is for owners with no organization yet.
@@ -59,6 +78,8 @@ export default function AppRoutes() {
       />
       {/* Public front door. Signed-in visitors are sent on to the workspace. */}
       <Route path="/" element={<Marketing />} />
+      <Route path="/home" element={<RequireAuth><HomeRedirect /></RequireAuth>} />
+      <Route path="/member" element={<RequireAuth><Member /></RequireAuth>} />
       <Route
         path="/app"
         element={

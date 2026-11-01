@@ -40,7 +40,7 @@ export default function Login() {
         }
         return;
       }
-      if (data.session) navigate("/app", { replace: true });
+      if (data.session) navigate("/home", { replace: true });
     } catch {
       setFormError("Network error. Check your connection and try again.");
     } finally {
