@@ -1,7 +1,7 @@
 # TwoPlus.fit: Implementation Roadmap
 
 What is built, what is blocked, and in what order the rest should land.
-Last updated at commit `a80f032`.
+Last updated at commit `a98a56a`.
 
 ---
 
@@ -52,6 +52,8 @@ This closes both former blockers: member sign-in (0007) and the member CRM table
 - **Member drawer**: membership history with logged renewals, payment history,
   attendance history, measurements, and staff-only internal notes (owner and manager
   only, enforced by RLS).
+- **Reminders**: the header bell opens an inbox with an unread count and a mark-read
+  action; the Reminders table remains the full list. Delivery is still in-app only.
 
 ---
 
