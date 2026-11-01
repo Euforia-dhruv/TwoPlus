@@ -2564,37 +2564,50 @@ export default function App() {
                     )}
                   </>
                 )}
-                {active === "Classes & PT" &&
-                  classes.some((c) => c.name === modal.slice(9)) && (
-                    <>
-                      <Title>Booked members</Title>
-                      {(() => {
-                        const cls = classes.find((c) => c.name === modal.slice(9))
-                        const booked = classBookings.filter(
-                          (b) =>
-                            b.class_id === cls?.id && b.status !== "cancelled",
+                {active === "Classes & PT" && (
+                  <>
+                    <Title>Booked members</Title>
+                    {(() => {
+                      // The modal is keyed by name, so a repeated class name
+                      // (e.g. a weekly 6am yoga) cannot be narrowed to one
+                      // session. Say so instead of showing another day's list.
+                      const matches = classes.filter(
+                        (c) => c.name === modal.slice(9),
+                      )
+                      if (matches.length !== 1)
+                        return (
+                          <p className="muted">
+                            {matches.length > 1
+                              ? `${matches.length} sessions share this name. Bookings are listed per session once class names are unique.`
+                              : "No bookings for this class."}
+                          </p>
                         )
-                        if (!booked.length)
-                          return (
-                            <p className="muted">
-                              Nobody is booked into this class yet.
-                            </p>
-                          )
-                        return booked.map((b) => (
-                          <div className="detail-line" key={b.id}>
-                            <span>
-                              {b.status === "attended" ? "Attended" : "Booked"}
-                            </span>
-                            <strong>
-                              {b.member
-                                ? `${b.member.first_name} ${b.member.last_name}`.trim()
-                                : "Member"}
-                            </strong>
-                          </div>
-                        ))
-                      })()}
-                    </>
-                  )}
+                      const booked = classBookings.filter(
+                        (b) =>
+                          b.class_id === matches[0].id &&
+                          b.status !== "cancelled",
+                      )
+                      if (!booked.length)
+                        return (
+                          <p className="muted">
+                            Nobody is booked into this class yet.
+                          </p>
+                        )
+                      return booked.map((b) => (
+                        <div className="detail-line" key={b.id}>
+                          <span>
+                            {b.status === "attended" ? "Attended" : "Booked"}
+                          </span>
+                          <strong>
+                            {b.member
+                              ? `${b.member.first_name} ${b.member.last_name}`.trim()
+                              : "Member"}
+                          </strong>
+                        </div>
+                      ))
+                    })()}
+                  </>
+                )}
                 <p className="muted">
                   {isSaved(active)
                     ? "Saved to your workspace."
