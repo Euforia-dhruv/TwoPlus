@@ -399,6 +399,30 @@ export default function App() {
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
   }, [accountOpen])
+  const [bellOpen, setBellOpen] = useState(false)
+  useEffect(() => {
+    if (!bellOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setBellOpen(false)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [bellOpen])
+  // Marking read only touches read_at, so patch the row locally instead of
+  // reloading every table in the workspace.
+  const unreadCount = reminders.filter((r) => !r.read_at).length
+  const markRead = async (id: string) => {
+    try {
+      await api.markNotificationRead(id)
+      setReminders((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, read_at: new Date().toISOString() } : r,
+        ),
+      )
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Could not mark it read")
+    }
+  }
   const [records, setRecords] = useState<Record<string, string[][]>>({})
   const [cart, setCart] = useState<string[]>([])
   const notify = (text: string) => {
@@ -1239,13 +1263,79 @@ export default function App() {
           <div className="top-actions">
             <span className="demo-label">{org?.role ?? "Owner"}</span>
             {platformRole === "super_admin" && <a className="platform-admin-link" href="/super-admin">Platform admin</a>}
-            <button
-              aria-label="View reminders"
-              className="icon-button notification"
-              onClick={() => go("Reminders")}
-            >
-              <Icon name="bell" size={18} />
-            </button>
+            <div className="bell-menu">
+              <button
+                aria-label={
+                  unreadCount
+                    ? `View reminders, ${unreadCount} unread`
+                    : "View reminders"
+                }
+                aria-haspopup="dialog"
+                aria-expanded={bellOpen}
+                className="icon-button notification"
+                onClick={() => setBellOpen((open) => !open)}
+              >
+                <Icon name="bell" size={18} />
+                {unreadCount > 0 && (
+                  <span className="bell-count" aria-hidden="true">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              {bellOpen && (
+                <>
+                  <div
+                    className="account-backdrop"
+                    onClick={() => setBellOpen(false)}
+                  />
+                  <div className="account-panel bell-panel" role="dialog" aria-label="Reminders">
+                    <div className="bell-head">
+                      <strong>Reminders</strong>
+                      <span>{unreadCount ? `${unreadCount} unread` : "All read"}</span>
+                    </div>
+                    {reminders.length ? (
+                      <div className="bell-list">
+                        {reminders.slice(0, 8).map((r) => (
+                          <div
+                            className={r.read_at ? "bell-item read" : "bell-item"}
+                            key={r.id}
+                          >
+                            <strong>{r.title}</strong>
+                            {r.body && <p>{r.body}</p>}
+                            <div className="bell-meta">
+                              <span>
+                                {formatDate(r.created_at)} · {r.type}
+                              </span>
+                              {r.read_at ? (
+                                <span>Read</span>
+                              ) : (
+                                <button onClick={() => markRead(r.id)}>
+                                  Mark read
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="bell-empty">
+                        No reminders yet. Reminders you create are in-app only;
+                        nothing is sent by SMS, email or push.
+                      </p>
+                    )}
+                    <button
+                      className="bell-all"
+                      onClick={() => {
+                        setBellOpen(false)
+                        go("Reminders")
+                      }}
+                    >
+                      Open the reminders table
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
             <span className="header-divider" />
             <div className="account-menu">
               <button
