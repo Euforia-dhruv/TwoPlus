@@ -1273,7 +1273,10 @@ export default function App() {
                 aria-haspopup="dialog"
                 aria-expanded={bellOpen}
                 className="icon-button notification"
-                onClick={() => setBellOpen((open) => !open)}
+                onClick={() => {
+                  setAccountOpen(false)
+                  setBellOpen((open) => !open)
+                }}
               >
                 <Icon name="bell" size={18} />
                 {unreadCount > 0 && (
@@ -1343,7 +1346,10 @@ export default function App() {
                 aria-haspopup="menu"
                 aria-expanded={accountOpen}
                 className="account-trigger"
-                onClick={() => setAccountOpen((open) => !open)}
+                onClick={() => {
+                  setBellOpen(false)
+                  setAccountOpen((open) => !open)
+                }}
               >
                 <Avatar name={accountName} small />
                 <span className="account-name" title={accountName}>

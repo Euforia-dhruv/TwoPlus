@@ -31,11 +31,9 @@ it. Details in `TWOPLUS_IMPLEMENTATION_ROADMAP.md`.
 1. **Progress photos.** `member_progress_photos` exists, and `workspace-media` is the
    only storage bucket (0008). Needs a bucket for member photos plus RLS on
    `storage.objects` before upload can be wired.
-2. **Notifications inbox.** `notifications` has an INSERT policy from 0004 and rows
-   exist, but the bell only shows a count.
-3. **Branch switching.** Branches list, but nothing filters by branch.
-4. **Invoice print view.** Product decision needed first: print CSS or a PDF library.
-5. **Payroll.** No table. Needs a migration before any UI.
+2. **Branch switching.** Branches list, but nothing filters by branch.
+3. **Invoice print view.** Product decision needed first: print CSS or a PDF library.
+4. **Payroll.** No table. Needs a migration before any UI.
 
 ---
 
@@ -50,6 +48,7 @@ it. Details in `TWOPLUS_IMPLEMENTATION_ROADMAP.md`.
 | `6f2e4eb` | Membership renewals logged with date, days, amount and note |
 | `2566f50` | Staff-only internal notes on the member drawer |
 | `5165c92` | Mark a class seat attended or cancelled from the details modal |
+| `875b84a` | Reminders inbox behind the bell, with an unread count and mark-read |
 
 ---
 
