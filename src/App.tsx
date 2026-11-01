@@ -26,7 +26,9 @@ import {
   type AppNotification,
   type AttendanceRecord,
   type DashboardStats,
+  type DietPlanListRow,
   type Enquiry,
+  type FitnessMeasurement,
   type MembershipPlan,
   type MemberMembership,
   type OrgMemberRow,
@@ -35,6 +37,7 @@ import {
   type PaymentMethod,
   type ReportMonth,
   type StaffMember,
+  type WorkoutPlanListRow,
 } from "@/lib/types"
 
 const groups = [
@@ -203,14 +206,14 @@ const modules: Record<string, Module> = {
   Workouts: {
     sub: "Build purposeful training, one member at a time",
     action: "Create workout",
-    columns: ["Workout plan", "Goal", "Duration", "Assigned to", "Trainer"],
+    columns: ["Workout plan", "Goal", "Exercises", "Assigned to", "Status"],
     rows: [],
     stats: [],
   },
   "Diet & nutrition": {
     sub: "Practical nutrition plans for real progress",
     action: "Create diet plan",
-    columns: ["Plan", "Daily calories", "Protein", "Assigned to", "Preference"],
+    columns: ["Plan", "Daily calories", "Protein", "Assigned to", "Status"],
     rows: [],
     stats: [],
   },
@@ -294,6 +297,8 @@ const dbModules = [
   "Payments",
   "Trainers & staff",
   "Expenses",
+  "Workouts",
+  "Diet & nutrition",
 ] as const
 const hasDbStorage = (name: string) =>
   (dbModules as readonly string[]).includes(name)
@@ -339,6 +344,11 @@ export default function App() {
   const [enquiryList, setEnquiryList] = useState<Enquiry[]>([])
   const [roster, setRoster] = useState<OrgMemberRow[]>([])
   const [reminders, setReminders] = useState<AppNotification[]>([])
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanListRow[]>([])
+  const [dietPlans, setDietPlans] = useState<DietPlanListRow[]>([])
+  // Contents of the plan whose Details modal is open. Keyed by plan name so a
+  // slow fetch for one plan can never render under another plan's heading.
+  const [planDetail, setPlanDetail] = useState<{ name: string; lines: string[] } | null>(null)
   // Migration 0004 adds the notifications INSERT policy and the roster RPC.
   // Detected live: false until a fetch succeeds, so the "needs migration"
   // banners disappear the moment the database has run 0004.
@@ -353,6 +363,7 @@ export default function App() {
   const [profileVisits, setProfileVisits] = useState<AttendanceRecord[]>([])
   const [profilePayments, setProfilePayments] = useState<Payment[]>([])
   const [profileMemberships, setProfileMemberships] = useState<MemberMembership[]>([])
+  const [profileMeasurements, setProfileMeasurements] = useState<FitnessMeasurement[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loadingData, setLoadingData] = useState(true)
   const [dbError, setDbError] = useState("")
@@ -528,6 +539,7 @@ export default function App() {
       setProfileVisits([])
       setProfilePayments([])
       setProfileMemberships([])
+      setProfileMeasurements([])
       return
     }
     const orgId = org.organization.id
@@ -544,8 +556,66 @@ export default function App() {
       .listMembershipsForMember(orgId, memberId)
       .then((rows) => { if (!cancelled) setProfileMemberships(rows) })
       .catch(() => { if (!cancelled) setProfileMemberships([]) })
+    api
+      .listMeasurements(orgId, memberId, 10)
+      .then((rows) => { if (!cancelled) setProfileMeasurements(rows) })
+      .catch(() => { if (!cancelled) setProfileMeasurements([]) })
     return () => { cancelled = true }
-  }, [org, profile?.memberId])
+  }, [org, profile?.memberId, moduleTick])
+
+  // A training plan's contents live in child tables, so the Details modal
+  // fetches them on open instead of carrying them in every directory row.
+  useEffect(() => {
+    if (!modal.startsWith("Details:")) {
+      setPlanDetail(null)
+      return
+    }
+    const name = modal.slice(9)
+    let cancelled = false
+    setPlanDetail(null)
+    if (active === "Workouts") {
+      const plan = workoutPlans.find((p) => p.name === name)
+      if (!plan) return
+      api
+        .listWorkoutExercises(plan.id)
+        .then((rows) => {
+          if (cancelled) return
+          setPlanDetail({
+            name,
+            lines: rows.map((e) =>
+              [
+                e.day_label,
+                e.exercise_name,
+                e.sets && e.reps ? `${e.sets} × ${e.reps}` : null,
+                e.rest_seconds ? `${e.rest_seconds}s rest` : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            ),
+          })
+        })
+        .catch(() => { if (!cancelled) setPlanDetail(null) })
+    } else if (active === "Diet & nutrition") {
+      const plan = dietPlans.find((p) => p.name === name)
+      if (!plan) return
+      api
+        .listDietMeals(plan.id)
+        .then((rows) => {
+          if (cancelled) return
+          setPlanDetail({
+            name,
+            lines: rows.flatMap((m) => [
+              [m.name, m.timing].filter(Boolean).join(" · "),
+              ...m.items.map((it) =>
+                `   ${it.food_item}${it.portion ? ` (${it.portion})` : ""}`,
+              ),
+            ]),
+          })
+        })
+        .catch(() => { if (!cancelled) setPlanDetail(null) })
+    }
+    return () => { cancelled = true }
+  }, [modal, active, workoutPlans, dietPlans])
 
   // The workspace appearance lives on the organization row, so every member of
   // the gym sees the owner's choice. Applied on the document root.
@@ -773,6 +843,52 @@ export default function App() {
               "Recorded",
             ]),
           }))
+        } else if (active === "Workouts") {
+          const plans = await api.listWorkoutPlans(orgId, { includeArchived: true })
+          setWorkoutPlans(plans)
+          const assignees = (
+            rows: { status: string; member: { first_name: string; last_name: string } | null }[],
+          ) => {
+            const names = rows
+              .filter((a) => a.status === "active")
+              .map((a) => `${a.member?.first_name ?? ""} ${a.member?.last_name ?? ""}`.trim())
+              .filter(Boolean)
+            if (!names.length) return "Unassigned"
+            return names.length > 1 ? `${names[0]} +${names.length - 1}` : names[0]
+          }
+          setRecords((prev) => ({
+            ...prev,
+            Workouts: plans.map((r) => [
+              r.name,
+              r.goal || "—",
+              String(r.exercises[0]?.count ?? 0),
+              assignees(r.assignments),
+              r.is_archived ? "Archived" : "Active",
+            ]),
+          }))
+        } else if (active === "Diet & nutrition") {
+          const plans = await api.listDietPlans(orgId, { includeArchived: true })
+          setDietPlans(plans)
+          const assignees = (
+            rows: { status: string; member: { first_name: string; last_name: string } | null }[],
+          ) => {
+            const names = rows
+              .filter((a) => a.status === "active")
+              .map((a) => `${a.member?.first_name ?? ""} ${a.member?.last_name ?? ""}`.trim())
+              .filter(Boolean)
+            if (!names.length) return "Unassigned"
+            return names.length > 1 ? `${names[0]} +${names.length - 1}` : names[0]
+          }
+          setRecords((prev) => ({
+            ...prev,
+            "Diet & nutrition": plans.map((r) => [
+              r.name,
+              r.target_calories ? String(r.target_calories) : "—",
+              r.target_protein_g ? `${r.target_protein_g} g` : "—",
+              assignees(r.assignments),
+              r.is_archived ? "Archived" : "Active",
+            ]),
+          }))
         }
       } catch (err) {
         notify(err instanceof Error ? err.message : `Could not load ${active}`)
@@ -956,6 +1072,10 @@ export default function App() {
     Payments: ["owner", "manager", "receptionist", "finance"],
     "Trainers & staff": ["owner", "manager"],
     Expenses: ["owner", "manager", "finance"],
+    // Mirrors 0006: plan write = owner/manager/trainer, measurements = those
+    // plus receptionist.
+    Workouts: ["owner", "manager", "trainer"],
+    "Diet & nutrition": ["owner", "manager", "trainer"],
     // Every role may file their own in-app reminder (migration 0004).
     Reminders: ["owner", "manager", "trainer", "receptionist", "finance"],
     "Access & roles": ["owner"],
@@ -1601,6 +1721,70 @@ export default function App() {
                         Settle payment
                       </Button>
                     )}
+                    {active === "Workouts" && (
+                      <Button
+                        secondary
+                        disabled={!workoutPlans.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot assign workout plans"
+                            : workoutPlans.length
+                              ? undefined
+                              : "Create a workout plan first"
+                        }
+                        onClick={() => setModal("Assign workout plan")}
+                      >
+                        Assign to member
+                      </Button>
+                    )}
+                    {active === "Diet & nutrition" && (
+                      <Button
+                        secondary
+                        disabled={!dietPlans.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot assign diet plans"
+                            : dietPlans.length
+                              ? undefined
+                              : "Create a diet plan first"
+                        }
+                        onClick={() => setModal("Assign diet plan")}
+                      >
+                        Assign to member
+                      </Button>
+                    )}
+                    {active === "Workouts" && (
+                      <Button
+                        secondary
+                        disabled={!workoutPlans.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot edit workout plans"
+                            : workoutPlans.length
+                              ? undefined
+                              : "Create a workout plan first"
+                        }
+                        onClick={() => setModal("Add exercise")}
+                      >
+                        Add exercise
+                      </Button>
+                    )}
+                    {active === "Diet & nutrition" && (
+                      <Button
+                        secondary
+                        disabled={!dietPlans.length || !canWrite}
+                        title={
+                          !canWrite
+                            ? "Your role cannot edit diet plans"
+                            : dietPlans.length
+                              ? undefined
+                              : "Create a diet plan first"
+                        }
+                        onClick={() => setModal("Add meal")}
+                      >
+                        Add meal
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div className="table-toolbar">
@@ -2042,6 +2226,31 @@ export default function App() {
                     : "Archive member"}
                 </Button>
               </div>
+              <Title>Body measurements</Title>
+              {profileMeasurements.length ? (
+                profileMeasurements.map((m) => (
+                  <div className="detail-line" key={m.id}>
+                    <span>{formatDate(m.measured_on)}</span>
+                    <strong>
+                      {[
+                        m.weight_kg ? `${m.weight_kg} kg` : null,
+                        m.body_fat_pct ? `${m.body_fat_pct}% fat` : null,
+                        m.waist_cm ? `${m.waist_cm} cm waist` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </strong>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">No measurements recorded yet.</p>
+              )}
+              <Button
+                secondary
+                onClick={() => setModal("Record measurement")}
+              >
+                Record measurement
+              </Button>
               <Title>Attendance history</Title>
               {profileVisits.length ? (
                 profileVisits.map((v) => (
@@ -2242,6 +2451,26 @@ export default function App() {
                       ))}
                     </div>
                   ))}
+                {planDetail && planDetail.name === modal.slice(9) && (
+                  <>
+                    <Title>
+                      {active === "Workouts" ? "Exercises" : "Meals"}
+                    </Title>
+                    {planDetail.lines.length ? (
+                      planDetail.lines.map((line, i) => (
+                        <div className="detail-line" key={i}>
+                          <strong>{line}</strong>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="muted">
+                        {active === "Workouts"
+                          ? "No exercises added to this plan yet."
+                          : "No meals added to this plan yet."}
+                      </p>
+                    )}
+                  </>
+                )}
                 <p className="muted">
                   {isSaved(active)
                     ? "Saved to your workspace."
@@ -2592,6 +2821,140 @@ export default function App() {
                       notify(
                         "Community groups need a messaging service — nothing was created",
                       )
+                    } else if (modal === "Create workout") {
+                      await api.createWorkoutPlan(orgId, {
+                        name: String(data.get("name") || ""),
+                        goal: String(data.get("goal") || "") || undefined,
+                        description: String(data.get("description") || "") || undefined,
+                      })
+                      setModal("")
+                      notify("Workout plan created")
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Create diet plan") {
+                      const num = (key: string) => {
+                        const raw = String(data.get(key) || "").trim()
+                        if (!raw) return null
+                        const n = Number(raw)
+                        if (!(n >= 0)) throw new Error("Numbers must be zero or more")
+                        return n
+                      }
+                      await api.createDietPlan(orgId, {
+                        name: String(data.get("name") || ""),
+                        description: String(data.get("description") || "") || undefined,
+                        target_calories: num("calories"),
+                        target_protein_g: num("protein"),
+                        target_carbs_g: num("carbs"),
+                        target_fat_g: num("fat"),
+                      })
+                      setModal("")
+                      notify("Diet plan created")
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Assign workout plan") {
+                      const target = members.find(
+                        (m) => m.memberId === String(data.get("member") || ""),
+                      )
+                      if (!target?.memberId) throw new Error("Select a member")
+                      const planId = String(data.get("plan") || "")
+                      if (!planId) throw new Error("Select a workout plan")
+                      await api.assignWorkoutPlan(orgId, {
+                        member_id: target.memberId,
+                        plan_id: planId,
+                        effective_from: String(data.get("from") || "") || undefined,
+                      })
+                      setModal("")
+                      notify(`Workout plan assigned to ${target.name}`)
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Assign diet plan") {
+                      const target = members.find(
+                        (m) => m.memberId === String(data.get("member") || ""),
+                      )
+                      if (!target?.memberId) throw new Error("Select a member")
+                      const planId = String(data.get("plan") || "")
+                      if (!planId) throw new Error("Select a diet plan")
+                      await api.assignDietPlan(orgId, {
+                        member_id: target.memberId,
+                        plan_id: planId,
+                        effective_from: String(data.get("from") || "") || undefined,
+                      })
+                      setModal("")
+                      notify(`Diet plan assigned to ${target.name}`)
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Add exercise") {
+                      const planId = String(data.get("plan") || "")
+                      if (!planId) throw new Error("Select a workout plan")
+                      const intOrNull = (key: string) => {
+                        const raw = String(data.get(key) || "").trim()
+                        if (!raw) return null
+                        const n = Number(raw)
+                        if (!Number.isInteger(n) || n <= 0)
+                          throw new Error("Sets and rest must be whole numbers above zero")
+                        return n
+                      }
+                      await api.addWorkoutExercise(planId, {
+                        day_label: String(data.get("day") || "") || undefined,
+                        exercise_name: String(data.get("exercise") || ""),
+                        sets: intOrNull("sets"),
+                        reps: String(data.get("reps") || "") || undefined,
+                        rest_seconds: intOrNull("rest"),
+                        instructions: String(data.get("instructions") || "") || undefined,
+                      })
+                      setModal("")
+                      notify("Exercise added to the plan")
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Add meal") {
+                      const planId = String(data.get("plan") || "")
+                      if (!planId) throw new Error("Select a diet plan")
+                      // One food per line, so a whole meal is typed in one go.
+                      const items = String(data.get("items") || "")
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                        .map((line) => {
+                          const [food, ...portion] = line.split("·")
+                          return {
+                            food_item: food.trim(),
+                            portion: portion.join("·").trim() || undefined,
+                          }
+                        })
+                      await api.addDietMeal(planId, {
+                        name: String(data.get("name") || ""),
+                        timing: String(data.get("timing") || "") || undefined,
+                        coach_notes: String(data.get("notes") || "") || undefined,
+                        items,
+                      })
+                      setModal("")
+                      notify("Meal added to the plan")
+                      setModuleTick((t) => t + 1)
+                    } else if (modal === "Record measurement") {
+                      const target = members.find(
+                        (m) => m.memberId === String(data.get("member") || ""),
+                      )
+                      if (!target?.memberId) throw new Error("Select a member")
+                      const num = (key: string) => {
+                        const raw = String(data.get(key) || "").trim()
+                        if (!raw) return null
+                        const n = Number(raw)
+                        if (!(n > 0)) throw new Error("Measurements must be above zero")
+                        return n
+                      }
+                      const weight = num("weight")
+                      if (weight === null) throw new Error("Enter the member's weight")
+                      await api.recordMeasurement(orgId, {
+                        member_id: target.memberId,
+                        measured_on: String(data.get("date") || "") || undefined,
+                        weight_kg: weight,
+                        height_cm: num("height"),
+                        body_fat_pct: num("bodyfat"),
+                        chest_cm: num("chest"),
+                        waist_cm: num("waist"),
+                        hips_cm: num("hips"),
+                        arms_cm: num("arms"),
+                        thighs_cm: num("thighs"),
+                        notes: String(data.get("notes") || "") || undefined,
+                      })
+                      setModal("")
+                      notify(`Measurement recorded for ${target.name}`)
+                      setModuleTick((t) => t + 1)
                     } else if (module) {
                       setModal("")
                       notify(
@@ -3240,6 +3603,334 @@ export default function App() {
                       sent.
                     </div>
                   </>
+                ) : modal === "Create workout" ? (
+                  <>
+                    <label>
+                      Plan name
+                      <Input
+                        name="name"
+                        required
+                        minLength={2}
+                        maxLength={120}
+                        placeholder="e.g. 12-week strength base"
+                        autoFocus
+                      />
+                    </label>
+                    <label>
+                      Goal
+                      <Select name="goal" defaultValue="">
+                        <option value="">No specific goal</option>
+                        <option>Strength</option>
+                        <option>Muscle gain</option>
+                        <option>Fat loss</option>
+                        <option>Endurance</option>
+                        <option>Mobility</option>
+                        <option>General fitness</option>
+                      </Select>
+                    </label>
+                    <label>
+                      Description
+                      <textarea
+                        name="description"
+                        placeholder="How the plan is meant to be run"
+                      />
+                    </label>
+                    <p>
+                      Exercises are added to the plan afterwards. Assign it to a
+                      member from the Workouts directory.
+                    </p>
+                  </>
+                ) : modal === "Create diet plan" ? (
+                  <>
+                    <label>
+                      Plan name
+                      <Input
+                        name="name"
+                        required
+                        minLength={2}
+                        maxLength={120}
+                        placeholder="e.g. Lean bulk, 2,600 kcal"
+                        autoFocus
+                      />
+                    </label>
+                    <label>
+                      Description
+                      <textarea
+                        name="description"
+                        placeholder="Approach, restrictions, meal timing"
+                      />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Daily calories
+                        <Input name="calories" type="number" min="0" placeholder="2600" />
+                      </label>
+                      <label>
+                        Protein (g)
+                        <Input name="protein" type="number" min="0" placeholder="160" />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Carbs (g)
+                        <Input name="carbs" type="number" min="0" placeholder="280" />
+                      </label>
+                      <label>
+                        Fat (g)
+                        <Input name="fat" type="number" min="0" placeholder="70" />
+                      </label>
+                    </div>
+                    <p>Targets are optional. Meals are added to the plan afterwards.</p>
+                  </>
+                ) : modal === "Assign workout plan" ? (
+                  <>
+                    <label>
+                      Member
+                      <Select name="member" required>
+                        <option value="">Select a member…</option>
+                        {members
+                          .filter((m) => m.memberId)
+                          .map((m) => (
+                            <option key={m.memberId} value={m.memberId}>
+                              {m.name} · {m.plan}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Workout plan
+                      <Select name="plan" required>
+                        <option value="">Select a plan…</option>
+                        {workoutPlans
+                          .filter((p) => !p.is_archived)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                              {p.goal ? ` · ${p.goal}` : ""}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Start date
+                      <Input name="from" type="date" />
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="settings" size={15} />
+                      Any existing active plan ends today, so the member always
+                      has one current plan.
+                    </div>
+                  </>
+                ) : modal === "Assign diet plan" ? (
+                  <>
+                    <label>
+                      Member
+                      <Select name="member" required>
+                        <option value="">Select a member…</option>
+                        {members
+                          .filter((m) => m.memberId)
+                          .map((m) => (
+                            <option key={m.memberId} value={m.memberId}>
+                              {m.name} · {m.plan}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Diet plan
+                      <Select name="plan" required>
+                        <option value="">Select a plan…</option>
+                        {dietPlans
+                          .filter((p) => !p.is_archived)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                              {p.target_calories ? ` · ${p.target_calories} kcal` : ""}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Start date
+                      <Input name="from" type="date" />
+                    </label>
+                  </>
+                ) : modal === "Record measurement" ? (
+                  <>
+                    <label>
+                      Member
+                      <Select name="member" required>
+                        <option value="">Select a member…</option>
+                        {members
+                          .filter((m) => m.memberId)
+                          .map((m) => (
+                            <option key={m.memberId} value={m.memberId}>
+                              {m.name}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Date
+                        <Input name="date" type="date" />
+                      </label>
+                      <label>
+                        Weight (kg)
+                        <Input
+                          name="weight"
+                          type="number"
+                          min="1"
+                          step="0.1"
+                          required
+                          placeholder="72.5"
+                        />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Height (cm)
+                        <Input name="height" type="number" min="1" step="0.1" />
+                      </label>
+                      <label>
+                        Body fat (%)
+                        <Input name="bodyfat" type="number" min="1" step="0.1" />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Chest (cm)
+                        <Input name="chest" type="number" min="1" step="0.1" />
+                      </label>
+                      <label>
+                        Waist (cm)
+                        <Input name="waist" type="number" min="1" step="0.1" />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Hips (cm)
+                        <Input name="hips" type="number" min="1" step="0.1" />
+                      </label>
+                      <label>
+                        Arms (cm)
+                        <Input name="arms" type="number" min="1" step="0.1" />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Thighs (cm)
+                        <Input name="thighs" type="number" min="1" step="0.1" />
+                      </label>
+                    </div>
+                    <label>
+                      Notes
+                      <textarea name="notes" placeholder="Optional context" />
+                    </label>
+                    <p>
+                      Only weight is required. Saving the same member and date
+                      twice updates that record instead of adding a duplicate.
+                    </p>
+                  </>
+                ) : modal === "Add exercise" ? (
+                  <>
+                    <label>
+                      Workout plan
+                      <Select name="plan" required autoFocus>
+                        <option value="">Select a plan…</option>
+                        {workoutPlans
+                          .filter((p) => !p.is_archived)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <label>
+                      Exercise
+                      <Input
+                        name="exercise"
+                        required
+                        maxLength={80}
+                        placeholder="e.g. Back squat"
+                      />
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Day
+                        <Input name="day" placeholder="e.g. Day A" />
+                      </label>
+                      <label>
+                        Sets
+                        <Input name="sets" type="number" min="1" step="1" placeholder="4" />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Reps
+                        <Input name="reps" placeholder="e.g. 8-10" />
+                      </label>
+                      <label>
+                        Rest (seconds)
+                        <Input name="rest" type="number" min="1" step="1" placeholder="90" />
+                      </label>
+                    </div>
+                    <label>
+                      Instructions
+                      <textarea
+                        name="instructions"
+                        placeholder="Form cues, tempo, substitutions"
+                      />
+                    </label>
+                    <p>Exercises appear in the order they are added.</p>
+                  </>
+                ) : modal === "Add meal" ? (
+                  <>
+                    <label>
+                      Diet plan
+                      <Select name="plan" required autoFocus>
+                        <option value="">Select a plan…</option>
+                        {dietPlans
+                          .filter((p) => !p.is_archived)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
+                    <div className="form-row">
+                      <label>
+                        Meal
+                        <Input
+                          name="name"
+                          required
+                          maxLength={80}
+                          placeholder="e.g. Breakfast"
+                        />
+                      </label>
+                      <label>
+                        Timing
+                        <Input name="timing" placeholder="e.g. 7:30 am" />
+                      </label>
+                    </div>
+                    <label>
+                      Foods
+                      <textarea
+                        name="items"
+                        placeholder={"Oats · 60 g\nGreek yoghurt · 150 g"}
+                      />
+                    </label>
+                    <label>
+                      Coach notes
+                      <textarea name="notes" placeholder="Swaps, prep notes" />
+                    </label>
+                    <p>
+                      One food per line. Add a portion after a middle dot, like
+                      &quot;Oats · 60 g&quot;.
+                    </p>
+                  </>
                 ) : module ? (
                   module.columns.map((c, i) => (
                     <label key={c}>
@@ -3313,7 +4004,19 @@ export default function App() {
                                               ? "Change role"
                                               : modal === "Create reminder"
                                                 ? "Create reminder"
-                                                : "Save changes"}
+                                                : modal === "Create workout" ||
+                                                    modal === "Create diet plan"
+                                                  ? modal
+                                                  : modal === "Add exercise"
+                                                    ? "Add exercise"
+                                                    : modal === "Add meal"
+                                                      ? "Add meal"
+                                                      : modal === "Assign workout plan" ||
+                                                          modal === "Assign diet plan"
+                                                        ? "Assign plan"
+                                                        : modal === "Record measurement"
+                                                          ? "Save measurement"
+                                                          : "Save changes"}
                   </Button>
                 </div>
               </form>

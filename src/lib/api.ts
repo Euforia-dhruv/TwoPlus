@@ -5,8 +5,12 @@ import type {
   AppNotification,
   AttendanceRecord,
   DashboardStats,
+  DietMealWithItems,
+  DietPlan,
+  DietPlanListRow,
   Enquiry,
   Expense,
+  FitnessMeasurement,
   GymClass,
   Member,
   MemberMembership,
@@ -18,6 +22,9 @@ import type {
   PaymentMethod,
   ReportMonth,
   StaffMember,
+  WorkoutExercise,
+  WorkoutPlan,
+  WorkoutPlanListRow,
 } from "./types";
 
 function err(message: string): Error {
@@ -942,6 +949,371 @@ export async function loadDashboardStats(org: OrgContext): Promise<DashboardStat
     newEnquiries: enquiriesRes.count ?? 0,
     upcomingClasses: classesRes.count ?? 0,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Workout plans (migration 0006)
+// ---------------------------------------------------------------------------
+
+// One query for the whole directory: exercise count and current assignee come
+// back nested, so the table does not fan out into a request per plan.
+export async function listWorkoutPlans(
+  orgId: string,
+  options: { includeArchived?: boolean } = {},
+): Promise<WorkoutPlanListRow[]> {
+  let q = getSupabase()
+    .from("workout_plans")
+    .select(
+      "id, organization_id, name, goal, description, is_archived, created_at, exercises:workout_exercises(count), assignments:member_workout_assignments(status, member:members(first_name, last_name))",
+    )
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false });
+  if (!options.includeArchived) q = q.eq("is_archived", false);
+  const { data, error } = await q;
+  throwIf(error, "Could not load workout plans");
+  return (data ?? []) as unknown as WorkoutPlanListRow[];
+}
+
+export async function listWorkoutExercises(planId: string): Promise<WorkoutExercise[]> {
+  const { data, error } = await getSupabase()
+    .from("workout_exercises")
+    .select("*")
+    .eq("plan_id", planId)
+    .order("position");
+  throwIf(error, "Could not load the exercises");
+  return (data ?? []) as WorkoutExercise[];
+}
+
+// Creates the plan and its exercises together. A plan with no exercises is
+// still valid, so an empty list is allowed.
+export async function createWorkoutPlan(
+  orgId: string,
+  input: {
+    name: string;
+    goal?: string;
+    description?: string;
+    exercises?: {
+      day_label?: string;
+      exercise_name: string;
+      sets?: number | null;
+      reps?: string;
+      rest_seconds?: number | null;
+    }[];
+  },
+): Promise<WorkoutPlan> {
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from("workout_plans")
+    .insert({
+      organization_id: orgId,
+      name: input.name.trim(),
+      goal: input.goal?.trim() || null,
+      description: input.description?.trim() || null,
+      created_by: userData.user?.id ?? null,
+    })
+    .select("*")
+    .single();
+  throwIf(error, "Could not create the workout plan");
+  const plan = data as WorkoutPlan;
+  const rows = input.exercises ?? [];
+  if (rows.length) {
+    const { error: exError } = await supabase.from("workout_exercises").insert(
+      rows.map((e, i) => ({
+        plan_id: plan.id,
+        day_label: e.day_label?.trim() || null,
+        exercise_name: e.exercise_name.trim(),
+        sets: e.sets ?? null,
+        reps: e.reps?.trim() || null,
+        rest_seconds: e.rest_seconds ?? null,
+        position: i,
+      })),
+    );
+    // The plan row already exists, so report the partial state instead of
+    // letting the caller think nothing was written.
+    if (exError) {
+      throw err(
+        `The plan "${plan.name}" was created, but its exercises were not saved: ${exError.message}`,
+      );
+    }
+  }
+  return plan;
+}
+
+export async function addWorkoutExercise(
+  planId: string,
+  input: {
+    day_label?: string;
+    exercise_name: string;
+    sets?: number | null;
+    reps?: string;
+    rest_seconds?: number | null;
+    instructions?: string;
+  },
+): Promise<void> {
+  const supabase = getSupabase();
+  // Append at the end: position drives the order the member reads.
+  const { data: last, error: readError } = await supabase
+    .from("workout_exercises")
+    .select("position")
+    .eq("plan_id", planId)
+    .order("position", { ascending: false })
+    .limit(1);
+  throwIf(readError, "Could not read the existing exercises");
+  const { error } = await supabase.from("workout_exercises").insert({
+    plan_id: planId,
+    day_label: input.day_label?.trim() || null,
+    exercise_name: input.exercise_name.trim(),
+    sets: input.sets ?? null,
+    reps: input.reps?.trim() || null,
+    rest_seconds: input.rest_seconds ?? null,
+    instructions: input.instructions?.trim() || null,
+    position: ((last?.[0] as { position: number } | undefined)?.position ?? -1) + 1,
+  });
+  throwIf(error, "Could not add the exercise");
+}
+
+export async function assignWorkoutPlan(
+  orgId: string,
+  input: {
+    member_id: string;
+    plan_id: string;
+    trainer_id?: string | null;
+    effective_from?: string;
+    notes?: string;
+  },
+): Promise<void> {
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  // One active plan per member: end the previous one first, otherwise the
+  // member app would show two "current" plans at once.
+  const { error: endError } = await supabase
+    .from("member_workout_assignments")
+    .update({ status: "ended", ended_on: new Date().toISOString().slice(0, 10) })
+    .eq("organization_id", orgId)
+    .eq("member_id", input.member_id)
+    .eq("status", "active");
+  throwIf(endError, "Could not end the previous workout plan");
+  const { error } = await supabase.from("member_workout_assignments").insert({
+    organization_id: orgId,
+    member_id: input.member_id,
+    plan_id: input.plan_id,
+    trainer_id: input.trainer_id ?? null,
+    assigned_by: userData.user?.id ?? null,
+    effective_from: input.effective_from || new Date().toISOString().slice(0, 10),
+    notes: input.notes?.trim() || null,
+  });
+  throwIf(error, "Could not assign the workout plan");
+}
+
+// ---------------------------------------------------------------------------
+// Diet plans (migration 0006)
+// ---------------------------------------------------------------------------
+
+export async function listDietPlans(
+  orgId: string,
+  options: { includeArchived?: boolean } = {},
+): Promise<DietPlanListRow[]> {
+  let q = getSupabase()
+    .from("diet_plans")
+    .select(
+      "id, organization_id, name, description, target_calories, target_protein_g, target_carbs_g, target_fat_g, is_archived, meals:diet_meals(count), assignments:member_diet_assignments(status, member:members(first_name, last_name))",
+    )
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false });
+  if (!options.includeArchived) q = q.eq("is_archived", false);
+  const { data, error } = await q;
+  throwIf(error, "Could not load diet plans");
+  return (data ?? []) as unknown as DietPlanListRow[];
+}
+
+export async function listDietMeals(planId: string): Promise<DietMealWithItems[]> {
+  const { data, error } = await getSupabase()
+    .from("diet_meals")
+    .select("*, items:diet_meal_items(*)")
+    .eq("plan_id", planId)
+    .order("position");
+  throwIf(error, "Could not load the meals");
+  const meals = (data ?? []) as unknown as DietMealWithItems[];
+  // Embedded children come back unordered, so sort them here.
+  return meals.map((m) => ({
+    ...m,
+    items: [...(m.items ?? [])].sort((a, b) => a.position - b.position),
+  }));
+}
+
+export async function createDietPlan(
+  orgId: string,
+  input: {
+    name: string;
+    description?: string;
+    target_calories?: number | null;
+    target_protein_g?: number | null;
+    target_carbs_g?: number | null;
+    target_fat_g?: number | null;
+  },
+): Promise<DietPlan> {
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from("diet_plans")
+    .insert({
+      organization_id: orgId,
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      target_calories: input.target_calories ?? null,
+      target_protein_g: input.target_protein_g ?? null,
+      target_carbs_g: input.target_carbs_g ?? null,
+      target_fat_g: input.target_fat_g ?? null,
+      created_by: userData.user?.id ?? null,
+    })
+    .select("*")
+    .single();
+  throwIf(error, "Could not create the diet plan");
+  return data as DietPlan;
+}
+
+// Adds one meal with its items in a single form submission.
+export async function addDietMeal(
+  planId: string,
+  input: {
+    name: string;
+    timing?: string;
+    coach_notes?: string;
+    items?: { food_item: string; portion?: string }[];
+  },
+): Promise<void> {
+  const supabase = getSupabase();
+  const { data: existing, error: countError } = await supabase
+    .from("diet_meals")
+    .select("position")
+    .eq("plan_id", planId)
+    .order("position", { ascending: false })
+    .limit(1);
+  throwIf(countError, "Could not read the existing meals");
+  const nextPosition =
+    ((existing?.[0] as { position: number } | undefined)?.position ?? -1) + 1;
+  const { data, error } = await supabase
+    .from("diet_meals")
+    .insert({
+      plan_id: planId,
+      name: input.name.trim(),
+      timing: input.timing?.trim() || null,
+      coach_notes: input.coach_notes?.trim() || null,
+      position: nextPosition,
+    })
+    .select("id")
+    .single();
+  throwIf(error, "Could not add the meal");
+  const mealId = (data as { id: string }).id;
+  const items = input.items ?? [];
+  if (items.length) {
+    const { error: itemError } = await supabase.from("diet_meal_items").insert(
+      items.map((it, i) => ({
+        meal_id: mealId,
+        food_item: it.food_item.trim(),
+        portion: it.portion?.trim() || null,
+        position: i,
+      })),
+    );
+    if (itemError) {
+      throw err(
+        `The meal "${input.name}" was added, but its items were not saved: ${itemError.message}`,
+      );
+    }
+  }
+}
+
+export async function assignDietPlan(
+  orgId: string,
+  input: {
+    member_id: string;
+    plan_id: string;
+    trainer_id?: string | null;
+    effective_from?: string;
+    notes?: string;
+  },
+): Promise<void> {
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  const { error: endError } = await supabase
+    .from("member_diet_assignments")
+    .update({ status: "ended", ended_on: new Date().toISOString().slice(0, 10) })
+    .eq("organization_id", orgId)
+    .eq("member_id", input.member_id)
+    .eq("status", "active");
+  throwIf(endError, "Could not end the previous diet plan");
+  const { error } = await supabase.from("member_diet_assignments").insert({
+    organization_id: orgId,
+    member_id: input.member_id,
+    plan_id: input.plan_id,
+    trainer_id: input.trainer_id ?? null,
+    assigned_by: userData.user?.id ?? null,
+    effective_from: input.effective_from || new Date().toISOString().slice(0, 10),
+    notes: input.notes?.trim() || null,
+  });
+  throwIf(error, "Could not assign the diet plan");
+}
+
+// ---------------------------------------------------------------------------
+// Fitness measurements (migration 0006)
+// ---------------------------------------------------------------------------
+
+export async function listMeasurements(
+  orgId: string,
+  memberId: string,
+  limit = 20,
+): Promise<FitnessMeasurement[]> {
+  const { data, error } = await getSupabase()
+    .from("fitness_measurements")
+    .select("*")
+    .eq("organization_id", orgId)
+    .eq("member_id", memberId)
+    .order("measured_on", { ascending: false })
+    .limit(limit);
+  throwIf(error, "Could not load measurements");
+  return (data ?? []) as FitnessMeasurement[];
+}
+
+// One row per member per day is enforced by a unique constraint, so a repeat
+// measurement on the same date updates rather than duplicates.
+export async function recordMeasurement(
+  orgId: string,
+  input: {
+    member_id: string;
+    measured_on?: string;
+    weight_kg?: number | null;
+    height_cm?: number | null;
+    body_fat_pct?: number | null;
+    chest_cm?: number | null;
+    waist_cm?: number | null;
+    hips_cm?: number | null;
+    arms_cm?: number | null;
+    thighs_cm?: number | null;
+    notes?: string;
+  },
+): Promise<void> {
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  const { error } = await supabase.from("fitness_measurements").upsert(
+    {
+      organization_id: orgId,
+      member_id: input.member_id,
+      measured_on: input.measured_on || new Date().toISOString().slice(0, 10),
+      weight_kg: input.weight_kg ?? null,
+      height_cm: input.height_cm ?? null,
+      body_fat_pct: input.body_fat_pct ?? null,
+      chest_cm: input.chest_cm ?? null,
+      waist_cm: input.waist_cm ?? null,
+      hips_cm: input.hips_cm ?? null,
+      arms_cm: input.arms_cm ?? null,
+      thighs_cm: input.thighs_cm ?? null,
+      notes: input.notes?.trim() || null,
+      recorded_by: userData.user?.id ?? null,
+    },
+    { onConflict: "member_id,measured_on" },
+  );
+  throwIf(error, "Could not save the measurement");
 }
 
 // Uploads a workspace background image and returns its public URL. Objects

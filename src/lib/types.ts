@@ -175,6 +175,98 @@ export type Expense = {
   expense_date: string;
 };
 
+// ---------------------------------------------------------------------------
+// Training and nutrition (migration 0006)
+// ---------------------------------------------------------------------------
+
+export type WorkoutPlan = {
+  id: string;
+  organization_id: string;
+  name: string;
+  goal: string | null;
+  description: string | null;
+  is_archived: boolean;
+  created_at: string;
+};
+
+export type WorkoutExercise = {
+  id: string;
+  plan_id: string;
+  day_label: string | null;
+  exercise_name: string;
+  sets: number | null;
+  reps: string | null;
+  rest_seconds: number | null;
+  instructions: string | null;
+  position: number;
+};
+
+export type DietPlan = {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  target_calories: number | null;
+  target_protein_g: number | null;
+  target_carbs_g: number | null;
+  target_fat_g: number | null;
+  is_archived: boolean;
+};
+
+export type DietMeal = {
+  id: string;
+  plan_id: string;
+  name: string;
+  timing: string | null;
+  coach_notes: string | null;
+  position: number;
+};
+
+export type DietMealItem = {
+  id: string;
+  meal_id: string;
+  food_item: string;
+  portion: string | null;
+  notes: string | null;
+  position: number;
+};
+
+export type DietMealWithItems = DietMeal & { items: DietMealItem[] };
+
+export type FitnessMeasurement = {
+  id: string;
+  organization_id: string;
+  member_id: string;
+  measured_on: string;
+  weight_kg: number | null;
+  height_cm: number | null;
+  body_fat_pct: number | null;
+  chest_cm: number | null;
+  waist_cm: number | null;
+  hips_cm: number | null;
+  arms_cm: number | null;
+  thighs_cm: number | null;
+  notes: string | null;
+};
+
+// A plan row as the directory renders it: the assignment names and the child
+// count come back in the same query, so no per-row follow-up request.
+export type WorkoutPlanListRow = WorkoutPlan & {
+  exercises: { count: number }[];
+  assignments: {
+    status: "active" | "ended";
+    member: { first_name: string; last_name: string } | null;
+  }[];
+};
+
+export type DietPlanListRow = DietPlan & {
+  meals: { count: number }[];
+  assignments: {
+    status: "active" | "ended";
+    member: { first_name: string; last_name: string } | null;
+  }[];
+};
+
 export type DashboardStats = {
   totalMembers: number;
   activeMembers: number;

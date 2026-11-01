@@ -145,8 +145,11 @@ export async function getMyWorkoutPlans(
 export type MyDietPlan = {
   id: string;
   name: string;
-  goal: string | null;
   description: string | null;
+  target_calories: number | null;
+  target_protein_g: number | null;
+  target_carbs_g: number | null;
+  target_fat_g: number | null;
   effective_from: string;
   status: string;
   meals: {
@@ -170,7 +173,7 @@ export async function getMyDietPlans(
   const { data, error } = await getSupabase()
     .from("member_diet_assignments")
     .select(
-      "id, effective_from, status, plan:diet_plans(id, name, goal, description, meals:diet_meals(id, name, timing, coach_notes, items:diet_meal_items(id, food_item, portion, notes)))",
+      "id, effective_from, status, plan:diet_plans(id, name, description, target_calories, target_protein_g, target_carbs_g, target_fat_g, meals:diet_meals(id, name, timing, coach_notes, items:diet_meal_items(id, food_item, portion, notes)))",
     )
     .eq("organization_id", orgId)
     .eq("member_id", memberId)
@@ -183,8 +186,11 @@ export async function getMyDietPlans(
     plan: {
       id: string;
       name: string;
-      goal: string | null;
       description: string | null;
+      target_calories: number | null;
+      target_protein_g: number | null;
+      target_carbs_g: number | null;
+      target_fat_g: number | null;
       meals: {
         id: string;
         name: string;
@@ -204,8 +210,11 @@ export async function getMyDietPlans(
     .map((r) => ({
       id: r.plan!.id,
       name: r.plan!.name,
-      goal: r.plan!.goal,
       description: r.plan!.description,
+      target_calories: r.plan!.target_calories,
+      target_protein_g: r.plan!.target_protein_g,
+      target_carbs_g: r.plan!.target_carbs_g,
+      target_fat_g: r.plan!.target_fat_g,
       effective_from: r.effective_from,
       status: r.status,
       meals: r.plan!.meals ?? [],

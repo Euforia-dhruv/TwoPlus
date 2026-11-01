@@ -177,7 +177,19 @@ export default function Member() {
             diets.map((p) => (
               <article className="mb-plan" key={p.id}>
                 <h3>{p.name}</h3>
-                {p.goal && <p className="mb-muted">{p.goal}</p>}
+                {p.description && <p className="mb-muted">{p.description}</p>}
+                {(p.target_calories || p.target_protein_g) && (
+                  <p className="mb-muted">
+                    {[
+                      p.target_calories ? `${p.target_calories} kcal` : null,
+                      p.target_protein_g ? `${p.target_protein_g}g protein` : null,
+                      p.target_carbs_g ? `${p.target_carbs_g}g carbs` : null,
+                      p.target_fat_g ? `${p.target_fat_g}g fat` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
                 {p.meals.map((meal) => (
                   <div className="mb-meal" key={meal.id}>
                     <h4>{meal.name}{meal.timing ? ` — ${meal.timing}` : ""}</h4>
