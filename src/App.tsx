@@ -1270,8 +1270,8 @@ export default function App() {
                     ? `View reminders, ${unreadCount} unread`
                     : "View reminders"
                 }
-                aria-haspopup="dialog"
                 aria-expanded={bellOpen}
+                aria-controls="reminders-panel"
                 className="icon-button notification"
                 onClick={() => {
                   setAccountOpen(false)
@@ -1291,7 +1291,12 @@ export default function App() {
                     className="account-backdrop"
                     onClick={() => setBellOpen(false)}
                   />
-                  <div className="account-panel bell-panel" role="dialog" aria-label="Reminders">
+                  <div
+                    id="reminders-panel"
+                    className="account-panel bell-panel"
+                    role="region"
+                    aria-label="Reminders"
+                  >
                     <div className="bell-head">
                       <strong>Reminders</strong>
                       <span>{unreadCount ? `${unreadCount} unread` : "All read"}</span>
