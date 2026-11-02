@@ -6,8 +6,8 @@ import { SummaryBoard } from "@/components/SummaryBoard"
 import { MemberCard, MemberCardSkeleton } from "@/components/MemberCard"
 import { HoldButton } from "@/components/HoldButton"
 import { useNavigate, useParams } from "react-router-dom"
-import { GlassDock } from "@/components/ui/glass-dock"
 import { FloatingDock } from "@/components/ui/floating-dock"
+import { SpotlightNavbar } from "@/components/ui/spotlight-navbar"
 import BellToggle from "@/components/ui/BellToggle"
 import {
   DEFAULT_CATEGORY,
@@ -1166,16 +1166,14 @@ export default function App() {
             // Overview lives in the left sidebar only; don't duplicate it here.
             const items = activeCat.items.filter((it) => it.id !== "overview");
             if (!items.length) return null;
+            const index = Math.max(0, items.findIndex((it) => it.label === active));
             return (
-              <GlassDock
-                vertical={false}
-                activeTitle={active}
-                items={items.map((it) => ({
-                  title: it.label,
-                  icon: () => <Icon name={it.icon} size={22} />,
-                  onClick: () => go(it.label),
-                }))}
-                dockClassName="upper-dock"
+              <SpotlightNavbar
+                key={`${activeCat.id}:${active}`}
+                className="!pt-0"
+                items={items.map((it) => ({ label: it.label, href: pathFor(it) }))}
+                onItemClick={(it) => go(it.label)}
+                defaultActiveIndex={index}
               />
             );
           })()}
