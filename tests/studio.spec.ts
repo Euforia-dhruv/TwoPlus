@@ -15,10 +15,20 @@ test.skip(
 );
 
 async function openStudio(page: import("@playwright/test").Page) {
-  await page.goto("/app", { waitUntil: "networkidle" });
-  await page.click('button[aria-label="Design Studio"]');
+  // Design Studio lives under Settings in the two-level navigation.
+  await page.goto("/app/settings/design-studio", { waitUntil: "networkidle" });
   await expect(page.locator(".studio-grid")).toBeVisible({ timeout: 15_000 });
 }
+
+test("two-level navigation follows the URL", async ({ page }) => {
+  await page.goto("/app/finance/payroll", { waitUntil: "networkidle" });
+  await expect(page.locator("main h1")).toHaveText("Payroll");
+  await expect(page.locator(".secondary-nav-title")).toHaveText("Finance");
+  await expect(page.locator(".floating-rail .glass-dock")).toBeVisible();
+  // Refresh keeps the same module (state derives from the URL).
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.locator("main h1")).toHaveText("Payroll");
+});
 
 test("studio lists every language and previews with real components", async ({ page }) => {
   const errors: string[] = [];

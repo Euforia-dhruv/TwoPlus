@@ -5706,3 +5706,62 @@ html[data-style="sketch"] .eyebrow {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- 23. Two-level navigation (dock rails) ---------- */
+
+/* The rail is already the glass surface; the dock only adds hover motion and
+   labels, so its own pill is stripped away. */
+.floating-rail .app-side-dock {
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0 !important;
+  padding: 6px 2px !important;
+  gap: 4px !important;
+}
+
+.floating-rail .app-side-dock svg {
+  color: var(--text-2);
+}
+
+.secondary-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 58px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--hairline-2);
+  background: color-mix(in srgb, var(--card-solid) 55%, transparent);
+  backdrop-filter: blur(var(--blur-card));
+  -webkit-backdrop-filter: blur(var(--blur-card));
+}
+
+.secondary-nav-title {
+  flex: none;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.secondary-dock-desktop {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  justify-content: flex-start !important;
+  overflow-x: auto;
+  max-width: 100%;
+  mask-image: linear-gradient(90deg, #000 94%, transparent);
+}
+
+.secondary-dock-desktop a {
+  color: inherit;
+}
+
+.secondary-dock-mobile {
+  margin-left: auto;
+}

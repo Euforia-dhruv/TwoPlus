@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from "react"
 import gsap from "gsap"
-import { Icon, type IconName } from "./icons"
+import { Icon } from "./icons"
 import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit"
 import { SummaryBoard } from "@/components/SummaryBoard"
 import { MemberCard, MemberCardSkeleton } from "@/components/MemberCard"
 import { HoldButton } from "@/components/HoldButton"
+import { useNavigate, useParams } from "react-router-dom"
+import { GlassDock } from "@/components/ui/glass-dock"
+import { FloatingDock } from "@/components/ui/floating-dock"
+import {
+  DEFAULT_CATEGORY,
+  DEFAULT_ITEM,
+  NAV_CATEGORIES,
+  categoryOfLabel,
+  itemById,
+  itemByLabel,
+  pathFor,
+} from "@/lib/navigation"
 import { DesignStudio } from "@/pages/Studio"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
@@ -45,85 +57,6 @@ import {
   type StaffMember,
   type WorkoutPlanListRow,
 } from "@/lib/types"
-
-const groups = [
-  [
-    "Workspace",
-    "Overview",
-    "Members",
-    "Memberships",
-    "Attendance",
-    "Classes & PT",
-    "Community",
-  ],
-  [
-    "Growth & engagement",
-    "Enquiries",
-    "Follow-ups",
-    "Reminders",
-    "Offers & referrals",
-    "Feedback",
-  ],
-  [
-    "Team & operations",
-    "Trainers & staff",
-    "Payroll",
-    "Workouts",
-    "Diet & nutrition",
-    "Equipment",
-    "Inventory",
-  ],
-  [
-    "Finance & business",
-    "Payments",
-    "Invoices",
-    "Expenses",
-    "Reports",
-    "Marketplace",
-    "Branches",
-    "Access & roles",
-    "Settings",
-    "Design Studio",
-  ],
-]
-// Every section rendered directly in the rail, grouped for visual order only
-// (Settings stays pinned in the rail foot, so it is excluded here).
-const navGroups: Array<[string, string[]]> = [
-  ...groups.map(([label, ...items]) => [
-    label,
-    items.filter((item) => item !== "Settings"),
-  ] as [string, string[]]),
-  ["Extras", ["Member app", "Customer support"]],
-]
-const navigationIcons = {
-  Overview: "dashboard",
-  Members: "members",
-  Memberships: "ticket",
-  Attendance: "checkin",
-  "Classes & PT": "calendar",
-  Community: "message",
-  Enquiries: "userPlus",
-  "Follow-ups": "clipboard",
-  Reminders: "bell",
-  "Offers & referrals": "gift",
-  Feedback: "sparkles",
-  "Trainers & staff": "dumbbell",
-  Payroll: "wallet",
-  Workouts: "activity",
-  "Diet & nutrition": "apple",
-  Equipment: "dumbbell",
-  Inventory: "package",
-  Payments: "wallet",
-  Expenses: "receipt",
-  Reports: "chart",
-  Marketplace: "shop",
-  Branches: "building",
-  "Access & roles": "shield",
-  Settings: "settings",
-  "Design Studio": "grid",
-  "Member app": "mobile",
-  "Customer support": "headset",
-} as const satisfies Record<string, IconName>
 
 const descriptions: Record<string, string> = {
   Members: "A little more personal. Manage every member, all in one place.",
@@ -330,7 +263,15 @@ export default function App() {
   const { session, signOut } = useAuth()
   const { org, reload: reloadOrg } = useOrg()
   const { role: platformRole } = usePlatformAdmin()
-  const [active, setActive] = useState("Overview")
+  // The active module and its category derive from the URL (/app/:category/:module),
+  // so direct links, refresh and back/forward all keep the same selection.
+  const navigate = useNavigate()
+  const { module: moduleSlug } = useParams()
+  const activeItem = moduleSlug ? itemById(moduleSlug) : undefined
+  const active = activeItem?.label ?? DEFAULT_ITEM.label
+  const activeCat = activeItem
+    ? (categoryOfLabel(activeItem.label) ?? DEFAULT_CATEGORY)
+    : DEFAULT_CATEGORY
   const [members, setMembers] = useState<Member[]>([])
   const [tab, setTab] = useState("All members")
   const [query, setQuery] = useState("")
@@ -433,7 +374,8 @@ export default function App() {
     setModalError("")
   }, [modal])
   const go = (name: string) => {
-    setActive(name)
+    const target = itemByLabel(name)
+    navigate(target ? pathFor(target) : pathFor(DEFAULT_ITEM))
     setQuery("")
     setSelected([])
     setPage(1)
@@ -1209,24 +1151,16 @@ export default function App() {
           <Icon name="activity" size={20} />
           <span className="rail-label" aria-hidden="true">TwoPlus</span>
         </button>
-        <div className="rail-primary">
-          {navGroups.map(([label, items]) => (
-            <div key={label} className="rail-group">
-              {items.map((item) => (
-                <button key={item} aria-label={item} aria-current={active === item ? "page" : undefined} className={active === item ? "rail-active" : ""} onClick={() => go(item)}>
-                  <Icon name={navigationIcons[item as keyof typeof navigationIcons]} size={19} />
-                  <span className="rail-label" aria-hidden="true">{item}</span>
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="rail-foot">
-          <button aria-label="Settings" aria-current={active === "Settings" ? "page" : undefined} className={active === "Settings" ? "rail-active" : ""} onClick={() => go("Settings")}>
-            <Icon name="settings" size={19} />
-            <span className="rail-label" aria-hidden="true">Settings</span>
-          </button>
-        </div>
+        <GlassDock
+          vertical
+          activeTitle={activeCat.label}
+          items={NAV_CATEGORIES.map((c) => ({
+            title: c.label,
+            icon: () => <Icon name={c.icon} size={22} />,
+            onClick: () => go(c.items[0].label),
+          }))}
+          dockClassName="app-side-dock"
+        />
       </nav>
       <div className="main-shell">
         <header className="topbar">
@@ -1418,6 +1352,19 @@ export default function App() {
               </div>
             </div>
           )}
+        <div className="secondary-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
+          <span className="secondary-nav-title">{activeCat.label}</span>
+          <FloatingDock
+            items={activeCat.items.map((it) => ({
+              title: it.label,
+              icon: <Icon name={it.icon} size={20} />,
+              href: pathFor(it),
+            }))}
+            onNavigate={(item) => go(item.title)}
+            desktopClassName="secondary-dock-desktop"
+            mobileClassName="secondary-dock-mobile"
+          />
+        </div>
         <main ref={mainRef}>
           <div className="page-heading">
             <div>

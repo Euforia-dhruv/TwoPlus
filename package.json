@@ -14,8 +14,11 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
+    "@tabler/icons-react": "^3.50.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^14.9.0",
     "gsap": "^3.15.0",
+    "motion": "^14.9.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.4",

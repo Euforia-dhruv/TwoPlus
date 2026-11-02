@@ -83,8 +83,17 @@ export default function AppRoutes() {
       <Route path="/terms" element={<Terms />} />
       <Route path="/home" element={<RequireAuth><HomeRedirect /></RequireAuth>} />
       <Route path="/member" element={<RequireAuth><Member /></RequireAuth>} />
+      {/* Two-level workspace nav: /app/:category/:module drives both rails. */}
       <Route
         path="/app"
+        element={
+          <RequireAuth>
+            <Navigate to="/app/overview/overview" replace />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/app/:category/:module"
         element={
           <RequireAuth>
             {/* Owners without an org bounce to onboarding inside DashboardShell */}
