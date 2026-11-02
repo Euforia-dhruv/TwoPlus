@@ -1684,7 +1684,7 @@ html[data-mode="light"] .badge.red {
 .member-card-photo {
   position: relative;
   height: 104px;
-  background: color-mix(in srgb, var(--lime) 14%, var(--field));
+  background: var(--field);
   overflow: hidden;
 }
 
@@ -1694,6 +1694,9 @@ html[data-mode="light"] .badge.red {
   object-fit: cover;
 }
 
+/* Avatar initials on a neutral glass plate. The five per-member hue tones that
+   used to live here were the only random colour left in the app; a name reads
+   fine without one, and the design language has no decorative accents. */
 .member-card-fallback {
   display: grid;
   place-items: center;
@@ -1702,28 +1705,16 @@ html[data-mode="light"] .badge.red {
   font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.03em;
-  color: var(--text);
-  background: color-mix(in srgb, hsl(174 60% 50% / 0.3) 60%, transparent);
+  color: var(--text-2);
+  background: transparent;
 }
 
-.member-card-fallback.tone-0 {
-  background: color-mix(in srgb, hsl(205 60% 50% / 0.34) 60%, transparent);
-}
-
-.member-card-fallback.tone-1 {
-  background: color-mix(in srgb, hsl(26 65% 50% / 0.34) 60%, transparent);
-}
-
-.member-card-fallback.tone-2 {
-  background: color-mix(in srgb, hsl(266 55% 50% / 0.34) 60%, transparent);
-}
-
-.member-card-fallback.tone-3 {
-  background: color-mix(in srgb, hsl(335 60% 50% / 0.34) 60%, transparent);
-}
-
+.member-card-fallback.tone-0,
+.member-card-fallback.tone-1,
+.member-card-fallback.tone-2,
+.member-card-fallback.tone-3,
 .member-card-fallback.tone-4 {
-  background: color-mix(in srgb, hsl(145 50% 50% / 0.34) 60%, transparent);
+  background: transparent;
 }
 
 .member-card-scrim {
@@ -2992,21 +2983,25 @@ html[data-mode="light"] .app-side-floating-dock {
    blur. Dark mode is smoked glass; light mode is white glass. No accent tint
    is mixed into any surface. */
 :root {
-  --glass-bg: rgba(16, 17, 19, 0.42);
-  --glass-bg-hover: rgba(22, 24, 26, 0.52);
-  --glass-bg-strong: rgba(14, 15, 17, 0.84);
+  --glass-bg: rgba(16, 17, 19, 0.68);
+  --glass-bg-hover: rgba(22, 24, 26, 0.76);
+  --glass-bg-strong: rgba(14, 15, 17, 0.9);
   --glass-border: rgba(255, 255, 255, 0.13);
   --glass-border-hover: rgba(255, 255, 255, 0.22);
   --glass-blur: 14px;
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   /* Ink on the overview band, which is always dark. */
   --band-ink: #f4f7f6;
+  /* Native controls (checkboxes, selects, scrollbars) follow the mode; without
+     this a checkbox paints as a white square on the dark surface. */
+  color-scheme: dark;
 }
 
 html[data-mode="light"] {
-  --glass-bg: rgba(255, 255, 255, 0.62);
-  --glass-bg-hover: rgba(255, 255, 255, 0.78);
-  --glass-bg-strong: rgba(255, 255, 255, 0.9);
+  color-scheme: light;
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-bg-hover: rgba(255, 255, 255, 0.9);
+  --glass-bg-strong: rgba(255, 255, 255, 0.94);
   --glass-border: rgba(0, 0, 0, 0.1);
   --glass-border-hover: rgba(0, 0, 0, 0.18);
   --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
@@ -3025,13 +3020,15 @@ html[data-mode="light"] .main-shell {
   background: color-mix(in srgb, var(--card-solid) 26%, transparent);
 }
 
-/* Cards, tiles, tables and empty states: the same regular glass. */
+/* Cards, tiles, tables and empty states: the same regular glass. Dense enough
+   that text never competes with the photograph behind it. */
 .board-chart-card,
 .board-side,
 .board-table,
 .board-card,
 .member-card,
-.empty {
+.empty,
+.stat {
   background: var(--glass-bg);
   border-color: var(--glass-border);
   box-shadow: var(--glass-shadow);
