@@ -34,7 +34,6 @@ dist-ssr
 # Supabase CLI local state
 supabase/.temp
 .vercel
-.env*
 
 # Playwright screenshots and reports
 screenshots

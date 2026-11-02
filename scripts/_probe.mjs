@@ -1,68 +1,47 @@
-// One-off probe: prints rail / shell / topbar rects per style so a flagged
-// layout can be judged as a real bug or a checker assumption.
-import { chromium } from "@playwright/test";
+// throwaway: read-only schema probe against the live project.
+// Missing table -> 404/PGRST205; missing column -> 400/42703. RLS returning
+// an empty array still proves the object exists.
+import { readFileSync } from "node:fs";
 
-const URL = process.env.AUDIT_URL || "http://localhost:5173";
-const CASES = [
-  ["swiss", "strip", 1440, 900],
-  ["ledger", "strip", 1440, 900],
-  ["clay", "clay", 1024, 800],
-  ["wabi", "clay", 1024, 800],
-  ["pocket", "tabs", 1440, 900],
-  ["pocket", "tabs", 1024, 800],
-  ["glass", "float", 1440, 900],
+const env = readFileSync(".env.local", "utf8");
+const url = env.match(/VITE_SUPABASE_URL=(.+)/)[1].trim();
+const key = env.match(/VITE_SUPABASE_ANON_KEY=(.+)/)[1].trim();
+
+const checks = [
+  ["organizations", "id,theme_mode,status"],
+  ["organizations", "theme_style"],
+  ["org_subscriptions", "id,status"],
+  ["platform_plans", "id"],
+  ["admin_audit_log", "id"],
+  ["support_tickets", "id"],
+  ["member_workout_assignments", "id"],
+  ["member_diet_assignments", "id"],
+  ["fitness_measurements", "id"],
+  ["member_progress_photos", "id"],
+  ["member_internal_notes", "id"],
+  ["membership_renewals", "id"],
+  ["workout_plans", "id"],
+  ["diet_plans", "id"],
+  ["classes", "id"],
+  ["class_bookings", "id"],
+  ["equipment", "id"],
+  ["announcements", "id"],
+  ["messages", "id"],
 ];
 
-const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-const page = await ctx.newPage();
-await page.goto(URL, { waitUntil: "networkidle" });
-if (await page.locator('input[type="email"]').count()) {
-  await page.fill('input[type="email"]', process.env.SHOT_EMAIL);
-  await page.fill('input[type="password"]', process.env.SHOT_PASS);
-  await page.click('button[type="submit"]');
-  await page.waitForSelector(".app", { timeout: 20000 });
-}
-await page.waitForFunction(() => !document.body.innerText.includes("Loading your workspace"), { timeout: 15000 }).catch(() => {});
-
-for (const [style, layout, w, h] of CASES) {
-  await page.setViewportSize({ width: w, height: h });
-  await page.evaluate(
-    ([s, l]) => {
-      const r = document.documentElement;
-      r.dataset.style = s;
-      r.dataset.layout = l;
-      r.dataset.mode = "dark";
-    },
-    [style, layout]
-  );
-  await page.waitForTimeout(200);
-  const out = await page.evaluate(() => {
-    const b = (sel) => {
-      const el = document.querySelector(sel);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), Math.round(r.bottom)];
-    };
-    const app = document.querySelector(".app");
-    const cs = getComputedStyle(app);
-    return {
-      rail: b(".floating-rail"),
-      shell: b(".main-shell"),
-      top: b(".topbar"),
-      pad: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft],
-      railCS: (() => {
-        const el = document.querySelector(".floating-rail");
-        const c = getComputedStyle(el);
-        return { pos: c.position, top: c.top, bottom: c.bottom, h: c.height };
-      })(),
-    };
+for (const [table, cols] of checks) {
+  const res = await fetch(`${url}/rest/v1/${table}?select=${encodeURIComponent(cols)}&limit=1`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
   });
-  console.log(
-    `${style}/${layout}/${w}`.padEnd(22),
-    `rail=${JSON.stringify(out.rail)} shell=${JSON.stringify(out.shell)} top=${JSON.stringify(out.top)}`
-  );
-  console.log("".padEnd(22), `appPad=${out.pad.join(" ")} railCS=${JSON.stringify(out.railCS)}`);
+  const body = await res.text();
+  let note = "";
+  if (!res.ok) {
+    try {
+      const j = JSON.parse(body);
+      note = `${j.code ?? ""} ${j.message ?? ""}`.slice(0, 70);
+    } catch {
+      note = body.slice(0, 70);
+    }
+  }
+  console.log(`${String(res.status).padEnd(4)} ${table}(${cols})${note ? " :: " + note : ""}`);
 }
-
-await browser.close();

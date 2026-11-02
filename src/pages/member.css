@@ -169,3 +169,265 @@
   text-align: center;
   padding: 40px 0;
 }
+
+/* --- Workout logging ------------------------------------------------------ */
+
+.mb-logger {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md, 10px);
+  background: var(--field);
+}
+
+.mb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.mb-field > span {
+  color: var(--text-2);
+}
+
+.mb-field input,
+.mb-field select,
+.mb-field textarea,
+.mb-sets-row input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--hairline-2, var(--hairline));
+  border-radius: 8px;
+  background: var(--card-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.mb-field textarea {
+  resize: vertical;
+}
+
+/* Three columns: exercise name, reps, weight. Collapses to stacked fields on a
+   narrow phone so the number inputs stay thumb-sized. */
+.mb-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mb-sets-head,
+.mb-sets-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 88px;
+  gap: 8px;
+  align-items: center;
+}
+
+.mb-sets-head {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.mb-set-name {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mb-link {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.mb-link:hover {
+  color: var(--text);
+}
+
+.mb-logger-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mb-prs {
+  border-top: 1px solid var(--hairline);
+  padding-top: 12px;
+}
+
+.mb-prs h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+
+.mb-prs ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.mb-prs li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mb-prs li span {
+  color: var(--text-2);
+  text-align: right;
+}
+
+@media (max-width: 430px) {
+  .mb-sets-head {
+    display: none;
+  }
+
+  .mb-sets-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .mb-set-name {
+    grid-column: 1 / -1;
+    padding-bottom: 2px;
+  }
+}
+
+
+/* --- Classes ------------------------------------------------------------- */
+
+.mb-classes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mb-class {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--field);
+}
+
+.mb-class-when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  font-size: 13px;
+}
+
+.mb-class-when strong {
+  font-weight: 600;
+}
+
+.mb-class-main {
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mb-class-main h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.mb-seats {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.mb-seats.is-full {
+  color: var(--warn);
+}
+
+/* --- Progress photos ----------------------------------------------------- */
+
+.mb-photo-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.mb-photo-form .mb-field {
+  flex: 1 1 150px;
+}
+
+.mb-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.mb-photo {
+  margin: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--field);
+}
+
+.mb-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+.mb-photo-missing {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.mb-photo figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.mb-photo figcaption small {
+  color: var(--text-3);
+}
+
+.mb-photo .mb-link {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+@media (max-width: 430px) {
+  .mb-class {
+    align-items: flex-start;
+  }
+
+  .mb-class .btn {
+    width: 100%;
+  }
+}

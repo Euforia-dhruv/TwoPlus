@@ -8,13 +8,27 @@ import {
   getMyMemberships,
   getMyPayments,
   getMyWorkoutPlans,
+  getMyWorkoutSessions,
   claimMyMemberAccount,
+  deleteWorkoutSession,
+  logWorkout,
+  getBookableClasses,
+  bookClass,
+  cancelClassBooking,
+  getMyProgressPhotos,
+  uploadProgressPhoto,
+  deleteProgressPhoto,
+  type BookableClass,
   type MyDietPlan,
   type MyMeasurement,
   type MyWorkoutPlan,
+  type ProgressPhoto,
+  type WorkoutSession,
 } from "@/lib/member-api"
 import { formatDate, formatMoney } from "@/lib/types"
 import { Badge } from "@/components/kit"
+import { WorkoutLogger, WorkoutHistory } from "./member-workout"
+import { ClassSchedule, ProgressGallery } from "./member-extras"
 import "./member.css"
 
 type MemberRow = NonNullable<Awaited<ReturnType<typeof getMyMember>>>
@@ -46,6 +60,10 @@ export default function Member() {
   const [workouts, setWorkouts] = useState<MyWorkoutPlan[]>([])
   const [diets, setDiets] = useState<MyDietPlan[]>([])
   const [measurements, setMeasurements] = useState<MyMeasurement[]>([])
+  const [sessions, setSessions] = useState<WorkoutSession[]>([])
+  const [classes, setClasses] = useState<BookableClass[]>([])
+  const [photos, setPhotos] = useState<ProgressPhoto[]>([])
+  const [busyClass, setBusyClass] = useState<string | null>(null)
 
   const loadMember = useCallback(async () => {
     setLoading(true)
@@ -54,13 +72,16 @@ export default function Member() {
     setLoading(false)
     if (!m) return
     const orgId = m.organization_id
-    const [ms, ps, att, wo, di, me] = await Promise.all([
+    const [ms, ps, att, wo, di, me, ws, cl, ph] = await Promise.all([
       getMyMemberships(orgId, m.id).catch(() => []),
       getMyPayments(orgId, m.id).catch(() => []),
       getMyAttendance(orgId, m.id).catch(() => []),
       getMyWorkoutPlans(orgId, m.id).catch(() => []),
       getMyDietPlans(orgId, m.id).catch(() => []),
       getMyMeasurements(orgId, m.id).catch(() => []),
+      getMyWorkoutSessions(m.id).catch(() => []),
+      getBookableClasses(orgId, m.id).catch(() => []),
+      getMyProgressPhotos(orgId, m.id).catch(() => []),
     ])
     setMemberships(ms)
     setPayments(ps)
@@ -68,6 +89,9 @@ export default function Member() {
     setWorkouts(wo)
     setDiets(di)
     setMeasurements(me)
+    setSessions(ws)
+    setClasses(cl)
+    setPhotos(ph)
   }, [])
 
   useEffect(() => {
@@ -167,6 +191,92 @@ export default function Member() {
                 </ul>
               </article>
             ))
+          )}
+        </Section>
+
+        <Section title="Training log">
+          {member && (
+            <WorkoutLogger
+              plans={workouts}
+              onSave={async (input) => {
+                await logWorkout({
+                  organizationId: member.organization_id,
+                  memberId: member.id,
+                  planId: input.planId,
+                  assignmentId: workouts.find((w) => w.id === input.planId)?.assignment_id ?? null,
+                  performedOn: input.performedOn,
+                  durationMinutes: input.durationMinutes,
+                  note: input.note,
+                  sets: input.sets,
+                })
+                setSessions(await getMyWorkoutSessions(member.id).catch(() => []))
+              }}
+            />
+          )}
+          <WorkoutHistory
+            sessions={sessions}
+            onDelete={(id) => {
+              if (!member) return
+              if (!window.confirm("Delete this workout from your history?")) return
+              void deleteWorkoutSession(id)
+                .then(() => setSessions((prev) => prev.filter((s) => s.id !== id)))
+                .catch(() => undefined)
+            }}
+          />
+        </Section>
+
+        <Section title="Classes">
+          <ClassSchedule
+            classes={classes}
+            busyId={busyClass}
+            onBook={(id) => {
+              if (!member) return
+              setBusyClass(id)
+              void bookClass(id)
+                .then(() => getBookableClasses(member.organization_id, member.id))
+                .then(setClasses)
+                .catch((err) =>
+                  window.alert(err instanceof Error ? err.message : "Could not book that class"),
+                )
+                .finally(() => setBusyClass(null))
+            }}
+            onCancel={(id) => {
+              if (!member) return
+              if (!window.confirm("Cancel your booking for this class?")) return
+              setBusyClass(id)
+              void cancelClassBooking(id)
+                .then(() => getBookableClasses(member.organization_id, member.id))
+                .then(setClasses)
+                .catch((err) =>
+                  window.alert(err instanceof Error ? err.message : "Could not cancel that booking"),
+                )
+                .finally(() => setBusyClass(null))
+            }}
+          />
+        </Section>
+
+        <Section title="Progress photos">
+          {member && (
+            <ProgressGallery
+              photos={photos}
+              onUpload={async (file, takenOn, note) => {
+                await uploadProgressPhoto({
+                  orgId: member.organization_id,
+                  memberId: member.id,
+                  file,
+                  takenOn,
+                  note,
+                })
+                setPhotos(await getMyProgressPhotos(member.organization_id, member.id))
+              }}
+              onDelete={(photo) => {
+                if (!member) return
+                if (!window.confirm("Delete this progress photo permanently?")) return
+                void deleteProgressPhoto(photo)
+                  .then(() => setPhotos((prev) => prev.filter((p) => p.id !== photo.id)))
+                  .catch(() => undefined)
+              }}
+            />
           )}
         </Section>
 

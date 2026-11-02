@@ -1,0 +1,91 @@
+name: CI
+
+# Every pull request and every push to the default branch has to pass the same
+# gates a developer runs locally: types, lint, production build, and the
+# Playwright suite. The suite needs a real Supabase project and a real account,
+# so it only runs when those secrets exist; the build gates always run.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Types, lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check and production build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: a secret that was committed and later "removed" is
+          # still in the object store and still leaked.
+          fetch-depth: 0
+
+      - name: Scan history for credentials
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      SHOT_EMAIL: ${{ secrets.SHOT_EMAIL }}
+      SHOT_PASS: ${{ secrets.SHOT_PASS }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # The suite signs in against a real project. Without those secrets it
+      # would fail on a missing account rather than a missing feature, so the
+      # run is skipped instead. Secrets cannot be read in a job-level `if`, but
+      # job-level env is visible to a step-level one.
+      - name: Run the suite
+        if: ${{ env.SHOT_EMAIL != '' }}
+        run: npx playwright test
+
+      - name: Upload the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

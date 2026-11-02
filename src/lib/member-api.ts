@@ -80,6 +80,8 @@ export async function getMyAttendance(
 
 export type MyWorkoutPlan = {
   id: string;
+  /** The assignment row that links this plan to the member. */
+  assignment_id: string;
   name: string;
   goal: string | null;
   description: string | null;
@@ -133,6 +135,7 @@ export async function getMyWorkoutPlans(
     .filter((r) => r.plan)
     .map((r) => ({
       id: r.plan!.id,
+      assignment_id: r.id,
       name: r.plan!.name,
       goal: r.plan!.goal,
       description: r.plan!.description,
@@ -258,9 +261,354 @@ export async function claimMyMemberAccount(): Promise<string | null> {
   return (data ?? null) as string | null;
 }
 
-// Where a signed-in user should land: their member app when the account is
-// linked to a member record, otherwise the staff workspace.
+// Where a signed-in user should land.
+//
+// Staff come first: someone can be both a gym admin and a member of that same
+// gym, and sending them to the member app would hide their whole workspace
+// behind a role check they already pass. Only an account with no workspace
+// role at all lands in the member app.
 export async function myHomePath(): Promise<string> {
+  const { data: user } = await getSupabase().auth.getUser();
+  if (!user.user) return "/login";
+
+  // organization_members has no id column; its key is (organization_id, user_id).
+  const { data: staffRows, error } = await getSupabase()
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", user.user.id)
+    .limit(1);
+
+  // A failed read must not silently demote a staff account to the member app.
+  if (error) return "/app";
+  if (staffRows?.length) return "/app";
+
   const member = await getMyMember().catch(() => null);
   return member ? "/member" : "/app";
 }
+
+// --- Workout logging (migration 0012) ---------------------------------------
+//
+// A session is one training day; its sets are the individual lifts. Writes go
+// straight to the tables under RLS, and the unique index on
+// (member_id, performed_on, assignment) makes a repeated "finish" tap
+// idempotent rather than creating duplicate sessions.
+
+export type LoggedSet = {
+  exercise_id: string | null;
+  exercise_name: string;
+  set_number: number;
+  reps: number | null;
+  weight_kg: number | null;
+};
+
+export type WorkoutSession = {
+  id: string;
+  performed_on: string;
+  duration_minutes: number | null;
+  note: string | null;
+  completed_at: string | null;
+  plan_name: string | null;
+  sets: LoggedSet[];
+};
+
+export async function getMyWorkoutSessions(
+  memberId: string,
+  limit = 30,
+): Promise<WorkoutSession[]> {
+  const { data, error } = await getSupabase()
+    .from("workout_sessions")
+    .select(
+      "id, performed_on, duration_minutes, note, completed_at, plan:workout_plans(name), sets:workout_sets(exercise_id, exercise_name, set_number, reps, weight_kg)",
+    )
+    .eq("member_id", memberId)
+    .order("performed_on", { ascending: false })
+    .limit(limit);
+  throwIf(error, "Could not load your workout history");
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    performed_on: string;
+    duration_minutes: number | null;
+    note: string | null;
+    completed_at: string | null;
+    plan: { name: string } | null;
+    sets: LoggedSet[] | null;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    performed_on: r.performed_on,
+    duration_minutes: r.duration_minutes,
+    note: r.note,
+    completed_at: r.completed_at,
+    plan_name: r.plan?.name ?? null,
+    sets: (r.sets ?? []).slice().sort((a, b) => a.set_number - b.set_number),
+  }));
+}
+
+// Records one training day. Re-submitting the same day updates that day's
+// session instead of inserting a second one, so a double tap is harmless.
+export async function logWorkout(input: {
+  organizationId: string;
+  memberId: string;
+  planId: string | null;
+  assignmentId: string | null;
+  performedOn: string;
+  durationMinutes: number | null;
+  note: string | null;
+  sets: Omit<LoggedSet, "set_number">[];
+}): Promise<string> {
+  const supabase = getSupabase();
+
+  let find = supabase
+    .from("workout_sessions")
+    .select("id")
+    .eq("member_id", input.memberId)
+    .eq("performed_on", input.performedOn);
+  // A null assignment means an ad-hoc session. .eq(null) emits "= null", which
+  // never matches in SQL, so NULL needs .is().
+  find = input.assignmentId
+    ? find.eq("assignment_id", input.assignmentId)
+    : find.is("assignment_id", null);
+
+  const { data: existing, error: findError } = await find.maybeSingle();
+  throwIf(findError, "Could not save your workout");
+
+  let sessionId = (existing as { id: string } | null)?.id ?? null;
+
+  if (sessionId) {
+    const { error } = await supabase
+      .from("workout_sessions")
+      .update({
+        duration_minutes: input.durationMinutes,
+        note: input.note,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+    throwIf(error, "Could not update your workout");
+    // Replace the set list: the member re-entered the whole session.
+    const { error: clearError } = await supabase
+      .from("workout_sets")
+      .delete()
+      .eq("session_id", sessionId);
+    throwIf(clearError, "Could not update your workout");
+  } else {
+    const { data: created, error } = await supabase
+      .from("workout_sessions")
+      .insert({
+        organization_id: input.organizationId,
+        member_id: input.memberId,
+        plan_id: input.planId,
+        assignment_id: input.assignmentId,
+        performed_on: input.performedOn,
+        duration_minutes: input.durationMinutes,
+        note: input.note,
+        completed_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    throwIf(error, "Could not save your workout");
+    sessionId = (created as { id: string }).id;
+  }
+
+  if (input.sets.length) {
+    const { error } = await supabase.from("workout_sets").insert(
+      input.sets.map((s, i) => ({
+        session_id: sessionId,
+        exercise_id: s.exercise_id,
+        exercise_name: s.exercise_name,
+        set_number: i + 1,
+        reps: s.reps,
+        weight_kg: s.weight_kg,
+      })),
+    );
+    throwIf(error, "Could not save your sets");
+  }
+
+  return sessionId;
+}
+
+export async function deleteWorkoutSession(sessionId: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from("workout_sessions")
+    .delete()
+    .eq("id", sessionId);
+  throwIf(error, "Could not delete this workout");
+}
+
+// --- Classes (migration 0013) ----------------------------------------------
+//
+// Reading classes and writing bookings both go through RLS policies that key
+// off the caller's linked member row, and booking goes through book_class()
+// because capacity has to be enforced server-side.
+
+export type BookableClass = {
+  id: string;
+  name: string;
+  starts_at: string;
+  duration_minutes: number;
+  capacity: number;
+  branch: string | null;
+  trainer: string | null;
+  /** How many seats are taken, counted from real bookings. */
+  booked: number;
+  /** The caller's booking id when they hold a seat, otherwise null. */
+  my_booking: string | null;
+};
+
+export async function getBookableClasses(
+  orgId: string,
+  memberId: string,
+  limit = 30,
+): Promise<BookableClass[]> {
+  const { data, error } = await getSupabase()
+    .from("classes")
+    .select(
+      "id, name, starts_at, duration_minutes, capacity, branch:branches(name), trainer:staff(name), bookings:class_bookings(id, member_id, status)",
+    )
+    .eq("organization_id", orgId)
+    .eq("status", "scheduled")
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+  throwIf(error, "Could not load the class schedule");
+
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    name: string;
+    starts_at: string;
+    duration_minutes: number;
+    capacity: number;
+    branch: { name: string } | null;
+    trainer: { name: string } | null;
+    bookings: { id: string; member_id: string; status: string }[];
+  }[];
+
+  // RLS only exposes the caller's own bookings, so the embedded relation can
+  // never count other people. Seat counts come from the aggregate RPC, which
+  // returns numbers without revealing who holds them.
+  const { data: seats } = await getSupabase().rpc("class_seats");
+  const taken = new Map(
+    ((seats ?? []) as { class_id: string; booked: number }[]).map((s) => [
+      s.class_id,
+      s.booked,
+    ]),
+  );
+
+  return rows.map((r) => {
+    const mine = r.bookings.find((b) => b.member_id === memberId && b.status === "booked");
+    return {
+      id: r.id,
+      name: r.name,
+      starts_at: r.starts_at,
+      duration_minutes: r.duration_minutes,
+      capacity: r.capacity,
+      branch: r.branch?.name ?? null,
+      trainer: r.trainer?.name ?? null,
+      booked: taken.get(r.id) ?? 0,
+      my_booking: mine?.id ?? null,
+    };
+  });
+}
+
+export async function bookClass(classId: string): Promise<void> {
+  const { error } = await getSupabase().rpc("book_class", { p_class_id: classId });
+  throwIf(error, "Could not book that class");
+}
+
+export async function cancelClassBooking(classId: string): Promise<void> {
+  const { error } = await getSupabase().rpc("cancel_class_booking", {
+    p_class_id: classId,
+  });
+  throwIf(error, "Could not cancel that booking");
+}
+
+// --- Progress photos -------------------------------------------------------
+//
+// Fitness photographs are the most sensitive rows a member owns, so the bucket
+// is private and every read goes through a short-lived signed URL rather than a
+// public link.
+
+const PROGRESS_BUCKET = "member-progress";
+
+export type ProgressPhoto = {
+  id: string;
+  taken_on: string;
+  storage_path: string;
+  note: string | null;
+  url: string | null;
+};
+
+export async function getMyProgressPhotos(
+  orgId: string,
+  memberId: string,
+): Promise<ProgressPhoto[]> {
+  const { data, error } = await getSupabase()
+    .from("member_progress_photos")
+    .select("id, taken_on, storage_path, note")
+    .eq("organization_id", orgId)
+    .eq("member_id", memberId)
+    .order("taken_on", { ascending: false })
+    .limit(24);
+  throwIf(error, "Could not load your progress photos");
+
+  const rows = (data ?? []) as Omit<ProgressPhoto, "url">[];
+  if (!rows.length) return [];
+
+  const { data: signed } = await getSupabase()
+    .storage
+    .from(PROGRESS_BUCKET)
+    .createSignedUrls(
+      rows.map((r) => r.storage_path),
+      60 * 10,
+    );
+
+  const byPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  return rows.map((r) => ({ ...r, url: byPath.get(r.storage_path) ?? null }));
+}
+
+export async function uploadProgressPhoto(input: {
+  orgId: string;
+  memberId: string;
+  file: File;
+  takenOn: string;
+  note?: string;
+}): Promise<void> {
+  const ext = (input.file.name.split(".").pop() ?? "jpg")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  const path = `${input.orgId}/${input.memberId}/${crypto.randomUUID()}.${ext}`;
+
+  const { error: upErr } = await getSupabase()
+    .storage
+    .from(PROGRESS_BUCKET)
+    .upload(path, input.file, { cacheControl: "3600", upsert: false });
+  throwIf(upErr, "Could not upload that photo");
+
+  const { error } = await getSupabase().from("member_progress_photos").insert({
+    organization_id: input.orgId,
+    member_id: input.memberId,
+    taken_on: input.takenOn,
+    storage_path: path,
+    note: input.note?.trim() || null,
+  });
+
+  if (error) {
+    // Don't leave an orphaned object behind if the row fails.
+    await getSupabase().storage.from(PROGRESS_BUCKET).remove([path]);
+    throw err(error.message || "Could not save that photo");
+  }
+}
+
+export async function deleteProgressPhoto(
+  photo: Pick<ProgressPhoto, "id" | "storage_path">,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("member_progress_photos")
+    .delete()
+    .eq("id", photo.id);
+  throwIf(error, "Could not delete that photo");
+  await getSupabase().storage.from(PROGRESS_BUCKET).remove([photo.storage_path]);
+}
+
+export { personalRecords } from "./workout-stats";
+export type { PersonalRecord } from "./workout-stats";
