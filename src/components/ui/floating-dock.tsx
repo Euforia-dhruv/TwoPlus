@@ -134,7 +134,7 @@ const FloatingDockDesktop = ({
       onMouseLeave={() => mouse.set(Infinity)}
       className={cn(
         "mx-auto hidden h-16 items-end gap-4 rounded-2xl bg-gray-50 px-4 pb-3 md:flex dark:bg-neutral-900",
-        vertical && "h-auto w-[68px] flex-col items-center gap-3 px-2 py-3",
+        vertical && "h-auto w-[64px] flex-col items-center gap-2 px-2 py-2.5",
         className,
       )}
     >
@@ -176,14 +176,14 @@ function IconContainer({
     return vertical ? val - bounds.y - bounds.height / 2 : val - bounds.x - bounds.width / 2;
   });
 
-  let widthTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
-  let heightTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
+  let widthTransform = useTransform(distance, [-150, 0, 150], [40, 62, 40]);
+  let heightTransform = useTransform(distance, [-150, 0, 150], [40, 62, 40]);
 
-  let widthTransformIcon = useTransform(distance, [-150, 0, 150], [20, 40, 20]);
+  let widthTransformIcon = useTransform(distance, [-150, 0, 150], [20, 32, 20]);
   let heightTransformIcon = useTransform(
     distance,
     [-150, 0, 150],
-    [20, 40, 20],
+    [20, 32, 20],
   );
 
   let width = useSpring(widthTransform, {
