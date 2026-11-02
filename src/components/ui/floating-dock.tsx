@@ -215,10 +215,7 @@ function IconContainer({
         style={{ width, height }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={cn(
-          "relative flex aspect-square items-center justify-center rounded-full",
-          selected ? "bg-gray-300 dark:bg-neutral-700" : "bg-gray-200 dark:bg-neutral-800",
-        )}
+        className="relative flex aspect-square items-center justify-center"
       >
         <AnimatePresence>
           {hovered && (
@@ -240,13 +237,8 @@ function IconContainer({
           )}
         </AnimatePresence>
         <motion.div
-          style={{ width: widthIcon, height: heightIcon }}
-          className={cn(
-            "flex items-center justify-center",
-            selected
-              ? "text-neutral-900 dark:text-white"
-              : "text-neutral-500 dark:text-neutral-400",
-          )}
+          style={{ width: widthIcon, height: heightIcon, color: selected ? "var(--lime)" : "var(--text-3)" }}
+          className="flex items-center justify-center"
         >
           {icon}
         </motion.div>
