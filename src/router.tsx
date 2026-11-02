@@ -55,7 +55,10 @@ function RequireNoOrg({ children }: { children: ReactNode }) {
   const { org, loading: orgLoading } = useOrg();
   if (authLoading || orgLoading) return <Splash text="Loading" />;
   if (!session) return <Navigate to="/login" replace />;
-  if (org) return <Navigate to="/app" replace />;
+  // While the post-registration initialization screen is running, keep the
+  // owner on it even though the workspace row already exists.
+  const initializing = sessionStorage.getItem("twoplus-initializing") === "1";
+  if (org && !initializing) return <Navigate to="/app" replace />;
   return <>{children}</>;
 }
 

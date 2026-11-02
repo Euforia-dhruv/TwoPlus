@@ -4,6 +4,7 @@ import { createOrganization } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/org";
 import { AuthLayout } from "./AuthLayout";
+import { InitExperience } from "@/components/onboarding/InitExperience";
 
 const TIMEZONES = [
   "Asia/Kolkata",
@@ -18,7 +19,7 @@ const TIMEZONES = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { org, loading: orgLoading, reload } = useOrg();
+  const { org, loading: orgLoading } = useOrg();
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -32,6 +33,7 @@ export default function Onboarding() {
   const [branchName, setBranchName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showInit, setShowInit] = useState(false);
 
   // Prefill from signup metadata when available.
   useEffect(() => {
@@ -44,9 +46,10 @@ export default function Onboarding() {
 
   // Already onboarded → straight to the dashboard. Also covers a retried
   // onboarding after a network drop (the RPC is idempotent per owner).
+  // Skipped while the initialization experience is showing.
   useEffect(() => {
-    if (!orgLoading && org) navigate("/app", { replace: true });
-  }, [org, orgLoading, navigate]);
+    if (!orgLoading && org && !showInit) navigate("/app", { replace: true });
+  }, [org, orgLoading, navigate, showInit]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -63,11 +66,28 @@ export default function Onboarding() {
         timezone,
         branchName: branchName.trim() || undefined,
       });
-      reload(); // OrgProvider picks up the new org → guard redirects to "/"
+      // Enter the initialization experience. The router guard keeps the user
+      // here until it completes (see RequireNoOrg in router.tsx).
+      sessionStorage.setItem("twoplus-initializing", "1");
+      setShowInit(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the gym.");
       setLoading(false);
     }
+  }
+
+  if (showInit) {
+    return (
+      <InitExperience
+        draft={{
+          name: name.trim(),
+          phone: phone.trim() || undefined,
+          address: address.trim() || undefined,
+          timezone,
+          branchName: branchName.trim() || undefined,
+        }}
+      />
+    );
   }
 
   return (
