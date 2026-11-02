@@ -5770,18 +5770,7 @@ html[data-style="sketch"] .eyebrow {
   row-gap: 4px;
 }
 
-.uh-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex: none;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--card-solid) 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--lime) 24%, transparent);
-  color: var(--lime);
-}
+
 
 .demo-label {
   font-size: 12px;

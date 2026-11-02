@@ -1166,9 +1166,6 @@ export default function App() {
       <div className="main-shell">
         <header className="unified-header">
           <div className="uh-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
-            <span className="uh-icon" title={activeCat.label} aria-label={`${activeCat.label} section`}>
-              <Icon name={activeCat.icon} size={18} />
-            </span>
             <FloatingDock
               items={activeCat.items.map((it) => ({
                 title: it.label,
