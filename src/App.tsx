@@ -7,6 +7,7 @@ import { MemberCard, MemberCardSkeleton } from "@/components/MemberCard"
 import { HoldButton } from "@/components/HoldButton"
 import { useNavigate, useParams } from "react-router-dom"
 import { GlassDock } from "@/components/ui/glass-dock"
+import { FloatingDock } from "@/components/ui/floating-dock"
 import BellToggle from "@/components/ui/BellToggle"
 import {
   DEFAULT_CATEGORY,
@@ -1146,20 +1147,18 @@ export default function App() {
   const addBlocked = !!module && !hasDbStorage(active) && needsMigration(active)
   return (
     <div className={`app ${active === "Overview" ? "summary-view" : ""}`}>
-      <nav className="floating-rail compact-module-rail" aria-label="Main navigation">
-        <button className="glass-brand" onClick={() => go("Overview")} aria-label="TwoPlus home">
-          <Icon name="activity" size={20} />
-          <span className="rail-label" aria-hidden="true">TwoPlus</span>
-        </button>
-        <GlassDock
+      <nav className="app-side-nav" aria-label="Main navigation">
+        <FloatingDock
           vertical
           activeTitle={activeCat.label}
+          desktopClassName="app-side-floating-dock"
+          mobileClassName="app-side-mobile"
           items={NAV_CATEGORIES.map((c) => ({
             title: c.label,
-            icon: () => <Icon name={c.icon} size={22} />,
-            onClick: () => go(c.items[0].label),
+            icon: <Icon name={c.icon} size={22} />,
+            href: pathFor(c.items[0]),
           }))}
-          dockClassName="app-side-dock"
+          onNavigate={(item) => go(item.title)}
         />
       </nav>
       <div className="main-shell">

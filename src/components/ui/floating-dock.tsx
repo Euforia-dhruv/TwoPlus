@@ -25,15 +25,25 @@ export const FloatingDock = ({
   desktopClassName,
   mobileClassName,
   onNavigate,
+  vertical = false,
+  activeTitle,
 }: {
   items: FloatingDockItem[];
   desktopClassName?: string;
   mobileClassName?: string;
   onNavigate?: (item: FloatingDockItem) => void;
+  vertical?: boolean;
+  activeTitle?: string;
 }) => {
   return (
     <>
-      <FloatingDockDesktop items={items} className={desktopClassName} onNavigate={onNavigate} />
+      <FloatingDockDesktop
+        items={items}
+        className={desktopClassName}
+        onNavigate={onNavigate}
+        vertical={vertical}
+        activeTitle={activeTitle}
+      />
       <FloatingDockMobile items={items} className={mobileClassName} onNavigate={onNavigate} />
     </>
   );
@@ -108,47 +118,62 @@ const FloatingDockDesktop = ({
   items,
   className,
   onNavigate,
+  vertical = false,
+  activeTitle,
 }: {
   items: FloatingDockItem[];
   className?: string;
   onNavigate?: (item: FloatingDockItem) => void;
+  vertical?: boolean;
+  activeTitle?: string;
 }) => {
-  let mouseX = useMotionValue(Infinity);
+  const mouse = useMotionValue(Infinity);
   return (
     <motion.div
-      onMouseMove={(e) => mouseX.set(e.pageX)}
-      onMouseLeave={() => mouseX.set(Infinity)}
+      onMouseMove={(e) => mouse.set(vertical ? e.clientY : e.pageX)}
+      onMouseLeave={() => mouse.set(Infinity)}
       className={cn(
         "mx-auto hidden h-16 items-end gap-4 rounded-2xl bg-gray-50 px-4 pb-3 md:flex dark:bg-neutral-900",
+        vertical && "h-auto w-[68px] flex-col items-center gap-3 px-2 py-3",
         className,
       )}
     >
       {items.map((item) => (
-        <IconContainer mouseX={mouseX} key={item.title} onNavigate={onNavigate} {...item} />
+        <IconContainer
+          mouse={mouse}
+          key={item.title}
+          onNavigate={onNavigate}
+          vertical={vertical}
+          activeTitle={activeTitle}
+          {...item}
+        />
       ))}
     </motion.div>
   );
 };
 
 function IconContainer({
-  mouseX,
+  mouse,
   title,
   icon,
   href,
   onNavigate,
+  vertical = false,
+  activeTitle,
 }: {
-  mouseX: MotionValue;
+  mouse: MotionValue;
   title: string;
   icon: React.ReactNode;
   href: string;
   onNavigate?: (item: FloatingDockItem) => void;
+  vertical?: boolean;
+  activeTitle?: string;
 }) {
   let ref = useRef<HTMLDivElement>(null);
 
-  let distance = useTransform(mouseX, (val) => {
-    let bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
-
-    return val - bounds.x - bounds.width / 2;
+  let distance = useTransform(mouse, (val) => {
+    let bounds = ref.current?.getBoundingClientRect() ?? { x: 0, y: 0, width: 0, height: 0 };
+    return vertical ? val - bounds.y - bounds.height / 2 : val - bounds.x - bounds.width / 2;
   });
 
   let widthTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
@@ -184,10 +209,13 @@ function IconContainer({
   });
 
   const [hovered, setHovered] = useState(false);
+  const selected = hovered || title === activeTitle;
 
   return (
     <a
       href={href}
+      aria-label={title}
+      title={title}
       onClick={
         onNavigate
           ? (e) => {
@@ -202,15 +230,25 @@ function IconContainer({
         style={{ width, height }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="relative flex aspect-square items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-800"
+        className={cn(
+          "relative flex aspect-square items-center justify-center rounded-full",
+          selected ? "bg-gray-300 dark:bg-neutral-700" : "bg-gray-200 dark:bg-neutral-800",
+        )}
       >
         <AnimatePresence>
           {hovered && (
             <motion.div
-              initial={{ opacity: 0, y: 10, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: 2, x: "-50%" }}
-              className="absolute -top-8 left-1/2 w-fit rounded-md border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs whitespace-pre text-neutral-700 dark:border-neutral-900 dark:bg-neutral-800 dark:text-white"
+              initial={{ opacity: 0, x: vertical ? -6 : 0, y: vertical ? 0 : 10 }}
+              animate={{ opacity: 1, x: vertical ? 0 : "-50%", y: vertical ? 0 : 0 }}
+              exit={{ opacity: 0, x: vertical ? -4 : 0, y: vertical ? 0 : 2 }}
+              className={cn(
+                "w-fit whitespace-pre rounded-md border px-2 py-0.5 text-xs",
+                "border-gray-200 bg-gray-100 text-neutral-700",
+                "dark:border-neutral-900 dark:bg-neutral-800 dark:text-white",
+                vertical
+                  ? "absolute left-full top-1/2 ml-3 -translate-y-1/2"
+                  : "absolute -top-8 left-1/2 -translate-x-1/2",
+              )}
             >
               {title}
             </motion.div>
@@ -218,7 +256,12 @@ function IconContainer({
         </AnimatePresence>
         <motion.div
           style={{ width: widthIcon, height: heightIcon }}
-          className="flex items-center justify-center"
+          className={cn(
+            "flex items-center justify-center",
+            selected
+              ? "text-neutral-900 dark:text-white"
+              : "text-neutral-500 dark:text-neutral-400",
+          )}
         >
           {icon}
         </motion.div>
