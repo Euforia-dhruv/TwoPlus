@@ -151,7 +151,7 @@ table {
   --topbar-bg: rgba(16, 22, 25, 0.66);
   --shell-bg: rgba(255, 255, 255, 0.05);
 
-  --ws-photo: url("https://images.unsplash.com/photo-1671970922029-0430d2ae122c?auto=format&fit=crop&w=2400&q=85");
+  --ws-photo: url("/backdrop.jpg");
   /* Solid ink band behind the figures on Overview. Themes may repaint the
      element, so nothing else depends on this value. */
   --hero-band: #10171a;
@@ -163,10 +163,10 @@ table {
     ),
     url("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=80");
   --ws-tint: linear-gradient(
-    165deg,
-    rgba(9, 14, 16, 0.62),
-    rgba(9, 14, 16, 0.72) 55%,
-    rgba(6, 10, 12, 0.82)
+    170deg,
+    rgba(8, 10, 12, 0.38),
+    rgba(7, 9, 11, 0.52) 55%,
+    rgba(5, 7, 9, 0.62)
   );
   --ws-bg: var(--ws-tint), var(--ws-photo);
 }
@@ -222,10 +222,10 @@ html[data-mode="light"] {
   --shell-bg: rgba(255, 255, 255, 0.24);
 
   --ws-tint: linear-gradient(
-    165deg,
-    rgba(236, 240, 239, 0.42),
-    rgba(226, 232, 231, 0.32) 55%,
-    rgba(214, 222, 219, 0.4)
+    170deg,
+    rgba(245, 247, 246, 0.3),
+    rgba(232, 236, 234, 0.24) 55%,
+    rgba(220, 225, 222, 0.3)
   );
 }
 
@@ -309,9 +309,9 @@ body::after {
   pointer-events: none;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--app-bg) 34%, transparent),
-    color-mix(in srgb, var(--app-bg) 58%, transparent) 58%,
-    color-mix(in srgb, var(--app-bg) 72%, transparent)
+    color-mix(in srgb, var(--app-bg) 22%, transparent),
+    color-mix(in srgb, var(--app-bg) 40%, transparent) 58%,
+    color-mix(in srgb, var(--app-bg) 55%, transparent)
   );
 }
 
@@ -5889,4 +5889,82 @@ html[data-style="sketch"] .eyebrow {
 .account-link:hover {
   background: var(--card-hover);
   color: var(--text);
+}
+
+/* ---------- 24. Glass design system ---------- */
+
+/* Shared glass tokens. Underlying theme tokens still drive ink, accents and
+   per-style variants; these add the translucent surface language on top. */
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.055);
+  --glass-bg-hover: rgba(255, 255, 255, 0.09);
+  --glass-bg-strong: rgba(20, 25, 27, 0.48);
+  --glass-border: rgba(255, 255, 255, 0.13);
+  --glass-border-hover: rgba(255, 255, 255, 0.22);
+  --glass-blur: 18px;
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+}
+
+html[data-mode="light"] {
+  --glass-bg: rgba(255, 255, 255, 0.42);
+  --glass-bg-hover: rgba(255, 255, 255, 0.56);
+  --glass-bg-strong: rgba(20, 25, 27, 0.32);
+  --glass-border: rgba(10, 18, 20, 0.1);
+  --glass-border-hover: rgba(10, 18, 20, 0.18);
+  --glass-shadow: 0 8px 28px rgba(15, 28, 32, 0.12);
+}
+
+/* Shell: a translucent floating pane, not an opaque panel. */
+.main-shell {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+
+/* Cards: regular glass. */
+.board-card,
+.member-card,
+.empty {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--inset-hi);
+}
+
+.board-card:hover,
+.member-card:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+}
+
+/* Hero band: stronger frosted surface so figures stay readable. */
+.board-hero {
+  --hero-band: rgba(14, 18, 21, 0.55);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+
+/* Controls: inset glass. */
+.input {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+
+/* Menus and dialogs: frosted glass. */
+.account-panel,
+.modal {
+  background: color-mix(in srgb, var(--card-solid) 60%, transparent);
+  border-color: var(--glass-border);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+
+/* Readable fallback where backdrop-filter is unsupported. */
+@supports not (backdrop-filter: blur(1px)) {
+  .main-shell,
+  .board-card,
+  .account-panel,
+  .modal {
+    background: var(--glass-bg-strong);
+  }
 }
