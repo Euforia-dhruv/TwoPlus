@@ -5779,11 +5779,11 @@ html[data-style="sketch"] .eyebrow {
      clear air gap before the dashboard glass container. */
   margin: 14px 24px 18px 112px;
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--card-solid) 70%, transparent);
-  border: 1px solid var(--hairline-2);
-  box-shadow: var(--card-shadow), var(--inset-hi);
-  backdrop-filter: blur(var(--blur-shell)) saturate(150%);
-  -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(150%);
+  /* Header itself is not a surface: the spotlight pill floats over the
+     background on its own. */
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .uh-nav {
@@ -5954,22 +5954,72 @@ html[data-mode="light"] {
   }
 }
 
-/* ---------- 25. Spotlight navbar: floating glass pill ---------- */
+/* ---------- 25. Spotlight navbar ---------- */
 
-.spotlight-nav {
-  background: color-mix(in srgb, var(--card-solid) 30%, transparent);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+/* The registry ships three class names it never defines (spotlight-nav-bg,
+   glass-border, spotlight-nav-shadow), so define them here. Fill lives on
+   -bg because that class is emitted after .spotlight-nav and would otherwise
+   win with a transparent background. */
+.spotlight-nav-bg {
+  background: rgba(10, 12, 14, 0.72);
 }
 
-.spotlight-nav-bg {
-  background: transparent;
+.spotlight-nav {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 .spotlight-nav-shadow {
-  box-shadow: inherit;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html[data-mode="light"] .spotlight-nav-bg {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+html[data-mode="light"] .spotlight-nav {
+  border-color: rgba(10, 18, 20, 0.1);
+}
+
+/* Ambience (active-item light) is a 2px bar clipped by overflow-hidden, so give
+   it a little height and blur to read like the reference glow. */
+.spotlight-nav > div[style*="--ambience-x"] {
+  height: 10px;
+  filter: blur(2px);
+}
+
+/* The stock component picks label colours from Tailwind's `dark` class, which
+   this app never sets (it uses data-mode), so active labels went black on a
+   dark pill. Drive them from data-active instead. */
+.spotlight-nav a[data-active="true"] {
+  color: #fff;
+}
+
+.spotlight-nav a {
+  text-decoration: none;
+}
+
+.spotlight-nav a[data-active="false"] {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.spotlight-nav a[data-active="false"]:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-mode="light"] .spotlight-nav a[data-active="true"] {
+  color: #0b1113;
+}
+
+html[data-mode="light"] .spotlight-nav a[data-active="false"] {
+  color: rgba(11, 17, 19, 0.55);
+}
+
+html[data-mode="light"] .spotlight-nav a[data-active="false"]:hover {
+  color: rgba(11, 17, 19, 0.92);
 }
 
 /* ---------- 26. Opaque content boxes ---------- */

@@ -123,6 +123,7 @@ export function SpotlightNavbar({
                             <a
                                 href={item.href}
                                 data-index={idx}
+                                data-active={activeIndex === idx}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     handleItemClick(item, idx);
@@ -182,15 +183,15 @@ export function SpotlightNavbar({
         without messy inline conditionals.
       */}
             <style>{`
-        nav {
-          /* Light Mode Colors: Dark Gray/Black lights */
-          --spotlight-color: rgba(0,0,0,0.08);
-          --ambience-color: rgba(0,0,0,0.8);
-        }
-        :global(.dark) nav {
+        .spotlight-nav {
           /* Dark Mode Colors: White lights */
           --spotlight-color: rgba(255,255,255,0.15);
           --ambience-color: rgba(255,255,255,1);
+        }
+        html[data-mode="light"] .spotlight-nav {
+          /* Light Mode Colors: Dark Gray/Black lights */
+          --spotlight-color: rgba(0,0,0,0.08);
+          --ambience-color: rgba(0,0,0,0.8);
         }
       `}</style>
         </div>
