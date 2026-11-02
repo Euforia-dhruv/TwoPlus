@@ -1,23 +1,11 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+// The app has two modes over one glass token set: no style catalogue is left to
+// enumerate, so the shared helper only carries the WCAG maths and the mode list.
+export type Spec = { id: "dark" | "light" };
 
-// The registry is the single source of truth, so the tests read it rather than
-// keeping their own style list (a hand-kept list silently drifted before).
-export type Spec = { id: string; layout: string };
+export const MODES: Spec[] = [{ id: "dark" }, { id: "light" }];
 
-export function loadRegistry(): Spec[] {
-  const source = readFileSync(join(import.meta.dirname, "../../src/lib/theme.tsx"), "utf8");
-  const specs = [...source.matchAll(/\{ id: "([a-z0-9]+)"[^}]*?layout: "([a-z]+)"/g)].map(
-    ([, id, layout]) => ({ id, layout })
-  );
-  if (specs.length < 20) throw new Error(`Registry parse found ${specs.length} styles`);
-  return specs;
-}
-
-/** Layouts whose navigation sits on a left/right edge and must clear content. */
-export const SIDE = new Set(["float", "docked", "operator", "index"]);
 /** Layouts that show text labels at wide sizes. */
-export const LABELLED = new Set(["docked", "index", "strip", "clay"]);
+export const LABELLED = new Set(["float"]);
 
 // --- WCAG maths -------------------------------------------------------------
 

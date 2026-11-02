@@ -100,7 +100,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     items: [
       item("settings", "Settings", "settings"),
       item("access-roles", "Access & roles", "shield"),
-      item("design-studio", "Design Studio", "grid"),
       item("member-app", "Member app", "mobile"),
     ],
   },

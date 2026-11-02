@@ -18,15 +18,12 @@ import {
   itemByLabel,
   pathFor,
 } from "@/lib/navigation"
-import { DesignStudio } from "@/pages/Studio"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
 import { usePlatformAdmin } from "@/lib/use-platform-admin"
 import {
   DEFAULT_THEME,
-  THEME_STYLES,
   applyTheme,
-  safeImageUrl,
   themeFromOrg,
   type ThemeMode,
   type WorkspaceTheme,
@@ -70,7 +67,6 @@ const descriptions: Record<string, string> = {
   Payroll: "Stay on top of salaries, commissions, and incentives.",
   Marketplace: "Equip your next chapter. Sourced for gym owners.",
   Settings: "Make this workspace feel like your gym, not a template.",
-  "Design Studio": "Every design language, rendered with the real components.",
 }
 type Member = {
   name: string
@@ -632,25 +628,16 @@ export default function App() {
   // The workspace appearance lives on the organization row, so every member of
   // the gym sees the owner's choice. Applied on the document root.
   const [theme, setTheme] = useState<WorkspaceTheme>(DEFAULT_THEME)
-  const [themeBusy, setThemeBusy] = useState(false)
-  const [themeError, setThemeError] = useState("")
   // Client-side guard for the controls only: the write itself is enforced by the
   // "org update owner" RLS policy, so staff edits still fail server-side.
   const isOwner = org?.role === "owner"
-  // Raw text field value; kept separate so a mistyped URL can be corrected
-  // without applying a broken preview.
-  const [imageInput, setImageInput] = useState("")
-  // Hidden file picker for uploading a custom background image from disk.
-  const bgFileRef = useRef<HTMLInputElement>(null)
-  const [uploadBusy, setUploadBusy] = useState(false)
   useEffect(() => {
     const next = org ? themeFromOrg(org.organization) : DEFAULT_THEME
     setTheme(next)
-    setImageInput(next.image ?? "")
     applyTheme(next)
   }, [org])
 
-  // Preview applies instantly; saving persists the choice for the whole gym.
+  // Applies instantly; saving persists the mode for the whole gym.
   const updateTheme = (patch: Partial<WorkspaceTheme>) => {
     setTheme((current) => {
       const next = { ...current, ...patch }
@@ -658,57 +645,18 @@ export default function App() {
       return next
     })
   }
-  const saveTheme = async () => {
+  const saveTheme = async (next: WorkspaceTheme = theme) => {
     if (!org) return
-    setThemeBusy(true)
-    setThemeError("")
     try {
       await api.saveOrganizationTheme(org.organization.id, {
-        preset: theme.preset,
-        mode: theme.mode,
-        style: theme.style,
-        image: theme.image,
+        mode: next.mode,
       })
       reloadOrg()
-      notify("Workspace appearance saved")
+      notify("Appearance saved")
     } catch (error) {
-      setThemeError(
+      notify(
         error instanceof Error ? error.message : "Could not save the appearance",
       )
-    } finally {
-      setThemeBusy(false)
-    }
-  }
-
-  // Uploads a local image as the workspace background. The file goes to the
-  // workspace-media bucket (0008); the returned public URL becomes the image
-  // value, waiting for the owner to save.
-  const handleUploadBackground = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0]
-    event.target.value = ""
-    if (!file || !org) return
-    if (!file.type.startsWith("image/")) {
-      setThemeError("That file is not an image.")
-      return
-    }
-    if (file.size > 6 * 1024 * 1024) {
-      setThemeError("Images must be under 6 MB.")
-      return
-    }
-    setUploadBusy(true)
-    setThemeError("")
-    try {
-      const url = await api.uploadWorkspaceImage(org.organization.id, file)
-      setImageInput(url)
-      updateTheme({ image: url })
-    } catch (error) {
-      setThemeError(
-        error instanceof Error ? error.message : "Could not upload the image",
-      )
-    } finally {
-      setUploadBusy(false)
     }
   }
 
@@ -2021,56 +1969,18 @@ export default function App() {
 
           {active === "Settings" && (
             <>
-              <section className="panel">
+                            <section className="panel">
                 <div className="panel-heading">
                   <div>
-                    <Title>Workspace appearance</Title>
+                    <Title>Appearance</Title>
                     <p className="muted">
-                      Applies to everyone in this gym. Only the workspace owner
-                      can change it.
+                      Light or dark. The gym photograph is the backdrop either
+                      way.
                     </p>
                   </div>
                   {org && (
                     <Badge>{org.role === "owner" ? "Owner" : "View only"}</Badge>
                   )}
-                </div>
-
-                <div className="theme-preview" aria-hidden="true">
-                  {theme.style} · {theme.mode}
-                </div>
-
-                <div className="theme-grid" role="group" aria-label="Visual theme">
-                  {THEME_STYLES.map((style) => (
-                    <button
-                      key={style.id}
-                      type="button"
-                      disabled={!isOwner}
-                      title={
-                        isOwner
-                          ? undefined
-                          : "Only the workspace owner can change the appearance"
-                      }
-                      aria-pressed={theme.style === style.id}
-                      className={`theme-option ${
-                        theme.style === style.id ? "selected" : ""
-                      }`}
-                      onClick={() => updateTheme({ style: style.id })}
-                    >
-                      <span
-                        className={`theme-swatch style-${style.id}`}
-                        style={
-                          {
-                            "--sw-accent":
-                              style.accent[theme.mode === "dark" ? 0 : 1],
-                            "--sw-canvas":
-                              style.canvas[theme.mode === "dark" ? 0 : 1],
-                          } as React.CSSProperties
-                        }
-                      />
-                      <strong>{style.name}</strong>
-                      <small>{style.hint}</small>
-                    </button>
-                  ))}
                 </div>
 
                 <div className="theme-actions">
@@ -2086,7 +1996,10 @@ export default function App() {
                       }
                       secondary={theme.mode !== mode}
                       aria-pressed={theme.mode === mode}
-                      onClick={() => updateTheme({ mode })}
+                      onClick={() => {
+                        updateTheme({ mode })
+                        saveTheme({ ...theme, mode })
+                      }}
                     >
                       <Icon name={mode === "dark" ? "sparkles" : "dashboard"} size={15} />
                       {mode === "dark" ? "Dark mode" : "Light mode"}
@@ -2094,150 +2007,7 @@ export default function App() {
                   ))}
                 </div>
               </section>
-
-              <section className="panel">
-                <div className="panel-heading">
-                  <div>
-                    <Title>Custom background</Title>
-                    <p className="muted">
-                      Optional. A direct image link replaces the preset backdrop;
-                      your colour choice still tints the workspace.
-                    </p>
-                  </div>
-                </div>
-                <div className="modal-body">
-                  <label htmlFor="theme-image">Image URL</label>
-                  <div className="search-field">
-                    <Icon name="search" size={15} />
-                    <input
-                      id="theme-image"
-                      className="input"
-                      type="url"
-                      inputMode="url"
-                      placeholder="https://example.com/background.jpg"
-                      value={imageInput}
-                      disabled={!isOwner}
-                      title={
-                        isOwner
-                          ? undefined
-                          : "Only the workspace owner can change the appearance"
-                      }
-                      onChange={(event) => setImageInput(event.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="theme-actions">
-                  <input
-                    ref={bgFileRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    disabled={!isOwner || uploadBusy}
-                    onChange={handleUploadBackground}
-                  />
-                  <Button
-                    secondary
-                    type="button"
-                    disabled={!isOwner || uploadBusy}
-                    title={
-                      !isOwner
-                        ? "Only the workspace owner can change the appearance"
-                        : undefined
-                    }
-                    onClick={() => bgFileRef.current?.click()}
-                  >
-                    <Icon name="plus" size={15} />
-                    {uploadBusy ? "Uploading…" : "Upload image"}
-                  </Button>
-                  <Button
-                    secondary
-                    type="button"
-                    disabled={!isOwner}
-                    title={
-                      isOwner
-                        ? undefined
-                        : "Only the workspace owner can change the appearance"
-                    }
-                    onClick={() => {
-                      const next = safeImageUrl(imageInput);
-                      if (imageInput.trim() && !next) {
-                        setThemeError(
-                          "That image link is not valid. Use a full http:// or https:// URL.",
-                        );
-                        return;
-                      }
-                      setThemeError("");
-                      updateTheme({ image: next });
-                    }}
-                  >
-                    Preview image
-                  </Button>
-                  <Button
-                    secondary
-                    type="button"
-                    disabled={!isOwner || !theme.image}
-                    title={
-                      !isOwner
-                        ? "Only the workspace owner can change the appearance"
-                        : theme.image
-                          ? undefined
-                          : "No custom background is set"
-                    }
-                    onClick={() => {
-                      setImageInput("");
-                      setThemeError("");
-                      updateTheme({ image: null });
-                    }}
-                  >
-                    Remove image
-                  </Button>
-                </div>
-              </section>
-
-              {themeError && (
-                <div className="attention" role="alert">
-                  <div>
-                    <strong>Could not update the appearance</strong>
-                    <span>{themeError}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="theme-actions">
-                <Button type="button" disabled={!isOwner || themeBusy} onClick={saveTheme}>
-                  {themeBusy ? "Saving…" : "Save appearance"}
-                </Button>
-                <Button
-                  secondary
-                  type="button"
-                  disabled={themeBusy}
-                  onClick={() => {
-                    const saved = org ? themeFromOrg(org.organization) : DEFAULT_THEME;
-                    setTheme(saved);
-                    setImageInput(saved.image ?? "");
-                    setThemeError("");
-                    applyTheme(saved);
-                  }}
-                >
-                  Revert
-                </Button>
-                <span className="theme-note">
-                  {isOwner
-                    ? "Saving stores this appearance for the whole workspace."
-                    : "Only the workspace owner can change the appearance."}
-                </span>
-              </div>
             </>
-          )}
-
-          {active === "Design Studio" && (
-            <DesignStudio
-              current={theme.style}
-              mode={theme.mode}
-              isOwner={isOwner}
-              onApply={(style) => updateTheme({ style })}
-              onMode={(mode) => updateTheme({ mode })}
-            />
           )}
 
           <footer className="page-footer">

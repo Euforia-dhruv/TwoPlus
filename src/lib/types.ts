@@ -26,9 +26,7 @@ export type Organization = {
   /** Absent until migration 0002 is applied. */
   status?: OrganizationStatus;
   /** Absent until migration 0003 is applied. */
-  theme_preset?: string;
   theme_mode?: string;
-  theme_image?: string | null;
 };
 
 export type Branch = {

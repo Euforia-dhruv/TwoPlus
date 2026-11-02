@@ -1,4 +1,4 @@
-// Typed data-access layer. Every query is organization-scoped explicitly;
+﻿// Typed data-access layer. Every query is organization-scoped explicitly;
 // RLS enforces the same scoping server-side as the security boundary.
 import { getSupabase } from "./supabase";
 import type {
@@ -144,15 +144,12 @@ export async function createMember(
 // for owners; staff get a silent 0-row update, which we surface as an error.
 export async function saveOrganizationTheme(
   orgId: string,
-  theme: { preset: string; mode: string; style: string; image: string | null },
+  theme: { mode: string },
 ): Promise<void> {
   const { data, error } = await getSupabase()
     .from("organizations")
     .update({
-      theme_preset: theme.preset,
       theme_mode: theme.mode,
-      theme_style: theme.style,
-      theme_image: theme.image,
     })
     .eq("id", orgId)
     .select("id");
@@ -473,7 +470,7 @@ export async function recordPayment(
 // Marks an already-recorded pending payment as received. There is no gateway:
 // staff confirm the money arrived, and this only changes what the workspace says.
 // RLS limits payment updates to owner, manager and finance, so a receptionist
-// gets a policy error rather than a silent no-op — hence the zero-row check.
+// gets a policy error rather than a silent no-op â€” hence the zero-row check.
 export async function settlePayment(
   paymentId: string,
   input: { method: PaymentMethod; paid_on?: string },
@@ -1573,24 +1570,4 @@ export async function voidInvoice(invoiceId: string): Promise<void> {
     .select("id");
   throwIf(error, "Could not void the invoice");
   if (!data?.length) throw err("You cannot void this invoice");
-}
-
-// Uploads a workspace background image and returns its public URL. Objects
-// live in the workspace-media bucket under <org>/<file>, which the storage
-// policies (0008) authorize on the first path segment alone.
-export async function uploadWorkspaceImage(
-  orgId: string,
-  file: File,
-): Promise<string> {
-  const ext = (file.name.split(".").pop() ?? "jpg")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-  const path = `${orgId}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await getSupabase()
-    .storage
-    .from("workspace-media")
-    .upload(path, file, { cacheControl: "31536000", upsert: false });
-  throwIf(error, "Could not upload the image");
-  const { data } = getSupabase().storage.from("workspace-media").getPublicUrl(path);
-  return data.publicUrl;
 }
