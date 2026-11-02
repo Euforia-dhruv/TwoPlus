@@ -1163,7 +1163,20 @@ export default function App() {
         />
       </nav>
       <div className="main-shell">
-        <header className="topbar">
+        <header className="unified-header">
+          <div className="uh-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
+            <span className="uh-label">{activeCat.label}</span>
+            <FloatingDock
+              items={activeCat.items.map((it) => ({
+                title: it.label,
+                icon: <Icon name={it.icon} size={20} />,
+                href: pathFor(it),
+              }))}
+              onNavigate={(item) => go(item.title)}
+              desktopClassName="secondary-dock-desktop"
+              mobileClassName="secondary-dock-mobile"
+            />
+          </div>
           <div className="top-actions">
             <span className="demo-label" title="Your role in this workspace">
               {org?.role ?? "Owner"}
@@ -1345,19 +1358,6 @@ export default function App() {
               </div>
             </div>
           )}
-        <div className="secondary-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
-          <span className="secondary-nav-title">{activeCat.label}</span>
-          <FloatingDock
-            items={activeCat.items.map((it) => ({
-              title: it.label,
-              icon: <Icon name={it.icon} size={20} />,
-              href: pathFor(it),
-            }))}
-            onNavigate={(item) => go(item.title)}
-            desktopClassName="secondary-dock-desktop"
-            mobileClassName="secondary-dock-mobile"
-          />
-        </div>
         <main ref={mainRef}>
           <div className="page-heading">
             <div>

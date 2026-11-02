@@ -5725,18 +5725,39 @@ html[data-style="sketch"] .eyebrow {
   color: var(--text-2);
 }
 
-/* Compact global header: account controls only. */
-.topbar {
-  min-height: 52px;
-  padding: 0 20px;
+/* One unified horizontal header: nav (category + floating icons) on the left,
+   account controls on the right, inside a single continuous glass container. */
+.unified-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 66px;
+  padding: 6px 16px 6px 18px;
+  margin: 14px 18px 0;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--card-solid) 70%, transparent);
+  border: 1px solid var(--hairline-2);
+  box-shadow: var(--card-shadow), var(--inset-hi);
+  backdrop-filter: blur(var(--blur-shell)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(150%);
 }
 
-.topbar .top-actions {
-  margin-left: auto;
+.uh-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
 }
 
-.topbar-context {
-  display: none;
+.uh-label {
+  flex: none;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
 }
 
 .demo-label {
@@ -5750,25 +5771,18 @@ html[data-style="sketch"] .eyebrow {
   color: var(--text-2);
 }
 
-.secondary-nav {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 54px;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--hairline-2);
-  background: color-mix(in srgb, var(--card-solid) 55%, transparent);
-  backdrop-filter: blur(var(--blur-card));
-  -webkit-backdrop-filter: blur(var(--blur-card));
-}
+@media (max-width: 720px) {
+  .unified-header {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    padding: 10px 14px;
+    margin: 10px 12px 0;
+  }
 
-.secondary-nav-title {
-  flex: none;
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3);
+  .uh-nav {
+    order: 1;
+    flex-basis: 100%;
+  }
 }
 
 /* The floating dock lives inside the unified contextual row: no pill of its
@@ -5781,10 +5795,10 @@ html[data-style="sketch"] .eyebrow {
   border-radius: 0 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  padding-left: 6px !important;
-  padding-right: 6px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
   height: auto !important;
-  min-height: 54px;
+  min-height: 0;
   align-items: center !important;
   justify-content: flex-start !important;
   overflow-x: auto;
