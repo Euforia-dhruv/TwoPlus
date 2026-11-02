@@ -7,7 +7,6 @@ import { MemberCard, MemberCardSkeleton } from "@/components/MemberCard"
 import { HoldButton } from "@/components/HoldButton"
 import { useNavigate, useParams } from "react-router-dom"
 import { GlassDock } from "@/components/ui/glass-dock"
-import { FloatingDock } from "@/components/ui/floating-dock"
 import BellToggle from "@/components/ui/BellToggle"
 import {
   DEFAULT_CATEGORY,
@@ -1166,15 +1165,15 @@ export default function App() {
       <div className="main-shell">
         <header className="unified-header">
           <div className="uh-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
-            <FloatingDock
+            <GlassDock
+              vertical={false}
+              activeTitle={active}
               items={activeCat.items.map((it) => ({
                 title: it.label,
-                icon: <Icon name={it.icon} size={20} />,
-                href: pathFor(it),
+                icon: () => <Icon name={it.icon} size={22} />,
+                onClick: () => go(it.label),
               }))}
-              onNavigate={(item) => go(item.title)}
-              desktopClassName="secondary-dock-desktop"
-              mobileClassName="secondary-dock-mobile"
+              dockClassName="upper-dock"
             />
           </div>
           <div className="top-actions">
