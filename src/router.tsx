@@ -12,6 +12,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Onboarding from "@/pages/Onboarding";
 import SuperAdmin from "@/pages/SuperAdmin";
 import Marketing from "@/pages/Marketing";
+import { NotFound, Privacy, Terms } from "@/pages/DocPages";
 import Member from "@/pages/Member";
 
 // Shown while auth or the organization row resolves. Reads the design tokens so
@@ -78,6 +79,8 @@ export default function AppRoutes() {
       />
       {/* Public front door. Signed-in visitors are sent on to the workspace. */}
       <Route path="/" element={<Marketing />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="/home" element={<RequireAuth><HomeRedirect /></RequireAuth>} />
       <Route path="/member" element={<RequireAuth><Member /></RequireAuth>} />
       <Route
@@ -89,7 +92,7 @@ export default function AppRoutes() {
           </RequireAuth>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

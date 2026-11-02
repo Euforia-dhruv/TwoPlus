@@ -2,7 +2,7 @@ import type React from "react"
 export type IconName =
   | "activity" | "apple" | "arrow" | "bell" | "building" | "calendar"
   | "chart" | "check" | "checkin" | "clipboard" | "close" | "dashboard"
-  | "dumbbell" | "gift" | "grid" | "headset" | "megaphone" | "members"
+  | "dumbbell" | "flip" | "gift" | "grid" | "headset" | "megaphone" | "members"
   | "menu" | "message" | "mobile" | "package" | "plus" | "receipt"
   | "search" | "settings" | "shield" | "shop" | "sparkles" | "ticket"
   | "userPlus" | "wallet"
@@ -63,6 +63,14 @@ const iconPaths: Record<IconName, React.ReactNode> = {
   dumbbell: (
     <>
       <path d="M6.5 6.5v11m11-11v11M3 9v6m18-6v6M6.5 12h11M3 10h3.5m11 0H21M3 14h3.5m11 0H21" />
+    </>
+  ),
+  flip: (
+    <>
+      <path d="M4 8a8 8 0 0 1 13.3-2.7L20 8" />
+      <path d="M20 4v4h-4" />
+      <path d="M20 16a8 8 0 0 1-13.3 2.7L4 16" />
+      <path d="M4 20v-4h4" />
     </>
   ),
   gift: (

@@ -9,6 +9,7 @@ export type MemberCardData = {
   plan: string;
   status: string;
   expires: string;
+  joined?: string;
   due: string;
   trainer: string;
   memberId?: string;
@@ -44,69 +45,105 @@ export function MemberCard({
 }: Props) {
   const [photoBroken, setPhotoBroken] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [flipped, setFlipped] = useState(false);
   const showPhoto = Boolean(member.photo) && !photoBroken;
   const hasDues = member.due !== "₹0" && member.due !== "—";
 
   const stop = (event: React.MouseEvent) => event.stopPropagation();
 
   return (
-    <article className={`member-card${selected ? " is-selected" : ""}`}>
-      <div
-        className="member-card-open"
-        role="button"
-        tabIndex={0}
-        aria-label={`Open ${member.name}`}
-        onClick={() => onOpen(member)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onOpen(member);
-          }
-        }}
-      >
-        <div className="member-card-photo">
-          {showPhoto ? (
-            <img
-              src={member.photo}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              onError={() => setPhotoBroken(true)}
-            />
-          ) : (
-            <span className={`member-card-fallback tone-${member.name.charCodeAt(0) % 5}`}>
-              {initials(member.name)}
-            </span>
-          )}
-          <Badge>{member.status}</Badge>
-          <div className="member-card-scrim" />
+    <article
+      className={`member-card${selected ? " is-selected" : ""}${flipped ? " is-flipped" : ""}`}
+    >
+      <div className="member-card-flip">
+        <div
+          className="member-card-face member-card-front"
+          aria-hidden={flipped}
+        >
+          <div
+            className="member-card-open"
+            role="button"
+            tabIndex={flipped ? -1 : 0}
+            aria-label={`Open ${member.name}`}
+            onClick={() => onOpen(member)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onOpen(member);
+              }
+            }}
+          >
+            <div className="member-card-photo">
+              {showPhoto ? (
+                <img
+                  src={member.photo}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  onError={() => setPhotoBroken(true)}
+                />
+              ) : (
+                <span className={`member-card-fallback tone-${member.name.charCodeAt(0) % 5}`}>
+                  {initials(member.name)}
+                </span>
+              )}
+              <Badge>{member.status}</Badge>
+              <div className="member-card-scrim" />
+            </div>
+
+            <div className="member-card-body">
+              <strong title={member.name}>{member.name}</strong>
+              <small>{member.email === "—" ? member.phone : member.email}</small>
+
+              <div className="member-card-rows">
+                <span>
+                  <Icon name="clipboard" size={13} />
+                  {member.plan}
+                </span>
+                <span className={member.status === "Expired" ? "is-overdue" : ""}>
+                  <Icon name="calendar" size={13} />
+                  {member.expires === "—" ? "No active membership" : `Ends ${member.expires}`}
+                </span>
+                {hasDues && (
+                  <span className="is-due">
+                    <Icon name="wallet" size={13} />
+                    {member.due} due
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="member-card-body">
-          <strong title={member.name}>{member.name}</strong>
-          <small>{member.email === "—" ? member.phone : member.email}</small>
+        <div className="member-card-face member-card-back" aria-hidden={!flipped}>
+          <div className="member-card-body">
+            <strong title={member.name}>{member.name}</strong>
+            <small>
+              {member.status} · {member.plan}
+            </small>
 
-          <div className="member-card-rows">
-            <span>
-              <Icon name="clipboard" size={13} />
-              {member.plan}
-            </span>
-            <span className={member.status === "Expired" ? "is-overdue" : ""}>
-              <Icon name="calendar" size={13} />
-              {member.expires === "—" ? "No active membership" : `Ends ${member.expires}`}
-            </span>
-            {hasDues && (
-              <span className="is-due">
-                <Icon name="wallet" size={13} />
-                {member.due} due
+            <div className="member-card-rows">
+              <span>
+                <Icon name="mobile" size={13} />
+                {member.phone}
               </span>
-            )}
-            {member.trainer !== "Unassigned" && (
+              <span>
+                <Icon name="message" size={13} />
+                {member.email}
+              </span>
+              <span>
+                <Icon name="calendar" size={13} />
+                {member.joined ? `Joined ${member.joined}` : "Join date not set"}
+              </span>
               <span>
                 <Icon name="members" size={13} />
                 {member.trainer}
               </span>
-            )}
+              <span className={hasDues ? "is-due" : ""}>
+                <Icon name="wallet" size={13} />
+                {hasDues ? `${member.due} due` : "No dues"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -121,6 +158,23 @@ export function MemberCard({
           }}
         >
           View profile
+        </button>
+        <button
+          type="button"
+          className="member-card-icon"
+          aria-label={
+            flipped
+              ? `Show card for ${member.name}`
+              : `Show details for ${member.name}`
+          }
+          aria-pressed={flipped}
+          onClick={(event) => {
+            stop(event);
+            setMenuOpen(false);
+            setFlipped((on) => !on);
+          }}
+        >
+          <Icon name="flip" size={15} />
         </button>
         <button
           type="button"

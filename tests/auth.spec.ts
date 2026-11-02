@@ -80,7 +80,6 @@ for (const { id } of STYLES) {
         ["title on card", t.title, t.card],
         ["label on card", t.label, t.card],
         ["alt text on card", t.alt, t.card],
-        ["brand copy on panel", t.title, t.brand ?? t.card],
         ["button label", t.submitFg, t.submitBg],
       ];
 

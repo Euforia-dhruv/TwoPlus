@@ -3,30 +3,6 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import "./marketing.css";
 
-// Sample pricing. Confirm before this page is announced publicly: the amounts
-// are the only invented business fact on the page.
-const PLANS = [
-  {
-    name: "Desk",
-    price: "2,500",
-    note: "per month, per gym",
-    rows: ["Up to 150 members", "Memberships and payments", "Attendance and check-ins", "Two staff accounts", "Reports for the month"],
-  },
-  {
-    name: "Floor",
-    price: "5,500",
-    note: "per month, per gym",
-    rows: ["Unlimited members", "Everything in Desk", "Payroll and expenses", "Unlimited staff accounts", "Enquiries and follow-ups"],
-    featured: true,
-  },
-  {
-    name: "Chain",
-    price: "Talk to us",
-    note: "for two or more locations",
-    rows: ["Everything in Floor", "Multiple branches", "Consolidated reporting", "Role-based access", "Onboarding with your team"],
-  },
-];
-
 const QUESTIONS = [
   {
     q: "Do I have to move my existing records?",
@@ -46,7 +22,7 @@ const QUESTIONS = [
   },
   {
     q: "Does it work on a phone at the front desk?",
-    a: "Yes. Check-in, member search and dues all work at phone width with touch targets sized for a thumb, which is where most check-ins actually happen.",
+    a: "Yes. Checking in, member search and dues all work at phone width with touch targets sized for a thumb, which is where most visits actually happen.",
   },
 ];
 
@@ -91,6 +67,11 @@ const PREVIEWS = {
 
 type PreviewKey = keyof typeof PREVIEWS;
 
+const LINKS = [
+  { href: "#product", label: "Product" },
+  { href: "#questions", label: "Questions" },
+];
+
 const IMAGES = {
   rack: "photo-1534438327276-14e5300c3a48",
   lift: "photo-1517836357463-d25dfeac3438",
@@ -107,8 +88,8 @@ function img(id: string, w: number) {
 
 // Reveals a block once, when it is first scrolled into view. Content is visible
 // by default so a failed observer never hides the page.
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
+function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -134,7 +115,7 @@ function useReveal() {
 }
 
 function Reveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const ref = useReveal();
+  const ref = useReveal<HTMLDivElement>();
   return (
     <div ref={ref} className={`mk-reveal ${className}`.trim()}>
       {children}
@@ -142,25 +123,117 @@ function Reveal({ children, className = "" }: { children: React.ReactNode; class
   );
 }
 
+// Marks the link whose section is currently on screen, so the bar always says
+// where you are. Observes the sections the links point at and keeps the last one
+// that crossed the trigger line.
+function useCurrentSection(ids: string[]) {
+  const [current, setCurrent] = useState("");
+  useEffect(() => {
+    const sections = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
+    if (!sections.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setCurrent(visible.target.id);
+      },
+      { rootMargin: "-45% 0px -45% 0px" },
+    );
+    sections.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [ids]);
+  return current;
+}
+
+// Each word lifts to full colour as it crosses the middle of the viewport, in
+// reading order. The words are split here rather than in the markup so the
+// sentence stays one readable string in the source.
+function Tagline({ lines }: { lines: string[] }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const words = Array.from(root.querySelectorAll<HTMLElement>(".mk-word"));
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      words.forEach((word) => (word.dataset.on = "true"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            (entry.target as HTMLElement).dataset.on = "true";
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      // The generous top margin makes "already above the line" count as crossed,
+      // so a word is still lit when the page opens mid document or jumps past it.
+      { rootMargin: "9999px 0px -45% 0px" },
+    );
+    words.forEach((word) => io.observe(word));
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <h2 ref={ref}>
+      {lines.map((line) => (
+        <span className="mk-line" key={line}>
+          {line.split(" ").map((word) => (
+            <span className="mk-word" key={word}>
+              {word}{" "}
+            </span>
+          ))}
+        </span>
+      ))}
+    </h2>
+  );
+}
+
 export default function Marketing() {
   const { session, loading } = useAuth();
   const [preview, setPreview] = useState<PreviewKey>("today");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const current = useCurrentSection(["product", "questions"]);
   const panel = PREVIEWS[preview];
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   // Owners who are already signed in belong in the product, not on the pitch.
   if (loading) return <div className="mk-splash">TwoPlus</div>;
   if (session) return <Navigate to="/home" replace />;
 
   return (
-    <div className="mk">
+    <div className="mk" id="top">
+      <a className="mk-skip" href="#main">
+        Skip to content
+      </a>
+
       <header className="mk-nav">
         <Link to="/" className="mk-wordmark">
           TwoPlus
         </Link>
         <nav className="mk-nav-links" aria-label="Sections">
-          <a href="#product">Product</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#questions">Questions</a>
+          {LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              aria-current={current === link.href.slice(1) ? "true" : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
         </nav>
         <div className="mk-nav-actions">
           <Link to="/login" className="mk-link">
@@ -169,10 +242,53 @@ export default function Marketing() {
           <Link to="/signup" className="mk-button">
             Start free
           </Link>
+          <button
+            type="button"
+            className="mk-menu-toggle"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? "Close" : "Menu"}
+          </button>
         </div>
       </header>
 
-      <main>
+      {menuOpen && (
+        <div className="mk-menu" role="dialog" aria-label="Menu">
+          <div className="mk-menu-head">
+            <span className="mk-wordmark">TwoPlus</span>
+            <button
+              type="button"
+              className="mk-menu-toggle"
+              aria-label="Close menu"
+              onClick={() => setMenuOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+          {LINKS.map((link, i) => (
+            <a
+              key={link.href}
+              href={link.href}
+              style={{ "--i": i } as React.CSSProperties}
+              onClick={() => setMenuOpen(false)}
+            >
+              {link.label}
+            </a>
+          ))}
+          <div className="mk-menu-foot">
+            <Link to="/login" className="mk-button mk-button--block" onClick={() => setMenuOpen(false)}>
+              Sign in
+            </Link>
+            <Link to="/signup" className="mk-button mk-button--block" onClick={() => setMenuOpen(false)}>
+              Start free
+            </Link>
+          </div>
+        </div>
+      )}
+
+      <main id="main">
         {/* ---------- Masthead ---------- */}
         <section className="mk-masthead">
           <div className="mk-masthead-band">
@@ -209,7 +325,11 @@ export default function Marketing() {
               for independent gyms
             </p>
             <div className="mk-title-body">
-              <h1>Your gym, one workspace.</h1>
+              <h1>
+                Your gym,
+                <br />
+                one workspace.
+              </h1>
               <p className="mk-standfirst">
                 Members, memberships, payments, attendance and payroll in one
                 system. No double entry, and a number you can trust at the end
@@ -219,8 +339,8 @@ export default function Marketing() {
                 <Link to="/signup" className="mk-button mk-button--lg">
                   Start free
                 </Link>
-                <a href="#pricing" className="mk-link mk-link--lg">
-                  See what it costs
+                <a href="#product" className="mk-link mk-link--lg">
+                  See what it does
                 </a>
               </div>
             </div>
@@ -235,7 +355,7 @@ export default function Marketing() {
                 <span className="mk-window-dot" />
                 <span className="mk-window-dot" />
                 <span className="mk-window-dot" />
-                <span className="mk-window-name">TwoPlus — {panel.label}</span>
+                <span className="mk-window-name">TwoPlus · {panel.label}</span>
               </div>
               <div className="mk-window-body">
                 <div className="mk-window-figure">
@@ -272,7 +392,7 @@ export default function Marketing() {
             <Reveal className="mk-feature-block">
               <p className="mk-feature-line">Know who is on the floor.</p>
               <p className="mk-feature-text">
-                Check-ins land on one screen as they happen, with the plan each
+                Visits land on one screen as they happen, with the plan each
                 member is on, so a lapsed membership is caught at the door
                 rather than at renewal.
               </p>
@@ -329,7 +449,7 @@ export default function Marketing() {
                 loading="lazy"
                 alt="A member working battle ropes under a concrete overpass."
               />
-              <figcaption>Conditioning, mid-session</figcaption>
+              <figcaption>Conditioning, between sets</figcaption>
             </figure>
             <figure className="mk-band-panel" style={{ flexGrow: 2 }}>
               <img
@@ -355,7 +475,7 @@ export default function Marketing() {
                 width={700}
                 height={1400}
                 loading="lazy"
-                alt="A lifter mid-set with a loaded bar."
+                alt="A lifter partway through a set with a loaded bar."
               />
             </figure>
           </div>
@@ -397,55 +517,6 @@ export default function Marketing() {
           </Reveal>
         </section>
 
-        {/* ---------- Pricing ---------- */}
-        <section className="mk-pricing" id="pricing">
-          <div className="mk-pricing-head">
-            <h2>What it costs</h2>
-            <p>
-              Priced per gym, not per member, so adding people does not silently
-              raise the bill. Cancel any month.
-            </p>
-          </div>
-          <table className="mk-plan-table">
-            <thead>
-              <tr>
-                <th scope="col">Included</th>
-                {PLANS.map((p) => (
-                  <th scope="col" key={p.name} className={p.featured ? "mk-plan-featured" : ""}>
-                    <span className="mk-plan-name">{p.name}</span>
-                    <span className="mk-plan-price">
-                      {p.price === "Talk to us" ? p.price : `₹${p.price}`}
-                    </span>
-                    <span className="mk-plan-note">{p.note}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[0, 1, 2, 3].map((row) => (
-                <tr key={row}>
-                  <th scope="row">{["Members", "Money", "Team", "Access"][row]}</th>
-                  {PLANS.map((p) => (
-                    <td key={p.name} className={p.featured ? "mk-plan-featured" : ""}>
-                      {p.rows[row].replace(/^Up to /, "").replace(/^Everything in \w+$/, "Everything above")}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              <tr>
-                <td />
-                {PLANS.map((p) => (
-                  <td key={p.name} className={p.featured ? "mk-plan-featured" : ""}>
-                    <Link to="/signup" className="mk-button mk-button--wide">
-                      {p.price === "Talk to us" ? "Get in touch" : "Start free"}
-                    </Link>
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
         {/* ---------- Questions ---------- */}
         <section className="mk-faq" id="questions">
           <div className="mk-faq-band mk-faq-band--head">
@@ -459,13 +530,13 @@ export default function Marketing() {
           ))}
         </section>
 
+        {/* ---------- Tagline: one word at a time ---------- */}
+        <section className="mk-tagline">
+          <Tagline lines={["Less admin.", "More progress."]} />
+        </section>
+
         {/* ---------- Close ---------- */}
         <section className="mk-close">
-          <h2>
-            Less admin.
-            <br />
-            More progress.
-          </h2>
           <div className="mk-close-facts">
             <p className="mk-close-fact">
               <strong>Minutes to set up</strong>
@@ -476,14 +547,15 @@ export default function Marketing() {
               Your member list comes over from a spreadsheet, not by hand.
             </p>
             <p className="mk-close-fact">
-              <strong>No card</strong>
-              Nothing is charged until you pick a plan.
+              <strong>Set up with us</strong>
+              Pricing is agreed with you directly, based on how your gym runs.
             </p>
           </div>
           <div className="mk-close-foot">
             <p>
               Set up a workspace in a few minutes and import your member list
-              when you are ready. Nothing is charged until you choose a plan.
+              when you are ready. Nothing is charged until you and we agree a
+              price.
             </p>
             <Link to="/signup" className="mk-button mk-button--lg">
               Start free
@@ -503,7 +575,7 @@ export default function Marketing() {
             <div>
               <span>Product</span>
               <a href="#product">What it does</a>
-              <a href="#pricing">Pricing</a>
+              <a href="#questions">Questions</a>
             </div>
             <div>
               <span>Account</span>
@@ -512,8 +584,8 @@ export default function Marketing() {
             </div>
             <div>
               <span>Company</span>
-              <a href="#questions">Questions</a>
-              <a href="mailto:hello@twoplus.fit">Contact</a>
+              <Link to="/privacy">Privacy</Link>
+              <Link to="/terms">Terms</Link>
             </div>
           </div>
         </div>

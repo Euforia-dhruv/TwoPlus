@@ -1,3 +1,11 @@
+/* Tailwind v4: theme tokens + utilities only. Preflight is intentionally
+   skipped — this app ships its own reset and token set, so Tailwind adds
+   classes without touching anything else. Unlayered app rules still win over
+   Tailwind's layered utilities. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 /* ============================================================================
    TwoPlus — dashboard stylesheet
    One layer, one token set. Every rule here is for markup that renders: the
@@ -877,6 +885,31 @@ html:is([data-style="classic"],[data-style="signal"]) .topbar {
   line-height: 1;
 }
 
+.icon-button.notification.has-unread svg {
+  transform-origin: 50% 4px;
+  animation: bell-ring 900ms cubic-bezier(0.36, 0.07, 0.19, 0.97) 1;
+}
+
+@keyframes bell-ring {
+  10%,
+  90% {
+    transform: rotate(-9deg);
+  }
+  20%,
+  80% {
+    transform: rotate(9deg);
+  }
+  30%,
+  50%,
+  70% {
+    transform: rotate(-5deg);
+  }
+  40%,
+  60% {
+    transform: rotate(5deg);
+  }
+}
+
 .bell-panel {
   width: 300px;
   padding: 0;
@@ -1116,6 +1149,26 @@ html:is([data-style="classic"],[data-style="signal"]) .topbar {
   opacity: 0.46;
 }
 
+/* Hold to confirm: the fill is the progress, so the label never moves and the
+   button keeps its normal size and colour. */
+.btn.hold {
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.hold-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--hold, 0%);
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.hold-label {
+  position: relative;
+}
+
 .input {
   width: 100%;
   min-height: 38px;
@@ -1260,6 +1313,14 @@ select.input {
   font-size: 12.5px;
   font-weight: 500;
   white-space: nowrap;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.tabs button:active {
+  transform: translateY(1px) scale(0.96);
 }
 
 .tabs button:hover {
@@ -1763,6 +1824,37 @@ html[data-mode="light"] .badge.red {
 .member-card.is-selected {
   border-color: color-mix(in srgb, var(--lime) 62%, transparent);
   background: color-mix(in srgb, var(--lime) 12%, transparent);
+}
+
+/* The two faces stack in one grid cell, so the card height is the taller face
+   and nothing jumps when it turns. The actions row stays outside the flip. */
+.member-card-flip {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.member-card.is-flipped .member-card-flip {
+  transform: rotateY(180deg);
+}
+
+.member-card-face {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.member-card-back {
+  transform: rotateY(180deg);
+  background: color-mix(in srgb, var(--lime) 7%, transparent);
+}
+
+.member-card-back .member-card-body {
+  gap: 4px;
+  padding-bottom: 2px;
 }
 
 .member-card-open {

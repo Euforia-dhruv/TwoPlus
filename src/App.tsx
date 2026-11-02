@@ -4,6 +4,7 @@ import { Icon, type IconName } from "./icons"
 import { Avatar, Badge, Button, Input, Select, Stats, Title } from "@/components/kit"
 import { SummaryBoard } from "@/components/SummaryBoard"
 import { MemberCard, MemberCardSkeleton } from "@/components/MemberCard"
+import { HoldButton } from "@/components/HoldButton"
 import { DesignStudio } from "@/pages/Studio"
 import { useAuth } from "@/lib/auth"
 import { useOrg } from "@/lib/org"
@@ -1250,7 +1251,11 @@ export default function App() {
                 }
                 aria-expanded={bellOpen}
                 aria-controls="reminders-panel"
-                className="icon-button notification"
+                className={
+                  unreadCount
+                    ? "icon-button notification has-unread"
+                    : "icon-button notification"
+                }
                 onClick={() => {
                   setAccountOpen(false)
                   setBellOpen((open) => !open)
@@ -4536,6 +4541,11 @@ export default function App() {
                   <Button secondary type="button" onClick={() => setModal("")}>
                     Cancel
                   </Button>
+                  {modal === "Archive member" ? (
+                    <HoldButton disabled={modalBusy}>
+                      {modalBusy ? "Saving…" : "Hold to archive"}
+                    </HoldButton>
+                  ) : (
                   <Button type="submit" disabled={modalBusy}>
                     {modalBusy
                       ? "Saving…"
@@ -4549,9 +4559,7 @@ export default function App() {
                               ? "Book member"
                               : modal === "Freeze memberships"
                             ? "Freeze memberships"
-                            : modal === "Archive member"
-                              ? "Archive member"
-                              : modal === "Restore member"
+                            : modal === "Restore member"
                                 ? "Restore member"
                                 : modal === "Check out member"
                                   ? "Check out"
@@ -4589,6 +4597,7 @@ export default function App() {
                                                                 ? "Save note"
                                                                 : "Save changes"}
                   </Button>
+                  )}
                 </div>
               </form>
             )}

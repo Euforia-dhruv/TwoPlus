@@ -1,9 +1,10 @@
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   // Without an explicit cssTarget the minifier collapses each backdrop-filter
   // pair down to the -webkit- prefix alone, which Firefox does not support.
   build: { cssTarget: "safari13" },
