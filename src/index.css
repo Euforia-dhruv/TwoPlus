@@ -5899,12 +5899,16 @@ html[data-mode="light"] {
   --glass-shadow: 0 8px 28px rgba(15, 28, 32, 0.12);
 }
 
-/* Shell: a translucent floating pane, not an opaque panel. */
+/* Shell: a near-clear pane so the photo reads through the whole page. */
 .main-shell {
-  background: var(--glass-bg) !important;
+  background: color-mix(in srgb, var(--card-solid) 8%, transparent) !important;
   border-color: var(--glass-border) !important;
-  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  backdrop-filter: blur(8px) saturate(130%);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+}
+
+html[data-mode="light"] .main-shell {
+  background: color-mix(in srgb, var(--card-solid) 30%, transparent) !important;
 }
 
 /* Cards: regular glass. */
@@ -5922,9 +5926,9 @@ html[data-mode="light"] {
   border-color: var(--glass-border-hover);
 }
 
-/* Hero band: stronger frosted surface so figures stay readable. */
+/* Hero band: keep figures readable, but only just. */
 .board-hero {
-  --hero-band: rgba(14, 18, 21, 0.55);
+  --hero-band: rgba(14, 18, 21, 0.28);
   backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
 }
@@ -5971,7 +5975,7 @@ html[data-mode="light"] {
 }
 
 .spotlight-nav-shadow {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
+  box-shadow: none;
 }
 
 html[data-mode="light"] .spotlight-nav-bg {
@@ -5983,15 +5987,15 @@ html[data-mode="light"] .spotlight-nav {
 }
 
 /* Ambience: the stock layer is a 2px inline-gradient sliver. Rebuild it in CSS
-   (the inline background is overridden) as a soft bloom hugging the bottom edge,
-   matching the reference. */
+   (the inline background is overridden) as a thin streak hugging the bottom
+   edge, matching the reference. */
 .spotlight-nav > div[style*="--ambience-x"] {
   height: 100% !important;
   background: radial-gradient(
-    70px circle at var(--ambience-x) 100%,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.32) 42%,
-    transparent 70%
+    38px 26px at var(--ambience-x) 100%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.5) 38%,
+    transparent 78%
   ) !important;
   filter: none;
   box-shadow: none;
@@ -5999,10 +6003,10 @@ html[data-mode="light"] .spotlight-nav {
 
 html[data-mode="light"] .spotlight-nav > div[style*="--ambience-x"] {
   background: radial-gradient(
-    70px circle at var(--ambience-x) 100%,
-    rgba(0, 0, 0, 0.82) 0%,
-    rgba(0, 0, 0, 0.28) 42%,
-    transparent 70%
+    38px 26px at var(--ambience-x) 100%,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.42) 38%,
+    transparent 78%
   ) !important;
 }
 
@@ -6037,18 +6041,23 @@ html[data-mode="light"] .spotlight-nav a[data-active="false"]:hover {
   color: rgba(11, 17, 19, 0.92);
 }
 
-/* ---------- 26. Opaque content boxes ---------- */
+/* ---------- 26. Content boxes ---------- */
 
-/* Card-style surfaces across every page become more solid: dark charcoal-
-   tinted glass at ~78-84% opacity for readability. The large shell panel,
-   background image and overlay stay untouched. */
+/* Card-style surfaces across every page: clear glass, so the gym photo reads
+   through them. The shell, the background image and the overlay stay as they
+   are; menus and dialogs keep their density for readability.
+
+   Blur is deliberately light: at 18px the photo smears into flat grey behind
+   each tile, which reads as opaque even when the fill is only 40% alpha. */
 .board-chart-card,
 .board-side,
 .board-table,
 .board-card,
 .member-card,
 .empty {
-  background: color-mix(in srgb, var(--card-solid) 78%, transparent);
+  background: color-mix(in srgb, var(--card-solid) 40%, transparent);
+  backdrop-filter: blur(6px) saturate(130%);
+  -webkit-backdrop-filter: blur(6px) saturate(130%);
 }
 
 .account-panel,
@@ -6057,5 +6066,5 @@ html[data-mode="light"] .spotlight-nav a[data-active="false"]:hover {
 }
 
 .input {
-  background: color-mix(in srgb, var(--card-solid) 46%, transparent);
+  background: color-mix(in srgb, var(--card-solid) 30%, transparent);
 }
