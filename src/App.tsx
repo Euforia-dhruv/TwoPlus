@@ -8,7 +8,12 @@ import { HoldButton } from "@/components/HoldButton"
 import { useNavigate, useParams } from "react-router-dom"
 import { FloatingDock } from "@/components/ui/floating-dock"
 import { SpotlightNavbar } from "@/components/ui/spotlight-navbar"
+import RubberSegment from "@/components/ui/RubberSegment"
 import BellToggle from "@/components/ui/BellToggle"
+import Manual from "@/pages/Manual"
+import ShareSheet from "@/components/ui/share-sheet"
+import SlideCommit from "@/components/ui/SlideCommit"
+import SocialFlipButton from "@/components/ui/social-flip-button"
 import {
   DEFAULT_CATEGORY,
   DEFAULT_ITEM,
@@ -57,6 +62,8 @@ import {
 } from "@/lib/types"
 
 const descriptions: Record<string, string> = {
+  "Workspace manual":
+    "Setup, the daily modules, and the limits worth knowing before you rely on them.",
   Members: "A little more personal. Manage every member, all in one place.",
   Overview: "Your gym at a glance. Here’s what’s happening today.",
   Reports: "Every month side by side, straight from your records.",
@@ -305,6 +312,7 @@ export default function App() {
   const [hasMigration0004, setHasMigration0004] = useState(false)
   const needsMigration = (name: string) =>
     !hasMigration0004 && migrationModules.includes(name)
+  const [removingWorkspace, setRemovingWorkspace] = useState(false)
   // Reminders and the roster live in the database once 0004 has run.
   const isSaved = (name: string) => hasDbStorage(name) || (hasMigration0004 && migrationModules.includes(name))
   const [reports, setReports] = useState<ReportMonth[]>([])
@@ -1319,15 +1327,19 @@ export default function App() {
               </p>
             </div>
             <div className="heading-actions">
-              {!["Community", "Marketplace", "Member app", "Settings"].includes(
-                active,
-              ) && (
+              {![
+                "Community",
+                "Marketplace",
+                "Member app",
+                "Settings",
+                "Workspace manual",
+              ].includes(active) && (
                 <Button secondary onClick={exportData}>
                   <Icon name="arrow" size={15} />
                   Export
                 </Button>
               )}
-              {active !== "Settings" && active !== "Reports" && (
+              {!["Settings", "Reports", "Workspace manual"].includes(active) && (
                 <Button
                 disabled={addBlocked || !canWrite}
                 title={
@@ -1368,6 +1380,8 @@ export default function App() {
             </div>
           </div>
 
+          {active === "Workspace manual" && <Manual />}
+
           {active === "Overview" && <SummaryBoard
             stats={stats}
             reports={reports}
@@ -1405,32 +1419,40 @@ export default function App() {
                 ]}
               />
               <section className="directory">
-                <div className="tabs">
-                  {[
+                <RubberSegment
+                  className="directory-tabs"
+                  items={[
                     "All members",
                     "Active",
                     "Expiring soon",
                     "Expired",
                     "Frozen",
-                  ].map((t) => (
-                    <button
-                      className={tab === t ? "selected" : ""}
-                      key={t}
-                      onClick={() => {
-                        setTab(t)
-                        setSelected([])
-                        setPage(1)
-                      }}
-                    >
-                      {t}
-                      <span>
-                        {t === "All members"
-                          ? members.length
-                          : members.filter((m) => m.status === t).length}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                  ].map((t: string) => ({
+                    value: t,
+                    label: (
+                      <>
+                        {t}
+                        <span className="segment-count">
+                          {t === "All members"
+                            ? members.length
+                            : members.filter((m) => m.status === t).length}
+                        </span>
+                      </>
+                    ),
+                  }))}
+                  value={tab}
+                  onChange={(t: string) => {
+                    setTab(t);
+                    setSelected([]);
+                    setPage(1);
+                  }}
+                  size="sm"
+                  radius={999}
+                  trackColor="transparent"
+                  thumbColor="color-mix(in srgb, var(--card-solid) 62%, transparent)"
+                  textColor="var(--text-3)"
+                  activeTextColor="var(--text)"
+                />
                 <div className="table-toolbar">
                   <div className="search-field">
                     <Icon name="search" size={17} />
@@ -1965,7 +1987,26 @@ export default function App() {
 
           {active === "Marketplace" && <section className="panel workspace-empty"><Icon name="shop" size={32} /><Title>No products available</Title><p>A supplier catalog is not connected. Products, pricing, ratings, and ordering will appear once a real catalog is available.</p></section>}
 
-          {active === "Member app" && <section className="panel workspace-empty"><Icon name="members" size={32} /><Title>No member app connected</Title><p>Connect member accounts to show their memberships, workouts, classes, and payments here.</p></section>}
+          {active === "Member app" && (
+            <>
+              <section className="panel workspace-empty"><Icon name="members" size={32} /><Title>No member app connected</Title><p>Connect member accounts to show their memberships, workouts, classes, and payments here.</p></section>
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <Title>Share this workspace</Title>
+                    <p className="muted">
+                      Members open the same sign-in page. Send the link or let
+                      them scan the code.
+                    </p>
+                  </div>
+                </div>
+                <ShareSheet
+                  url={typeof window !== "undefined" ? `${window.location.origin}/login` : ""}
+                  title="TwoPlus sign-in"
+                />
+              </section>
+            </>
+          )}
 
           {active === "Settings" && (
             <>
@@ -2005,6 +2046,127 @@ export default function App() {
                       {mode === "dark" ? "Dark mode" : "Light mode"}
                     </Button>
                   ))}
+                </div>
+              </section>
+
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <Title>Remove this workspace</Title>
+                    <p className="muted">
+                      {org?.organization.name ?? "This workspace"} and every
+                      member, payment, invoice, class and attendance record in
+                      it. There is no undo and no export once it is gone.
+                    </p>
+                  </div>
+                  <Badge>{isOwner ? "Owner only" : "View only"}</Badge>
+                </div>
+                {isOwner ? (
+                  <SlideCommit
+                    label={
+                      removingWorkspace
+                        ? "Removing workspace…"
+                        : "Slide to remove this workspace"
+                    }
+                    doneLabel="Workspace removed"
+                    errorLabel="That did not work"
+                    disabled={removingWorkspace}
+                    height={46}
+                    radius={999}
+                    trackColor="color-mix(in srgb, var(--err) 16%, transparent)"
+                    handleColor="var(--err)"
+                    successColor="var(--err)"
+                    onConfirm={async () => {
+                      if (!org) throw new Error("No workspace is loaded");
+                      setRemovingWorkspace(true)
+                      try {
+                        await api.removeWorkspace(org.organization.id)
+                      } finally {
+                        setRemovingWorkspace(false)
+                      }
+                    }}
+                    onDone={() => {
+                      signOut()
+                    }}
+                    onError={(reason) => {
+                      notify(
+                        reason instanceof Error
+                          ? reason.message
+                          : "Could not remove the workspace",
+                      )
+                    }}
+                  />
+                ) : (
+                  <p className="muted">
+                    Only the workspace owner can remove it.
+                  </p>
+                )}
+              </section>
+
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <Title>Workspace contact</Title>
+                    <p className="muted">
+                      What this workspace publishes. The phone number and
+                      address are the ones saved on the workspace.
+                    </p>
+                  </div>
+                </div>
+                <div className="workspace-contact">
+                  <div>
+                    <span className="muted">Name</span>
+                    <strong>{org?.organization.name ?? "—"}</strong>
+                  </div>
+                  <div>
+                    <span className="muted">Phone</span>
+                    <strong>{org?.organization.phone || "Not set"}</strong>
+                  </div>
+                  <div>
+                    <span className="muted">Address</span>
+                    <strong>{org?.organization.address || "Not set"}</strong>
+                  </div>
+                  <div>
+                    <span className="muted">Currency</span>
+                    <strong>{org?.organization.currency ?? "—"}</strong>
+                  </div>
+                </div>
+                <div className="workspace-contact-actions">
+                  {/* Real destinations only: the phone and address the owner
+                      saved, and the sign-in link the workspace shares. */}
+                  <SocialFlipButton
+                    items={[
+                      ...(org?.organization.phone
+                        ? [
+                            {
+                              letter: "C",
+                              icon: <Icon name="mobile" size={16} />,
+                              label: "Call",
+                              href: `tel:${org.organization.phone.replace(/[^\d+]/g, "")}`,
+                            },
+                          ]
+                        : []),
+                      ...(org?.organization.address
+                        ? [
+                            {
+                              letter: "M",
+                              icon: <Icon name="building" size={16} />,
+                              label: "Map",
+                              href: `https://maps.google.com/?q=${encodeURIComponent(org.organization.address)}`,
+                            },
+                          ]
+                        : []),
+                      {
+                        letter: "S",
+                        icon: <Icon name="arrow" size={16} />,
+                        label: "Sign-in link",
+                        href:
+                          typeof window !== "undefined"
+                            ? `${window.location.origin}/login`
+                            : "#",
+                      },
+                    ]}
+                  />
                 </div>
               </section>
             </>

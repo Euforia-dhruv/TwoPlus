@@ -101,6 +101,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       item("settings", "Settings", "settings"),
       item("access-roles", "Access & roles", "shield"),
       item("member-app", "Member app", "mobile"),
+      item("manual", "Workspace manual", "clipboard"),
     ],
   },
 ];

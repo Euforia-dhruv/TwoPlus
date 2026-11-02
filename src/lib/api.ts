@@ -1571,3 +1571,23 @@ export async function voidInvoice(invoiceId: string): Promise<void> {
   throwIf(error, "Could not void the invoice");
   if (!data?.length) throw err("You cannot void this invoice");
 }
+
+// Owner-only, destructive, and irreversible. Requires migration 0010, which adds
+// the delete policy and the delete_organization RPC. Until it is applied the RPC
+// is absent, so the message names the real cause instead of a generic failure.
+export async function removeWorkspace(orgId: string): Promise<void> {
+  const { error } = await getSupabase().rpc("delete_organization", {
+    target: orgId,
+  });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") {
+      throw err(
+        "Removing a workspace is not enabled on this database yet. Migration 0010 still has to be applied.",
+      );
+    }
+    if (error.code === "42501") {
+      throw err("Only the workspace owner can remove this workspace.");
+    }
+    throw err(error.message || "Could not remove the workspace");
+  }
+}

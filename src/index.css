@@ -6,6 +6,10 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
+/* The app switches modes with html[data-mode], not prefers-color-scheme, so the
+   `dark:` variants inside Tailwind-based components have to follow that. */
+@custom-variant dark (&:where(html[data-mode="dark"] *));
+
 /* ============================================================================
    TwoPlus â€” dashboard stylesheet
    One layer, one token set. Every rule here is for markup that renders: the
@@ -2992,6 +2996,11 @@ html[data-mode="light"] .app-side-floating-dock {
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   /* Ink on the overview band, which is always dark. */
   --band-ink: #f4f7f6;
+  /* Registry components (gooey-search) paint from shadcn's foreground/background
+     pair, which this theme never defined, so they rendered invisible. Mapped to
+     our ink so those surfaces match the rest of the app. */
+  --foreground: rgba(16, 17, 19, 0.88);
+  --background: #f4f7f6;
   /* Native controls (checkboxes, selects, scrollbars) follow the mode; without
      this a checkbox paints as a white square on the dark surface. */
   color-scheme: dark;
@@ -2999,6 +3008,8 @@ html[data-mode="light"] .app-side-floating-dock {
 
 html[data-mode="light"] {
   color-scheme: light;
+  --foreground: rgba(255, 255, 255, 0.92);
+  --background: #14181a;
   --glass-bg: rgba(255, 255, 255, 0.82);
   --glass-bg-hover: rgba(255, 255, 255, 0.9);
   --glass-bg-strong: rgba(255, 255, 255, 0.94);
@@ -3165,4 +3176,48 @@ html[data-mode="light"] .spotlight-nav a[data-active="false"] {
 html[data-mode="light"] .spotlight-nav a[data-active="false"]:hover {
   color: rgba(11, 17, 19, 0.92);
 }
+
+/* ---------- 27. Workspace contact ---------- */
+
+/* Settings publishes what the owner saved, so the values read before the
+   buttons do. */
+.workspace-contact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.workspace-contact > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.workspace-contact span {
+  font-size: 11.5px;
+}
+
+.workspace-contact strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.workspace-contact-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* The registry container ships its own bg-white/bg-black card, nested one level
+   deeper than the host div. On our theme it should be part of the panel, not a
+   separate slab. */
+.workspace-contact-actions div[class*="rounded-2xl"] {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
 

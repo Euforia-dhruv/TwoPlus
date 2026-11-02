@@ -1,0 +1,217 @@
+/* Workspace manual: a booklet on the left, a module index under it. Both sit
+   directly on the shell, so they use the shared glass tokens rather than
+   inventing a surface. */
+
+.manual {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-bottom: 40px;
+}
+
+.manual-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.manual-head h1 {
+  margin: 4px 0 6px;
+  font-size: clamp(26px, 3vw, 36px);
+  letter-spacing: -0.03em;
+}
+
+.manual-head p {
+  max-width: 58ch;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.manual-book {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+/* The booklet renders its own canvas; this only guarantees it can shrink on a
+   phone instead of forcing a horizontal scroll. */
+.manual-book > * {
+  max-width: 100%;
+}
+
+.manual-list h2 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.manual-search {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.manual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.manual-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+}
+
+.manual-card strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.manual-card strong svg {
+  color: var(--text-3);
+}
+
+.manual-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.manual-links button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.manual-links button:hover {
+  background: var(--field);
+  color: var(--text);
+}
+
+.manual-links button svg {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.manual-links button:hover svg {
+  opacity: 1;
+}
+
+/* --- booklet pages ------------------------------------------------------- */
+
+.manual-section {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.manual-section h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.manual-section p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.62;
+  color: var(--text-2);
+}
+
+.manual-section ol {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manual-section li {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.manual-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manual-modules li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.manual-modules li svg {
+  flex: none;
+  color: var(--text-3);
+}
+
+.manual-modules li span {
+  flex: 1;
+  color: var(--text);
+}
+
+.manual-modules li em {
+  font-style: normal;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* The member status strip replaced the old .tabs row; the count badge it
+   carries is the only styling it needs. */
+.segment-count {
+  margin-left: 6px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+html[data-mode="light"] .manual-card {
+  background: var(--glass-bg);
+}
+
+@media (max-width: 640px) {
+  .manual-head {
+    flex-direction: column;
+  }
+
+  .manual-grid {
+    grid-template-columns: 1fr;
+  }
+}

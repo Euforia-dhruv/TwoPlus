@@ -1,6 +1,7 @@
 // Shared dashboard UI primitives. Extracted from App.tsx so the platform
 // admin area (/admin) reuses the exact same components and styling.
 import type { ReactNode } from "react";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
 // type="button" by default: without it every Button inside a <form> silently
 // submits. Form buttons opt in with an explicit type="submit".
@@ -97,13 +98,23 @@ export function Avatar({ name, small }: { name: string; small?: boolean }) {
 
 // One strip, not a row of cards: figures read as a single instrument panel
 // and the shared edges stop every page looking like the same card grid.
+// Figures roll into place when they change; the markup stays a <strong> so the
+// type scale and every existing selector keep working.
 export function Stats({ items }: { items: string[][] }) {
   return (
     <div className="stats">
       {items.map(([label, value, detail]) => (
         <section key={label} className="stat">
           <span className="stat-label">{label}</span>
-          <strong>{value}</strong>
+          <strong>
+            {/* The registry rolls digits, so anything that is not a plain
+                integer (₹0, "—", "12.4k") prints as-is instead of vanishing. */}
+            {/^\d+$/.test(value) ? (
+              <AnimatedNumber value={Number(value)} />
+            ) : (
+              value
+            )}
+          </strong>
           <span className="stat-note">
             <span className={detail.startsWith("+") ? "positive" : ""}>
               {detail}
