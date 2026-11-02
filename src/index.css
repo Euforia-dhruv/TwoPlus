@@ -5961,7 +5961,7 @@ html[data-mode="light"] {
    -bg because that class is emitted after .spotlight-nav and would otherwise
    win with a transparent background. */
 .spotlight-nav-bg {
-  background: rgba(10, 12, 14, 0.72);
+  background: rgba(8, 10, 12, 0.82);
 }
 
 .spotlight-nav {
@@ -5971,9 +5971,7 @@ html[data-mode="light"] {
 }
 
 .spotlight-nav-shadow {
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
 }
 
 html[data-mode="light"] .spotlight-nav-bg {
@@ -5984,11 +5982,28 @@ html[data-mode="light"] .spotlight-nav {
   border-color: rgba(10, 18, 20, 0.1);
 }
 
-/* Ambience (active-item light) is a 2px bar clipped by overflow-hidden, so give
-   it a little height and blur to read like the reference glow. */
+/* Ambience: the stock layer is a 2px inline-gradient sliver. Rebuild it in CSS
+   (the inline background is overridden) as a soft bloom hugging the bottom edge,
+   matching the reference. */
 .spotlight-nav > div[style*="--ambience-x"] {
-  height: 10px;
-  filter: blur(2px);
+  height: 100% !important;
+  background: radial-gradient(
+    70px circle at var(--ambience-x) 100%,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.32) 42%,
+    transparent 70%
+  ) !important;
+  filter: none;
+  box-shadow: none;
+}
+
+html[data-mode="light"] .spotlight-nav > div[style*="--ambience-x"] {
+  background: radial-gradient(
+    70px circle at var(--ambience-x) 100%,
+    rgba(0, 0, 0, 0.82) 0%,
+    rgba(0, 0, 0, 0.28) 42%,
+    transparent 70%
+  ) !important;
 }
 
 /* The stock component picks label colours from Tailwind's `dark` class, which
