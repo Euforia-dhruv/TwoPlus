@@ -5725,12 +5725,33 @@ html[data-style="sketch"] .eyebrow {
   color: var(--text-2);
 }
 
+/* Compact global header: account controls only. */
+.topbar {
+  min-height: 52px;
+  padding: 0 20px;
+}
+
+.topbar-context {
+  display: none;
+}
+
+.demo-label {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--lime) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lime) 30%, transparent);
+  color: var(--text-2);
+}
+
 .secondary-nav {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 58px;
-  padding: 8px 24px;
+  gap: 18px;
+  min-height: 54px;
+  padding: 6px 18px;
   border-bottom: 1px solid var(--hairline-2);
   background: color-mix(in srgb, var(--card-solid) 55%, transparent);
   backdrop-filter: blur(var(--blur-card));
@@ -5741,17 +5762,22 @@ html[data-style="sketch"] .eyebrow {
   flex: none;
   font-size: 12px;
   font-weight: 650;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-3);
 }
 
+/* The floating dock keeps its glass-orb strip: translucent dark surface,
+   soft shadow and restrained blur, just smaller and scrollable. */
 .secondary-dock-desktop {
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  padding-left: 4px !important;
-  padding-right: 4px !important;
+  background: color-mix(in srgb, var(--card-solid) 62%, transparent) !important;
+  box-shadow: var(--card-shadow) !important;
+  border: 1px solid var(--hairline-2) !important;
+  border-radius: 999px !important;
+  backdrop-filter: blur(var(--blur-card)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur-card)) saturate(150%);
+  padding-left: 8px !important;
+  padding-right: 8px !important;
   justify-content: flex-start !important;
   overflow-x: auto;
   max-width: 100%;

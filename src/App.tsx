@@ -1164,17 +1164,10 @@ export default function App() {
       </nav>
       <div className="main-shell">
         <header className="topbar">
-          <div className="topbar-context">
-            <span className="context-icon" aria-hidden="true">
-              <Icon name="shop" size={16} />
-            </span>
-            <span className="context-text">
-              <strong>{org?.organization.name ?? "Workspace"}</strong>
-              <small>{active}</small>
-            </span>
-          </div>
           <div className="top-actions">
-            <span className="demo-label">{org?.role ?? "Owner"}</span>
+            <span className="demo-label" title="Your role in this workspace">
+              {org?.role ?? "Owner"}
+            </span>
             {platformRole === "super_admin" && <a className="platform-admin-link" href="/super-admin">Platform admin</a>}
             <div className="bell-menu">
               <button
