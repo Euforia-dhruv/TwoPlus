@@ -5761,8 +5761,9 @@ html[data-style="sketch"] .eyebrow {
   min-height: 64px;
   padding: 0 14px;
   /* Independent row above the glass content container; left gutter matches
-     the dock offset so header and content align. */
-  margin: 14px 24px 0 112px;
+     the dock offset so header and content align. The bottom margin keeps a
+     clear air gap before the dashboard glass container. */
+  margin: 14px 24px 18px 112px;
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--card-solid) 70%, transparent);
   border: 1px solid var(--hairline-2);
@@ -5799,7 +5800,7 @@ html[data-style="sketch"] .eyebrow {
     flex-wrap: wrap;
     gap: 8px 14px;
     padding: 10px 14px;
-    margin: 10px 12px 0;
+    margin: 10px 12px 16px;
   }
 
   .app-side-nav ~ .main-shell {
