@@ -112,6 +112,7 @@ table {
   --shell-pad-left: 96px;
 
   --topbar-h: 62px;
+  --topbar-radius: 16px;
 
   --label-display: none;
 
@@ -122,6 +123,7 @@ table {
 
   /* Dark is the reference mode; light overrides these below. */
   --app-bg: #0b1012;
+  --topbar-bg: rgba(20, 22, 24, 0.66);
   --text: #f2f5f5;
   --text-2: #b9c3c7;
   --text-3: #8e9ca1;
@@ -171,6 +173,7 @@ table {
 /* Light mode: white glass over the photograph, dark ink. */
 html[data-mode="light"] {
   --app-bg: #eef0f0;
+  --topbar-bg: rgba(255, 255, 255, 0.66);
   --text: #101214;
   --text-2: #4a5257;
   --text-3: #626a6f;
@@ -452,6 +455,12 @@ html[data-mode="light"] .floating-rail .rail-active {
   gap: 16px;
   height: var(--topbar-h);
   padding: 0 16px 0 14px;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--topbar-radius);
+  background: var(--topbar-bg);
+  backdrop-filter: blur(var(--blur-shell)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(160%);
+  box-shadow: var(--inset-hi);
 }
 
 .topbar-context {

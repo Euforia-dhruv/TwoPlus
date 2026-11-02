@@ -13,8 +13,9 @@ test.skip(
 test("two-level navigation follows the URL", async ({ page }) => {
   await page.goto("/app/finance/payroll", { waitUntil: "networkidle" });
   await expect(page.locator("main h1")).toHaveText("Payroll");
-  await expect(page.locator(".secondary-nav-title")).toHaveText("Finance");
-  await expect(page.locator(".floating-rail .glass-dock")).toBeVisible();
+  // The category is carried by the section nav and the side dock, not a title.
+  await expect(page.locator('.uh-nav[aria-label="Finance sections"]')).toBeVisible();
+  await expect(page.locator(".app-side-nav")).toBeVisible();
   // Refresh keeps the same module (state derives from the URL).
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.locator("main h1")).toHaveText("Payroll");
@@ -25,6 +26,7 @@ test("shell holds at every width in both modes", async ({ page }) => {
   page.on("pageerror", (e) => problems.push(`pageerror ${e.message}`));
 
   await page.goto("/app", { waitUntil: "networkidle" });
+  await expect(page.locator(".app")).toBeVisible({ timeout: 30_000 });
 
   for (const size of [
     { tag: "1440", width: 1440, height: 900 },
@@ -48,7 +50,8 @@ test("shell holds at every width in both modes", async ({ page }) => {
         };
         return {
           mode: root.dataset.mode,
-          rail: box(document.querySelector(".floating-rail")),
+          nav: box(document.querySelector(".app-side-nav, .app-side-mobile")),
+          shell: box(document.querySelector(".main-shell")),
           scrollW: root.scrollWidth,
           clientW: root.clientWidth,
           vw: window.innerWidth,
@@ -59,11 +62,16 @@ test("shell holds at every width in both modes", async ({ page }) => {
       expect(r.mode, `${tag} mode applied`).toBe(mode);
       expect(r.scrollW, `${tag} no horizontal overflow`).toBeLessThanOrEqual(r.clientW + 1);
 
-      const rail = r.rail!;
-      expect(rail, `${tag} rail exists`).not.toBeNull();
-      expect(rail.x, `${tag} rail inside left edge`).toBeGreaterThanOrEqual(-1);
-      expect(rail.y, `${tag} rail inside top edge`).toBeGreaterThanOrEqual(-1);
-      expect(rail.r, `${tag} rail inside right edge`).toBeLessThanOrEqual(r.vw + 1);
+      const nav = r.nav!;
+      expect(nav, `${tag} navigation is present`).not.toBeNull();
+      expect(nav.x, `${tag} nav inside left edge`).toBeGreaterThanOrEqual(-1);
+      expect(nav.y, `${tag} nav inside top edge`).toBeGreaterThanOrEqual(-1);
+      expect(nav.r, `${tag} nav inside right edge`).toBeLessThanOrEqual(r.vw + 1);
+
+      const shell = r.shell!;
+      expect(shell, `${tag} shell present`).not.toBeNull();
+      expect(shell.x, `${tag} shell inside left edge`).toBeGreaterThanOrEqual(-1);
+      expect(shell.r, `${tag} shell inside right edge`).toBeLessThanOrEqual(r.vw + 1);
     }
   }
 

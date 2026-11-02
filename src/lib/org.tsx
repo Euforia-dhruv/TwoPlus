@@ -1,4 +1,4 @@
-import {
+﻿import {
   createContext,
   useContext,
   useEffect,
@@ -26,13 +26,20 @@ const OrgContext = createContext<OrgState>({
 // Loads the signed-in user's first organization + primary branch + role.
 // RLS already scopes every query; this just resolves the context once.
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const [org, setOrg] = useState<OrgContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    // Auth resolves after the first paint. Treat that gap as loading rather than
+    // signed-out, or a hard load of a deep link bounces through /onboarding and
+    // lands on the default module.
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
     if (!session) {
       setOrg(null);
       setLoading(false);
@@ -92,7 +99,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [session, tick]);
+  }, [authLoading, session, tick]);
 
   return (
     <OrgContext.Provider
