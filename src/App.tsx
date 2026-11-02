@@ -1162,16 +1162,23 @@ export default function App() {
       </nav>
       <header className="unified-header">
         <div className="uh-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
-          <GlassDock
-            vertical={false}
-            activeTitle={active}
-            items={activeCat.items.map((it) => ({
-              title: it.label,
-              icon: () => <Icon name={it.icon} size={22} />,
-              onClick: () => go(it.label),
-            }))}
-            dockClassName="upper-dock"
-          />
+          {(() => {
+            // Overview lives in the left sidebar only; don't duplicate it here.
+            const items = activeCat.items.filter((it) => it.id !== "overview");
+            if (!items.length) return null;
+            return (
+              <GlassDock
+                vertical={false}
+                activeTitle={active}
+                items={items.map((it) => ({
+                  title: it.label,
+                  icon: () => <Icon name={it.icon} size={22} />,
+                  onClick: () => go(it.label),
+                }))}
+                dockClassName="upper-dock"
+              />
+            );
+          })()}
         </div>
         <div className="top-actions">
             <div className="bell-menu">
