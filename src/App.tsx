@@ -8,6 +8,7 @@ import { HoldButton } from "@/components/HoldButton"
 import { useNavigate, useParams } from "react-router-dom"
 import { GlassDock } from "@/components/ui/glass-dock"
 import { FloatingDock } from "@/components/ui/floating-dock"
+import BellToggle from "@/components/ui/BellToggle"
 import {
   DEFAULT_CATEGORY,
   DEFAULT_ITEM,
@@ -1181,31 +1182,25 @@ export default function App() {
           </div>
           <div className="top-actions">
             <div className="bell-menu">
-              <button
-                aria-label={
-                  unreadCount
-                    ? `View reminders, ${unreadCount} unread`
-                    : "View reminders"
-                }
-                aria-expanded={bellOpen}
-                aria-controls="reminders-panel"
-                className={
-                  unreadCount
-                    ? "icon-button notification has-unread"
-                    : "icon-button notification"
-                }
-                onClick={() => {
+              <BellToggle
+                label="Notifications"
+                offLabel=""
+                onLabel=""
+                size="sm"
+                radius={18}
+                color="var(--text-2)"
+                background="transparent"
+                onColor="var(--text)"
+                onBackground="transparent"
+                badgeColor="var(--err)"
+                count={unreadCount}
+                waves={false}
+                defaultPressed={unreadCount > 0}
+                onChange={() => {
                   setAccountOpen(false)
                   setBellOpen((open) => !open)
                 }}
-              >
-                <Icon name="bell" size={18} />
-                {unreadCount > 0 && (
-                  <span className="bell-count" aria-hidden="true">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
+              />
               {bellOpen && (
                 <>
                   <div
@@ -1266,7 +1261,6 @@ export default function App() {
                 </>
               )}
             </div>
-            <span className="header-divider" />
             <div className="account-menu">
               <button
                 aria-label="Account menu"
@@ -1294,20 +1288,17 @@ export default function App() {
                       <Avatar name={accountName} small />
                       <div>
                         <strong>{accountName}</strong>
-                        <span>{session?.user?.email ?? "Signed in"}</span>
+                        <span className="account-role-text">{org?.role ?? "owner"}</span>
                       </div>
-                    </div>
-                    <div className="account-role">
-                      <span>{org?.organization.name ?? "Workspace"}</span>
-                      <Badge>{org?.role ?? "owner"}</Badge>
                     </div>
                     {platformRole === "super_admin" && (
                       <a
+                        className="account-link"
                         role="menuitem"
                         href="/super-admin"
                         onClick={() => setAccountOpen(false)}
                       >
-                        <Icon name="shield" size={15} />
+                        <Icon name="shield" size={14} />
                         Platform admin
                       </a>
                     )}

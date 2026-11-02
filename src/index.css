@@ -5850,3 +5850,38 @@ html[data-style="sketch"] .eyebrow {
 .secondary-dock-mobile {
   margin-left: auto;
 }
+
+/* Compact account dropdown: small avatar + name + role, quiet menu items. */
+.account-panel-head {
+  padding: 4px 6px 10px;
+}
+
+.account-panel-head div {
+  gap: 1px;
+}
+
+.account-role-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lime);
+  text-transform: capitalize;
+}
+
+.account-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-align: left;
+  text-decoration: none;
+}
+
+.account-link:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
