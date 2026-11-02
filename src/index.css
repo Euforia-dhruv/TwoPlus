@@ -5954,7 +5954,25 @@ html[data-mode="light"] {
   }
 }
 
-/* ---------- 25. Opaque content boxes ---------- */
+/* ---------- 25. Spotlight navbar: remove outer container ---------- */
+
+.spotlight-nav,
+.spotlight-nav-bg {
+  background: transparent !important;
+}
+
+.spotlight-nav {
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.spotlight-nav-shadow {
+  box-shadow: none !important;
+}
+
+/* ---------- 26. Opaque content boxes ---------- */
 
 /* Only the three dashboard data cards and the profile menu become more solid:
    dark charcoal-tinted glass at ~78-84% opacity. Everything else keeps its
