@@ -299,6 +299,22 @@ html:is([data-style="classic"],[data-style="signal"]) body::before {
   display: none;
 }
 
+/* Readability veil over the photo: a page-tinted gradient so content surfaces
+   keep contrast in both modes while the imagery stays as atmosphere. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--app-bg) 34%, transparent),
+    color-mix(in srgb, var(--app-bg) 58%, transparent) 58%,
+    color-mix(in srgb, var(--app-bg) 72%, transparent)
+  );
+}
+
 /* ---------- 4. Shell ---------- */
 
 .app {
@@ -1058,7 +1074,7 @@ html:is([data-style="classic"],[data-style="signal"]) .topbar {
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  padding: 6px 2px 0;
+  padding: 2px 2px 2px;
 }
 
 .page-heading[hidden] {
@@ -2159,10 +2175,10 @@ html[data-mode] .member-card-photo .badge {
 }
 
 .board-hero-stats strong {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: clamp(26px, 2.4vw, 32px);
+  font-weight: 650;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.12;
   font-variant-numeric: tabular-nums;
 }
 
