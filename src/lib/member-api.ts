@@ -252,6 +252,51 @@ export async function getMyMeasurements(
   return (data ?? []) as MyMeasurement[];
 }
 
+// Records the caller's own measurements for a day.
+//
+// The table has one row per (member_id, measured_on), so this upserts: logging
+// weight twice on the same day corrects the entry instead of stacking a second
+// one. Writes rely on the self policies added by 0015.
+export async function saveMyMeasurement(input: {
+  orgId: string;
+  memberId: string;
+  measuredOn: string;
+  weightKg?: number | null;
+  bodyFatPct?: number | null;
+  chestCm?: number | null;
+  waistCm?: number | null;
+  armsCm?: number | null;
+  thighsCm?: number | null;
+  notes?: string | null;
+}): Promise<void> {
+  // Only the fields actually supplied go in the payload. PostgREST's upsert
+  // updates just the keys it receives, so a member logging their weight must not
+  // blank out figures a trainer recorded on the same day's row. Sending explicit
+  // nulls here would do exactly that.
+  const row: Record<string, unknown> = {
+    organization_id: input.orgId,
+    member_id: input.memberId,
+    measured_on: input.measuredOn,
+    recorded_by: (await getSupabase().auth.getUser()).data.user?.id ?? null,
+  };
+  const put = (column: string, value: number | null | undefined) => {
+    if (value != null) row[column] = value;
+  };
+  put("weight_kg", input.weightKg);
+  put("body_fat_pct", input.bodyFatPct);
+  put("waist_cm", input.waistCm);
+  put("chest_cm", input.chestCm);
+  put("arms_cm", input.armsCm);
+  put("thighs_cm", input.thighsCm);
+  const note = input.notes?.trim();
+  if (note) row.notes = note;
+
+  const { error } = await getSupabase()
+    .from("fitness_measurements")
+    .upsert(row, { onConflict: "member_id,measured_on" });
+  throwIf(error, "Could not save your measurements");
+}
+
 // Links the signed-in account to the member row whose email matches the
 // verified auth email (SQL function from migration 0007). Returns the member
 // id on success, or null when no matching unlinked member record exists.

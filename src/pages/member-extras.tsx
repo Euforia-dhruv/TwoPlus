@@ -77,6 +77,172 @@ export function ClassSchedule({
   )
 }
 
+// Records today's measurements. One row per day, so re-submitting the same day
+// corrects that day's entry rather than stacking a second one.
+export function MeasurementForm({
+  onSave,
+}: {
+  onSave: (v: {
+    measuredOn: string
+    weightKg: number | null
+    bodyFatPct: number | null
+    waistCm: number | null
+    chestCm: number | null
+    notes: string
+  }) => Promise<void>
+}) {
+  const today = () => {
+    // Local date, not UTC: an entry at 11pm must not be dated tomorrow.
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`
+  }
+  const [measuredOn, setMeasuredOn] = useState(today)
+  const [weight, setWeight] = useState("")
+  const [bodyFat, setBodyFat] = useState("")
+  const [waist, setWaist] = useState("")
+  const [chest, setChest] = useState("")
+  const [notes, setNotes] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+
+  // Empty stays null; anything unparseable is rejected rather than sent as NaN.
+  const num = (raw: string, lo: number, hi: number, label: string): number | null => {
+    if (!raw.trim()) return null
+    const n = Number(raw)
+    if (!Number.isFinite(n) || n <= lo || n >= hi) {
+      throw new Error(`${label} must be between ${lo} and ${hi}.`)
+    }
+    return n
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    let parsed
+    try {
+      parsed = {
+        measuredOn,
+        weightKg: num(weight, 0, 500, "Weight"),
+        bodyFatPct: num(bodyFat, -1, 70, "Body fat"),
+        waistCm: num(waist, 0, 300, "Waist"),
+        chestCm: num(chest, 0, 300, "Chest"),
+        notes,
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Check those numbers")
+      return
+    }
+    if (
+      parsed.weightKg == null &&
+      parsed.bodyFatPct == null &&
+      parsed.waistCm == null &&
+      parsed.chestCm == null
+    ) {
+      setError("Enter at least one measurement.")
+      return
+    }
+    setBusy(true)
+    try {
+      await onSave(parsed)
+      setWeight("")
+      setBodyFat("")
+      setWaist("")
+      setChest("")
+      setNotes("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save your measurements")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <form className="mb-logger" onSubmit={submit}>
+        <label className="mb-field">
+          <span>Date</span>
+          <input
+            type="date"
+            value={measuredOn}
+            max={today()}
+            onChange={(e) => setMeasuredOn(e.target.value)}
+            required
+          />
+        </label>
+        <div className="mb-measure-grid">
+          <label className="mb-field">
+            <span>Weight (kg)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              min="1"
+              max="499"
+              value={weight}
+              placeholder="72.5"
+              onChange={(e) => setWeight(e.target.value)}
+            />
+          </label>
+          <label className="mb-field">
+            <span>Body fat (%)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              min="0"
+              max="69"
+              value={bodyFat}
+              placeholder="18"
+              onChange={(e) => setBodyFat(e.target.value)}
+            />
+          </label>
+          <label className="mb-field">
+            <span>Waist (cm)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              min="1"
+              max="299"
+              value={waist}
+              placeholder="80"
+              onChange={(e) => setWaist(e.target.value)}
+            />
+          </label>
+          <label className="mb-field">
+            <span>Chest (cm)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              min="1"
+              max="299"
+              value={chest}
+              placeholder="102"
+              onChange={(e) => setChest(e.target.value)}
+            />
+          </label>
+        </div>
+        <label className="mb-field">
+          <span>Note (optional)</span>
+          <input
+            value={notes}
+            maxLength={200}
+            placeholder="Morning, after warm-up…"
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </label>
+        <button type="submit" className="btn" disabled={busy}>
+          {busy ? "Saving…" : "Save measurement"}
+        </button>
+      </form>
+      {error && <p className="mb-error">{error}</p>}
+    </>
+  )
+}
+
 export function ProgressGallery({
   photos,
   onUpload,

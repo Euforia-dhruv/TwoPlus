@@ -18,6 +18,7 @@ import {
   getMyProgressPhotos,
   uploadProgressPhoto,
   deleteProgressPhoto,
+  saveMyMeasurement,
   type BookableClass,
   type MyDietPlan,
   type MyMeasurement,
@@ -28,7 +29,7 @@ import {
 import { formatDate, formatMoney } from "@/lib/types"
 import { Badge } from "@/components/kit"
 import { WorkoutLogger, WorkoutHistory } from "./member-workout"
-import { ClassSchedule, ProgressGallery } from "./member-extras"
+import { ClassSchedule, MeasurementForm, ProgressGallery } from "./member-extras"
 import "./member.css"
 
 type MemberRow = NonNullable<Awaited<ReturnType<typeof getMyMember>>>
@@ -319,6 +320,21 @@ export default function Member() {
         </Section>
 
         <Section title="Measurements">
+          <MeasurementForm
+            onSave={async (v) => {
+              await saveMyMeasurement({
+                orgId: member.organization_id,
+                memberId: member.id,
+                measuredOn: v.measuredOn,
+                weightKg: v.weightKg,
+                bodyFatPct: v.bodyFatPct,
+                waistCm: v.waistCm,
+                chestCm: v.chestCm,
+                notes: v.notes,
+              })
+              setMeasurements(await getMyMeasurements(member.organization_id, member.id))
+            }}
+          />
           {measurements.length === 0 ? (
             <EmptyNote>No measurements recorded yet.</EmptyNote>
           ) : (
@@ -328,6 +344,8 @@ export default function Member() {
                 {m.weight_kg != null && <div className="mb-row"><span>Weight</span><strong>{m.weight_kg} kg</strong></div>}
                 {m.body_fat_pct != null && <div className="mb-row"><span>Body fat</span><strong>{m.body_fat_pct}%</strong></div>}
                 {m.waist_cm != null && <div className="mb-row"><span>Waist</span><strong>{m.waist_cm} cm</strong></div>}
+                {m.chest_cm != null && <div className="mb-row"><span>Chest</span><strong>{m.chest_cm} cm</strong></div>}
+                {m.notes && <p className="mb-muted">{m.notes}</p>}
               </div>
             ))
           )}

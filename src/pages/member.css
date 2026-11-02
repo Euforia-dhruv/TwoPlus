@@ -163,6 +163,14 @@
   padding-top: 10px;
 }
 
+/* Four measurement inputs side by side, collapsing to two and then one on a
+   narrow phone so the number pads stay thumb-sized. */
+.mb-measure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
 .mb-splash {
   color: var(--text-2);
   font-size: 15px;
