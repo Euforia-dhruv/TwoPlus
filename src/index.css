@@ -341,6 +341,7 @@ html[data-layout="tabs"] .app {
   display: flex;
   flex-direction: column;
   min-height: calc(100dvh - 50px);
+  min-width: 0;
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   background: var(--shell-bg);
@@ -5765,6 +5766,8 @@ html[data-style="sketch"] .eyebrow {
   gap: 14px;
   min-width: 0;
   flex: 1;
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 .uh-label {
@@ -5817,10 +5820,11 @@ html[data-style="sketch"] .eyebrow {
   min-height: 0;
   align-items: center !important;
   justify-content: flex-start !important;
-  overflow-x: auto;
+  overflow: visible;
   flex: 1;
+  flex-wrap: wrap;
+  row-gap: 6px;
   max-width: 100%;
-  mask-image: linear-gradient(90deg, #000 96%, transparent);
 }
 
 .secondary-dock-desktop a {
