@@ -5839,24 +5839,7 @@ html[data-style="sketch"] .eyebrow {
    the shared navigation background. */
 /* Upper nav glass dock: one translucent pill, theme-tinted, wrapping when the
    row is short. The circular icons keep their orb proportions/hover. */
-/* Spotlight nav bar: translucent pill with restrained glass. */
-.spotlight-nav-bg {
-  background: color-mix(in srgb, var(--card-solid) 42%, transparent);
-}
 
-.spotlight-nav-shadow {
-  box-shadow: var(--glass-shadow), var(--inset-hi);
-}
-
-.spotlight-nav {
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-}
-
-.spotlight-nav a {
-  white-space: nowrap;
-}
 
 /* Compact account dropdown: small avatar + name + role, quiet menu items. */
 .account-panel-head {

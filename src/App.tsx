@@ -1170,7 +1170,6 @@ export default function App() {
             return (
               <SpotlightNavbar
                 key={`${activeCat.id}:${active}`}
-                className="!pt-0"
                 items={items.map((it) => ({ label: it.label, href: pathFor(it) }))}
                 onItemClick={(it) => go(it.label)}
                 defaultActiveIndex={index}
