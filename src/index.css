@@ -5954,22 +5954,22 @@ html[data-mode="light"] {
   }
 }
 
-/* ---------- 25. Spotlight navbar: remove outer container ---------- */
-
-.spotlight-nav,
-.spotlight-nav-bg {
-  background: transparent !important;
-}
+/* ---------- 25. Spotlight navbar: floating glass pill ---------- */
 
 .spotlight-nav {
-  border: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: color-mix(in srgb, var(--card-solid) 30%, transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+.spotlight-nav-bg {
+  background: transparent;
 }
 
 .spotlight-nav-shadow {
-  box-shadow: none !important;
+  box-shadow: inherit;
 }
 
 /* ---------- 26. Opaque content boxes ---------- */
