@@ -5974,15 +5974,23 @@ html[data-mode="light"] {
 
 /* ---------- 26. Opaque content boxes ---------- */
 
-/* Only the three dashboard data cards and the profile menu become more solid:
-   dark charcoal-tinted glass at ~78-84% opacity. Everything else keeps its
-   current transparency. */
+/* Card-style surfaces across every page become more solid: dark charcoal-
+   tinted glass at ~78-84% opacity for readability. The large shell panel,
+   background image and overlay stay untouched. */
 .board-chart-card,
 .board-side,
-.board-table {
+.board-table,
+.board-card,
+.member-card,
+.empty {
   background: color-mix(in srgb, var(--card-solid) 78%, transparent);
 }
 
-.account-panel {
+.account-panel,
+.modal {
   background: color-mix(in srgb, var(--card-solid) 84%, transparent);
+}
+
+.input {
+  background: color-mix(in srgb, var(--card-solid) 46%, transparent);
 }
