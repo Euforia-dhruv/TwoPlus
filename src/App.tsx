@@ -1161,21 +1161,20 @@ export default function App() {
           onNavigate={(item) => go(item.title)}
         />
       </nav>
-      <div className="main-shell">
-        <header className="unified-header">
-          <div className="uh-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
-            <GlassDock
-              vertical={false}
-              activeTitle={active}
-              items={activeCat.items.map((it) => ({
-                title: it.label,
-                icon: () => <Icon name={it.icon} size={22} />,
-                onClick: () => go(it.label),
-              }))}
-              dockClassName="upper-dock"
-            />
-          </div>
-          <div className="top-actions">
+      <header className="unified-header">
+        <div className="uh-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
+          <GlassDock
+            vertical={false}
+            activeTitle={active}
+            items={activeCat.items.map((it) => ({
+              title: it.label,
+              icon: () => <Icon name={it.icon} size={22} />,
+              onClick: () => go(it.label),
+            }))}
+            dockClassName="upper-dock"
+          />
+        </div>
+        <div className="top-actions">
             <div className="bell-menu">
               <BellToggle
                 label="Notifications"
@@ -1334,6 +1333,7 @@ export default function App() {
             </div>
           </div>
         </header>
+        <div className="main-shell">
         {org?.organization.status &&
           org.organization.status !== "active" &&
           org.organization.status !== "trial" && (
