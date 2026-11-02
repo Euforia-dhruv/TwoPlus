@@ -1165,7 +1165,9 @@ export default function App() {
       <div className="main-shell">
         <header className="unified-header">
           <div className="uh-nav" role="navigation" aria-label={`${activeCat.label} sections`}>
-            <span className="uh-label">{activeCat.label}</span>
+            <span className="uh-icon" title={activeCat.label} aria-label={`${activeCat.label} section`}>
+              <Icon name={activeCat.icon} size={18} />
+            </span>
             <FloatingDock
               items={activeCat.items.map((it) => ({
                 title: it.label,
@@ -1178,10 +1180,6 @@ export default function App() {
             />
           </div>
           <div className="top-actions">
-            <span className="demo-label" title="Your role in this workspace">
-              {org?.role ?? "Owner"}
-            </span>
-            {platformRole === "super_admin" && <a className="platform-admin-link" href="/super-admin">Platform admin</a>}
             <div className="bell-menu">
               <button
                 aria-label={
@@ -1303,6 +1301,16 @@ export default function App() {
                       <span>{org?.organization.name ?? "Workspace"}</span>
                       <Badge>{org?.role ?? "owner"}</Badge>
                     </div>
+                    {platformRole === "super_admin" && (
+                      <a
+                        role="menuitem"
+                        href="/super-admin"
+                        onClick={() => setAccountOpen(false)}
+                      >
+                        <Icon name="shield" size={15} />
+                        Platform admin
+                      </a>
+                    )}
                     <button
                       role="menuitem"
                       onClick={() => {
