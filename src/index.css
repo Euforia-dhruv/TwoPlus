@@ -5733,6 +5733,20 @@ html[data-style="sketch"] .eyebrow {
   top: 50%;
   transform: translateY(-50%);
   z-index: 40;
+  scrollbar-width: none;
+}
+
+.app-side-nav::-webkit-scrollbar,
+.app-side-floating-dock::-webkit-scrollbar,
+.upper-dock::-webkit-scrollbar,
+.glass-dock::-webkit-scrollbar {
+  display: none;
+}
+
+.app-side-floating-dock,
+.upper-dock,
+.glass-dock {
+  scrollbar-width: none;
 }
 
 .app-side-floating-dock {
