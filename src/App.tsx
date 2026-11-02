@@ -1158,7 +1158,6 @@ export default function App() {
             icon: <Icon name={c.icon} size={22} />,
             href: pathFor(c.items[0]),
           }))}
-          onNavigate={(item) => go(item.title)}
         />
       </nav>
       <header className="unified-header">

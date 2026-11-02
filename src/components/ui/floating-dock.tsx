@@ -5,6 +5,7 @@
  * Mobile navbar is better positioned at bottom right.
  **/
 
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { IconLayoutNavbarCollapse } from "@tabler/icons-react";
 import {
@@ -24,14 +25,12 @@ export const FloatingDock = ({
   items,
   desktopClassName,
   mobileClassName,
-  onNavigate,
   vertical = false,
   activeTitle,
 }: {
   items: FloatingDockItem[];
   desktopClassName?: string;
   mobileClassName?: string;
-  onNavigate?: (item: FloatingDockItem) => void;
   vertical?: boolean;
   activeTitle?: string;
 }) => {
@@ -40,11 +39,10 @@ export const FloatingDock = ({
       <FloatingDockDesktop
         items={items}
         className={desktopClassName}
-        onNavigate={onNavigate}
         vertical={vertical}
         activeTitle={activeTitle}
       />
-      <FloatingDockMobile items={items} className={mobileClassName} onNavigate={onNavigate} />
+      <FloatingDockMobile items={items} className={mobileClassName} />
     </>
   );
 };
@@ -52,13 +50,12 @@ export const FloatingDock = ({
 const FloatingDockMobile = ({
   items,
   className,
-  onNavigate,
 }: {
   items: FloatingDockItem[];
   className?: string;
-  onNavigate?: (item: FloatingDockItem) => void;
 }) => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   return (
     <div className={cn("relative block md:hidden", className)}>
       <AnimatePresence>
@@ -87,14 +84,10 @@ const FloatingDockMobile = ({
                 <a
                   href={item.href}
                   key={item.title}
-                  onClick={
-                    onNavigate
-                      ? (e) => {
-                          e.preventDefault();
-                          onNavigate(item);
-                        }
-                      : undefined
-                  }
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(item.href);
+                  }}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-neutral-900"
                 >
                   <div className="h-4 w-4">{item.icon}</div>
@@ -117,13 +110,11 @@ const FloatingDockMobile = ({
 const FloatingDockDesktop = ({
   items,
   className,
-  onNavigate,
   vertical = false,
   activeTitle,
 }: {
   items: FloatingDockItem[];
   className?: string;
-  onNavigate?: (item: FloatingDockItem) => void;
   vertical?: boolean;
   activeTitle?: string;
 }) => {
@@ -142,7 +133,6 @@ const FloatingDockDesktop = ({
         <IconContainer
           mouse={mouse}
           key={item.title}
-          onNavigate={onNavigate}
           vertical={vertical}
           activeTitle={activeTitle}
           {...item}
@@ -157,7 +147,6 @@ function IconContainer({
   title,
   icon,
   href,
-  onNavigate,
   vertical = false,
   activeTitle,
 }: {
@@ -165,7 +154,6 @@ function IconContainer({
   title: string;
   icon: React.ReactNode;
   href: string;
-  onNavigate?: (item: FloatingDockItem) => void;
   vertical?: boolean;
   activeTitle?: string;
 }) {
@@ -210,20 +198,17 @@ function IconContainer({
 
   const [hovered, setHovered] = useState(false);
   const selected = hovered || title === activeTitle;
+  const navigate = useNavigate();
 
   return (
     <a
       href={href}
       aria-label={title}
       title={title}
-      onClick={
-        onNavigate
-          ? (e) => {
-              e.preventDefault();
-              onNavigate({ title, icon, href });
-            }
-          : undefined
-      }
+      onClick={(e) => {
+        e.preventDefault();
+        navigate(href);
+      }}
     >
       <motion.div
         ref={ref}
