@@ -26,7 +26,7 @@ marked done from intent.
 
 - [x] Three surfaces exist: platform admin (`SuperAdmin.tsx`), gym workspace (`App.tsx`), member app (`Member.tsx`).
 - [~] Platform admin: gym list, plans, audit log, support tickets present; usage/revenue dashboards partial.
-- [~] Gym workspace: strong; five nav items have no backing table (see Phase 6).
+- [x] Gym workspace: 23 modules over 8 categories in `src/lib/navigation.ts`; every one with a table is backed by it. The three without storage (Payroll, Marketplace, Community) say so in place of discarding input — see Phase 6.
 - [~] Member app: profile, membership, workouts, diet, measurements, classes, photos present.
 
 ## Phase 3 — CRM
@@ -64,7 +64,7 @@ marked done from intent.
 - [~] Employees: profiles, roles, payroll records; salary access restricted.
 - [x] Finance: income, expenses, payroll, reports, export.
 - [x] Classes: capacity, trainer, bookings, cancellations (race-safe `book_class`).
-- [!] Equipment, Inventory, Customer support, Offers & referrals, Feedback: **no table, no persistence**. These nav entries are being removed rather than faked.
+- [x] Equipment, Inventory, Customer support, Offers & referrals, Feedback: these nav entries had no table and no persistence, so commit `a6f81b7` **removed them** rather than faking them. Payroll, Marketplace and Community remain in the nav without storage, and say so in place of discarding input.
 
 ## Phase 7 — UI/UX
 
