@@ -207,9 +207,8 @@ marked done from intent.
 
 ## Phase 17 — Store readiness
 
-- [!] Blocked: no signing credentials, no store accounts, no screenshots, and store submission
-      needs the owner's explicit authorization.
-- [x] Compliance checklist drafted (account deletion, privacy declarations, data safety).
+- [!] Store accounts do not exist, and submission needs the owner's explicit authorization. Creating a Play Console or App Store Connect account costs money and binds the owner legally, so it is not something this repo can do.
+- [x] Compliance checklist drafted (account deletion, privacy declarations, data safety). Artifact: `docs/STORE-READINESS.md`. Records app id `fit.twoplus.app` across all three targets, the permission audit (Android declares only `INTERNET`; iOS has no `NS*UsageDescription` and requests nothing), the tracking answer (no analytics or attribution SDK in `dependencies`, so "used to track you" is no), a data-safety table derived from the schema and `src/lib/member-api.ts`, draft store copy, and a ready/prepared/blocked split. It also names two real gaps rather than hiding them: `package.json` says 1.0.0 while both native projects say 1.0, and no member-app screenshots or 1024x500 feature graphic exist. Checked against `android/app/build.gradle`, `Info.plist`, `project.pbxproj`, `AndroidManifest.xml`, and the 1024x1024 `AppIcon-512@2x.png`.
 
 ## Phase 18 — Privacy and legal
 
