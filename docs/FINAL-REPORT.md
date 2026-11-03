@@ -62,10 +62,10 @@ npm run build     exit 0, 4.07 s
 npm run lint      pre-existing warnings only
 ```
 
-**Test suite.** One clean run, 30 tests, 2.9 minutes:
+**Test suite.** One clean run, 36 tests, 2.9 minutes:
 
 ```
-npx playwright test    30 passed
+npx playwright test    36 passed
 ```
 
 Covering: sign-in in the remembered mode; contrast in light and dark; every
