@@ -135,7 +135,8 @@ Blocked, and why:
 
 ## What this phase did not do
 
-No APK, AAB, or IPA was produced here: this host has no JDK, Android SDK, or
-Xcode. The workflows that would produce them are committed and configured, and
-`docs/BUILDING.md` records the exact commands. Nothing in this document claims a
-store has accepted a build.
+No AAB or IPA was produced here, and no store has accepted a build. The
+Android debug APK was produced (`android/app/build/outputs/apk/debug/app-debug.apk`,
+5,038,783 bytes) with JDK 21 and Android SDK 36; it is unsigned debug output, not a
+store artifact. A signed release AAB needs the owner's keystore, and an IPA needs
+macOS with Xcode. `docs/BUILDING.md` records the exact commands.

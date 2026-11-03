@@ -79,17 +79,24 @@ marked done from intent.
 
 ## Phase 8 — Mobile (Android + iOS)
 
-- [!] **Cannot build here**: no java, no gradle, no Android SDK, no macOS/Xcode.
+- [x] **Android debug APK built on this host**: JDK 21 (Adoptium 21.0.13.9) and Android
+  SDK 36 with build-tools 36.0.0 installed, then `npm run build` -> `cap sync android`
+  -> `gradlew assembleDebug`, all exit 0. Output
+  `android/app/build/outputs/apk/debug/app-debug.apk`, 5,038,783 bytes, SHA-256
+  `77C8A71E4C5F834F8D5A8F57FE2455E037F871AC73F716F5C656442BB9BF3BE1`. Unsigned debug
+  artifact only; a release build still needs an owner keystore.
+- [~] **iOS cannot build here**: `xcodebuild` needs macOS, so CI is the only path.
 - [x] Capacitor architecture decision documented (reuse the web app in a native shell).
 - [x] Capacitor project scaffold + config committed (`1971c9f`): `capacitor.config.ts`
   (appId `fit.twoplus.app`, `webDir: dist`, no committed `server.url`, mixed content off)
   plus `android/` and `ios/` native projects. `npx cap sync android` copies the real
   `dist/` bundle into the native project, proven in output. Docs: `docs/BUILDING.md`.
 - [x] Android build workflow (`.github/workflows/android.yml`): JDK 21 + Android SDK, builds
-  the web bundle, `cap sync`, `gradlew assembleDebug`, uploads the APK artifact.
-  **Prepared but not built here** — no JDK/SDK on this machine, so CI is the proof path.
+  the web bundle, `cap sync`, `gradlew assembleDebug`, uploads the APK artifact. The same
+  command sequence was run by hand on this host and produced the APK above, so the
+  workflow is the repeatable version of a proven path, not a guess.
 - [x] iOS build workflow (`.github/workflows/ios.yml`): `macos-latest`, simulator build
-  with `CODE_SIGNING_ALLOWED=NO`. **Prepared but not built here** — Xcode is macOS-only.
+  with `CODE_SIGNING_ALLOWED=NO`. Still CI-only: `xcodebuild` needs macOS.
 
 ## Phase 9 — Desktop (Windows)
 

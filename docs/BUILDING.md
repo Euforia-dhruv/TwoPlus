@@ -18,8 +18,8 @@ Vite touches it, so a broken type never reaches `dist/`.
 
 ## Android
 
-Requires JDK 21 and the Android SDK (set `ANDROID_HOME`). Neither is present on a
-plain Windows dev box, which is why CI does this build.
+Requires JDK 21 and the Android SDK (set `ANDROID_HOME`). Neither ships with a plain
+Windows dev box, so install both first; CI does this automatically.
 
 ```bash
 npm run build
@@ -27,7 +27,10 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 ```
 
-The APK lands in `android/app/build/outputs/apk/debug/`.
+The APK lands in `android/app/build/outputs/apk/debug/`. This sequence was executed
+on Windows with JDK 21 (Adoptium 21.0.13.9) and Android SDK 36 / build-tools 36.0.0,
+and produced a 5,038,783-byte debug APK. `android/local.properties` holds the SDK
+path and is gitignored.
 
 **Release build:** needs a keystore you generate and keep. Never commit it.
 
