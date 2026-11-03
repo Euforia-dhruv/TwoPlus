@@ -1647,42 +1647,27 @@ html[data-mode="light"] .badge.red {
   background: color-mix(in srgb, var(--lime) 12%, transparent);
 }
 
-/* The two faces stack in one grid cell, so the card height is the taller face
-   and nothing jumps when it turns. The actions row stays outside the flip. */
-.member-card-flip {
-  display: grid;
-  transform-style: preserve-3d;
-  transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
+/* FlipCard ships as a fixed-size inline-block (300x400 by default) because its
+   faces are absolutely positioned. The grid needs auto width and a height driven
+   by content, so the fixed box is neutralised here and the card supplies the
+   surface instead of the component. The actions row stays outside the flip. */
+.member-card-flipcard {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  min-height: 214px;
 }
 
-.member-card.is-flipped .member-card-flip {
-  transform: rotateY(180deg);
-}
-
-.member-card-face {
-  grid-area: 1 / 1;
+/* Front face: photo band over the detail rows, laid out like the old card. */
+.member-card-flipcard > div > div:first-child {
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
-.member-card-back {
-  transform: rotateY(180deg);
-  background: color-mix(in srgb, var(--lime) 7%, transparent);
-}
-
-.member-card-back .member-card-body {
+.member-card-back-body {
   gap: 4px;
   padding-bottom: 2px;
-}
-
-.member-card-open {
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-  text-align: left;
 }
 
 .member-card-photo {
