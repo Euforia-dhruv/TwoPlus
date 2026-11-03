@@ -1,0 +1,103 @@
+name: Release
+
+# Cutting a release means pushing a tag, nothing else:
+#
+#   npm version 1.0.1 --no-git-tag-version && git commit -am "1.0.1"
+#   git tag v1.0.1 && git push origin master --tags
+#
+# The artifacts are unsigned on purpose (no certificates exist; see
+# docs/BUILDING.md). Every archive is hashed into SHA256SUMS so a download can be
+# checked against what this run actually produced.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, hash and publish
+    runs-on: windows-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Read the version
+        id: version
+        shell: bash
+        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Build the web bundle
+        run: npm run build
+
+      # The packager fetches its own Electron build; the mirror is what makes
+      # that download work from networks where GitHub releases are blocked.
+      - name: Package the Windows desktop build
+        run: npm run desktop:package
+        env:
+          ELECTRON_MIRROR: https://registry.npmmirror.com/-/binary/electron/
+
+      # A packaged binary that cannot mount a deep link is not a release.
+      - name: Smoke-test the packaged binary
+        run: |
+          $exe = "release\TwoPlus-win32-x64\TwoPlus.exe"
+          if (-not (Test-Path $exe)) { throw "Expected $exe to exist" }
+          $p = Start-Process -FilePath $exe -ArgumentList "--smoke-check" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Smoke check exited $($p.ExitCode)" }
+        shell: powershell
+
+      - name: Collect versioned archives
+        shell: powershell
+        run: |
+          $v = "${{ steps.version.outputs.value }}"
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          Compress-Archive -Path dist\* -DestinationPath "artifacts\twoplus-web-$v.zip" -Force
+          Compress-Archive -Path "release\TwoPlus-win32-x64\*" -DestinationPath "artifacts\twoplus-desktop-win32-x64-$v.zip" -Force
+          Get-ChildItem artifacts | Format-Table Name, Length
+
+      - name: Hash every archive
+        run: node scripts/checksums.mjs artifacts
+
+      - name: Move the checksum file next to the archives
+        shell: powershell
+        run: Move-Item SHA256SUMS artifacts\SHA256SUMS -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: twoplus-${{ steps.version.outputs.value }}
+          path: artifacts/*
+          if-no-files-found: error
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          body: |
+            Unsigned build. Windows will show a SmartScreen warning because no
+            code-signing certificate exists; verify the download against
+            `SHA256SUMS` instead:
+
+            ```
+            certutil -hashfile <file> SHA256
+            ```
+
+            Deliberately not included: a Windows installer, a signed Android
+            `.aab`, and an iOS `.ipa`. Those need owner-held certificates.

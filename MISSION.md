@@ -202,8 +202,8 @@ marked done from intent.
 ## Phase 16 — CI/CD
 
 - [x] `.github/workflows/ci.yml` runs install, lint, typecheck, build, tests.
-- [ ] Release workflow with versioned artifacts and checksums.
-- [ ] Signing wiring (blocked: no keys, and none may be committed).
+- [x] Release workflow with versioned artifacts and checksums. `.github/workflows/release.yml` triggers on `v*` tags (and manually), builds on `windows-latest`, packages the desktop app, runs `--smoke-check` against the packaged `.exe` and **fails the release if it exits non-zero**, writes `artifacts/twoplus-web-<version>.zip` and `artifacts/twoplus-desktop-win32-x64-<version>.zip`, hashes every archive with `scripts/checksums.mjs`, and publishes them to a GitHub release with `SHA256SUMS` attached. Version comes from `package.json` (currently 1.0.0). Checksum script proven locally: `node scripts/checksums.mjs dist` -> 29 files, exit 0.
+- [!] Signing wiring: **blocked, no keys exist**. Android keystore, Apple distribution certificate plus provisioning profile, and a Windows code-signing certificate are owner-held credentials and must never be committed. The release workflow therefore ships unsigned archives and says so in the release body. Wiring is a documented 3-step change in `docs/BUILDING.md` once the owner supplies secrets.
 
 ## Phase 17 — Store readiness
 
