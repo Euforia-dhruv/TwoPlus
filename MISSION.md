@@ -146,8 +146,17 @@ marked done from intent.
 - [x] RLS probe: anon cannot read any protected table.
 - [x] Cross-tenant probe: signed-in user cannot read another org's rows.
 - [x] CSP and hardening headers shipped and verified against the real bundle.
-- [ ] Gitleaks / Semgrep / Trivy runs (tools not installed; attempted and recorded).
-- [ ] Dependency audit results recorded.
+- [x] Gitleaks / Semgrep / Trivy runs: `docs/SECURITY-SCAN.md`. Gitleaks 8.30.1 over the
+      full history (144 commits) = no leaks, exit 0; `dir` mode found 3 real secrets in the
+      gitignored `.env.local` and `tests/.auth/state.json`, never committed. Semgrep 1.183.0
+      (290 rules, 540 files) = 17 findings, all reviewed: 14 mutable action tags in the
+      workflows (accepted, pinned SHA deferred) and 3 in vendored skill JS that never ships.
+      Trivy 0.76.1 = 0 critical/high.
+- [x] Dependency audit recorded: production tree `npm audit --omit=dev` = **0**. Full tree = 7
+      moderate, one chain (`glob`/`minimatch`/`rimraf`) reachable only through
+      `@electron/packager` and `@capacitor/cli` at build time; the advertised fix is a
+      breaking downgrade of the release tooling, so it is recorded and left. Nothing from
+      that chain is in `dist/` or the shipped `.exe`.
 
 ## Phase 13 — Performance
 
