@@ -8,6 +8,7 @@
 -- Not applied yet. Until it is, api.removeWorkspace() surfaces a clear message
 -- and the UI stays disabled rather than pretending the action worked.
 
+drop policy if exists "org delete owner" on public.organizations;
 create policy "org delete owner" on public.organizations
   for delete using (public.org_has_role(id, 'owner'));
 

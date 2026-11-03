@@ -12,6 +12,7 @@
 -- ---------------------------------------------------------------------------
 -- Read access: a member sees their own gym's scheduled classes.
 -- ---------------------------------------------------------------------------
+drop policy if exists "classes read for own member" on public.classes;
 create policy "classes read for own member" on public.classes
   for select using (
     exists (
@@ -23,6 +24,7 @@ create policy "classes read for own member" on public.classes
   );
 
 -- A member sees their own bookings (other members' bookings stay private).
+drop policy if exists "bookings read for own member" on public.class_bookings;
 create policy "bookings read for own member" on public.class_bookings
   for select using (
     exists (
@@ -36,6 +38,7 @@ create policy "bookings read for own member" on public.class_bookings
 -- Cancelling own booking only. The status check in the with-clause stops a
 -- member from flipping a cancelled booking back to 'booked' (which would let
 -- them bypass the capacity check in book_class()).
+drop policy if exists "bookings cancel own" on public.class_bookings;
 create policy "bookings cancel own" on public.class_bookings
   for update using (
     exists (
