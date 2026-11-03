@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { getSupabase } from "@/lib/supabase";
+import { attemptLockMs, clearAttempts, lockMessage, noteAttempt } from "@/lib/attempt-limit";
 import { AuthLayout } from "./AuthLayout";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,6 +19,14 @@ export default function ForgotPassword() {
       return;
     }
     setError("");
+
+    const attemptKey = `reset:${email.trim().toLowerCase()}`;
+    const wait = attemptLockMs(attemptKey);
+    if (wait > 0) {
+      setError(lockMessage(wait));
+      return;
+    }
+
     setLoading(true);
     try {
       const { error: rpcError } = await getSupabase().auth.resetPasswordForEmail(
@@ -26,9 +35,11 @@ export default function ForgotPassword() {
       );
       // Deliberately do not reveal whether the account exists.
       if (rpcError && !rpcError.message.includes("rate")) {
+        noteAttempt(attemptKey);
         setError(rpcError.message);
         return;
       }
+      clearAttempts(attemptKey);
       setSent(true);
     } catch {
       setError("Network error. Check your connection and try again.");

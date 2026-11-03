@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getSupabase } from "@/lib/supabase";
+import { attemptLockMs, clearAttempts, lockMessage, noteAttempt } from "@/lib/attempt-limit";
 import { AuthLayout } from "./AuthLayout";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,6 +41,13 @@ export default function Signup() {
     setFormError("");
     if (Object.keys(next).length) return;
 
+    const attemptKey = `signup:${email.trim().toLowerCase()}`;
+    const wait = attemptLockMs(attemptKey);
+    if (wait > 0) {
+      setFormError(lockMessage(wait));
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await getSupabase().auth.signUp({
@@ -51,6 +59,7 @@ export default function Signup() {
         },
       });
       if (error) {
+        noteAttempt(attemptKey);
         if (error.message.toLowerCase().includes("already registered")) {
           setFormError("An account with this email already exists. Try signing in.");
         } else {
@@ -58,6 +67,7 @@ export default function Signup() {
         }
         return;
       }
+      clearAttempts(attemptKey);
       if (data.session) {
         // Email confirmation disabled (common in local dev) — go straight to onboarding.
         navigate("/onboarding", { replace: true });

@@ -138,7 +138,11 @@ marked done from intent.
 - [x] RLS on every table; tenant boundaries enforced server-side via `org_has_role`.
 - [x] `SECURITY DEFINER` functions pinned `search_path`.
 - [x] Storage buckets private except `workspace-media` (public by design).
-- [!] Rate limiting: none at the app layer; must be configured at the edge (documented).
+- [x] Credential-screen throttling: `src/lib/attempt-limit.ts` locks one email after
+      5 failed attempts for 60 s, wired into sign-in, sign-up and password reset, with a
+      visible countdown message. It is a client-side brake on repeat submissions, not a
+      security boundary (storage is the user's), so Supabase Auth's server-side quotas and
+      an edge limit remain the real controls. 7 tests: `tests/attempt-limit.spec.ts`.
 - [x] Migration + backup/restore runbook: `docs/OPERATIONS.md` (apply order, the
       "never edit live schema" rule, session-pooler `pg_dump`, why `auth` is dumped,
       scratch-project restore, the four restore verification queries, single-row

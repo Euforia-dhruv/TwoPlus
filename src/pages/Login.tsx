@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getSupabase } from "@/lib/supabase";
+import {
+  attemptLockMs,
+  clearAttempts,
+  lockMessage,
+  noteAttempt,
+} from "@/lib/attempt-limit";
 import { AuthLayout } from "./AuthLayout";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -117,6 +123,13 @@ export default function Login() {
     setErrors(next);
     if (Object.keys(next).length) return;
 
+    const attemptKey = `login:${email.trim().toLowerCase()}`;
+    const wait = attemptLockMs(attemptKey);
+    if (wait > 0) {
+      setFormError(lockMessage(wait));
+      return;
+    }
+
     setLoading(true);
     try {
       const supabase = getSupabase();
@@ -125,6 +138,7 @@ export default function Login() {
         password,
       });
       if (error) {
+        noteAttempt(attemptKey);
         if (error.message.includes("Email not confirmed")) {
           setInfo("Please confirm your email first. Check your inbox for the verification link.");
         } else if (error.message.includes("Invalid login credentials")) {
@@ -135,6 +149,7 @@ export default function Login() {
         return;
       }
       if (!data.session) return;
+      clearAttempts(attemptKey);
 
       const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (level && level.nextLevel === "aal2" && level.currentLevel !== "aal2") {
