@@ -3079,17 +3079,17 @@ html[data-mode="light"] .board-hero {
 
 /* ---------- 25. Spotlight navbar ---------- */
 
-/* Floating pill: dark translucent fill and a thin grey outline, with no
-   enclosing page-level panel (the .topbar above stays bare). Registry emits
-   .spotlight-nav-bg after .spotlight-nav, so the fill has to live on -bg. */
+/* No enclosing panel: the links float directly over the page background while
+   the spotlight/ambience light layers stay. Registry emits .spotlight-nav-bg
+   after .spotlight-nav, so the fill has to be cleared on -bg. */
 .spotlight-nav-bg {
-  background: rgba(8, 10, 12, 0.82);
+  background: transparent;
 }
 
 .spotlight-nav {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Flat pill like the reference: no drop shadow in either mode. */

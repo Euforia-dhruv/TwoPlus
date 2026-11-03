@@ -43,8 +43,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     icon: "checkin",
     items: [
       item("attendance", "Attendance", "checkin"),
-      item("equipment", "Equipment", "dumbbell"),
-      item("inventory", "Inventory", "package"),
       item("branches", "Branches", "building"),
     ],
   },
@@ -65,7 +63,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     items: [
       item("community", "Community", "message"),
       item("reminders", "Reminders", "bell"),
-      item("customer-support", "Customer support", "headset"),
     ],
   },
   {
