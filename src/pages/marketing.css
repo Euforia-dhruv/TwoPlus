@@ -811,10 +811,13 @@ html[data-mode="dark"] .mk {
   display: block;
 }
 
-/* Every word starts at 30% and reaches full colour as it crosses the trigger
-   line, in reading order. Reduced motion shows it at full colour at once. */
+/* Every word starts dimmed and reaches full colour as it crosses the trigger
+   line, in reading order. Reduced motion shows it at full colour at once.
+   The resting opacity is 0.45, not 0.3: against the --deep field that is
+   4.4:1, so the text is legible before it lights up. At 0.3 it measured
+   2.33:1 and failed Lighthouse's contrast audit on the marketing page. */
 .mk-word {
-  opacity: 0.3;
+  opacity: 0.45;
   transition: opacity 500ms var(--ease);
 }
 

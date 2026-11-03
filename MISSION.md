@@ -160,9 +160,29 @@ marked done from intent.
 
 ## Phase 13 — Performance
 
-- [ ] Bundle analysis and code splitting.
-- [ ] Lighthouse run.
-- [ ] Pagination/index review on large lists.
+- [x] Bundle analysis and code splitting. One static 1647 kB bundle became 20 chunks:
+      `src/router.tsx` lazy-loads all nine pages behind a single `<Suspense>`, and
+      `AuthLayout` lazy-loads the three.js `WaveGridBackground` so the 543 kB chunk is
+      fetched only by `/login`. The first path now loads `index` 262 kB + `supabase`
+      209 kB + runtime 8.8 kB; `App` (222 kB), `SuperAdmin` (39 kB), `Member` (25 kB)
+      and `Marketing` (15 kB) arrive on navigation. The only remaining >500 kB warning
+      is the three.js chunk itself, which no route outside `/login` downloads.
+- [x] Lighthouse run. Lighthouse 13.6.0 (desktop) against `vite preview`: `/login`
+      99 / 100 / 100 (FCP 0.6 s, LCP 0.6 s, TBT 10 ms, CLS 0), `/` 96 / 100 / 100.
+      The one real failure found was `.mk-word` at `opacity: 0.3` measuring 2.33:1;
+      raised to 0.45, contrast items now 0 and accessibility is 100 on both.
+- [x] Pagination/index review on large lists. `scripts/agg-probe.mjs` established that
+      this PostgREST returns `PGRST123` for aggregate functions, which is why totals
+      were summed in the browser after `.limit(10_000)` — a silent truncation at ~36k
+      attendance rows for a busy gym. `src/lib/api.ts` now exposes `selectAll`, which
+      pages `.range(0, 999)` in `id` order until a short page; the monthly report and
+      dashboard stat loaders use it, and no `.limit(10_000)` remains. Index coverage
+      was already in place: migrations 0001–0015 carry ~50 indexes including
+      `members_org_status_idx`, `members_org_name_idx`, `members_org_phone_idx`,
+      `payments_org_date_idx`, `payments_org_status_idx`, `attendance_org_date_idx`,
+      `classes_org_start_idx`, `member_memberships_expiry_idx` and
+      `class_bookings_class_status_idx`, one for every filter and sort these queries
+      actually use. No migration was needed. Full suite 23 green.
 
 ## Phase 14 — Automated testing
 

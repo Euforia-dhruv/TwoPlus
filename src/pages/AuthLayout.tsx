@@ -1,7 +1,12 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import { Icon } from "@/icons";
-import { WaveGridBackground } from "@/components/ui/wave-grid-background";
 import "./auth.css";
+
+// three.js is 545 kB and the wall is decoration: the sign-in form must paint
+// before the renderer arrives, so it is its own chunk and may never resolve.
+const WaveGridBackground = lazy(() =>
+  import("@/components/ui/wave-grid-background").then((m) => ({ default: m.WaveGridBackground })),
+);
 
 // Split-screen shell for auth pages. Left: brand panel (desktop only).
 // Right: the form card. Mobile collapses to a single column.
@@ -30,7 +35,9 @@ export function AuthLayout({
     return (
       <div className="auth-page auth-page--wall">
         <div className="auth-page-wall">
-          <WaveGridBackground colorBase={colors?.base} colorHigh={colors?.high} />
+          <Suspense fallback={null}>
+            <WaveGridBackground colorBase={colors?.base} colorHigh={colors?.high} />
+          </Suspense>
         </div>
         <main className="auth-panel">
           <div className={cardClass}>

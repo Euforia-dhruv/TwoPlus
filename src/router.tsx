@@ -1,19 +1,24 @@
-import type { ReactNode } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/org";
 import { myHomePath } from "@/lib/member-api";
-import Dashboard from "./App";
-import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import Onboarding from "@/pages/Onboarding";
-import SuperAdmin from "@/pages/SuperAdmin";
-import Marketing from "@/pages/Marketing";
 import { NotFound, Privacy, Terms } from "@/pages/DocPages";
-import Member from "@/pages/Member";
+
+// Each surface is its own chunk. One bundle meant a member on a phone
+// downloaded the platform admin console and the whole staff workspace before
+// their workout appeared. DocPages stays eager: the 404 can be reached from
+// anywhere and is 5 KB.
+const Dashboard = lazy(() => import("./App"));
+const Login = lazy(() => import("@/pages/Login"));
+const Signup = lazy(() => import("@/pages/Signup"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const SuperAdmin = lazy(() => import("@/pages/SuperAdmin"));
+const Marketing = lazy(() => import("@/pages/Marketing"));
+const Member = lazy(() => import("@/pages/Member"));
 
 // Shown while auth or the organization row resolves. Reads the design tokens so
 // it is painted by whichever language the workspace uses, never a fixed olive.
@@ -64,48 +69,52 @@ function RequireNoOrg({ children }: { children: ReactNode }) {
 
 export default function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/super-admin" element={<SuperAdmin />} />
-      {/* Spec name for the same control center. */}
-      <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
-      <Route
-        path="/onboarding"
-        element={
-          <RequireNoOrg>
-            <Onboarding />
-          </RequireNoOrg>
-        }
-      />
-      {/* Public front door. Signed-in visitors are sent on to the workspace. */}
-      <Route path="/" element={<Marketing />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/home" element={<RequireAuth><HomeRedirect /></RequireAuth>} />
-      <Route path="/member" element={<RequireAuth><Member /></RequireAuth>} />
-      {/* Two-level workspace nav: /app/:category/:module drives both rails. */}
-      <Route
-        path="/app"
-        element={
-          <RequireAuth>
-            <Navigate to="/app/overview/overview" replace />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/app/:category/:module"
-        element={
-          <RequireAuth>
-            {/* Owners without an org bounce to onboarding inside DashboardShell */}
-            <DashboardShell />
-          </RequireAuth>
-        }
-      />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    // One boundary for every lazy surface: a chunk is a network request the
+    // first time a route is opened, and an empty flash looks like a broken page.
+    <Suspense fallback={<Splash text="Loading" />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/super-admin" element={<SuperAdmin />} />
+        {/* Spec name for the same control center. */}
+        <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
+        <Route
+          path="/onboarding"
+          element={
+            <RequireNoOrg>
+              <Onboarding />
+            </RequireNoOrg>
+          }
+        />
+        {/* Public front door. Signed-in visitors are sent on to the workspace. */}
+        <Route path="/" element={<Marketing />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/home" element={<RequireAuth><HomeRedirect /></RequireAuth>} />
+        <Route path="/member" element={<RequireAuth><Member /></RequireAuth>} />
+        {/* Two-level workspace nav: /app/:category/:module drives both rails. */}
+        <Route
+          path="/app"
+          element={
+            <RequireAuth>
+              <Navigate to="/app/overview/overview" replace />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/app/:category/:module"
+          element={
+            <RequireAuth>
+              {/* Owners without an org bounce to onboarding inside DashboardShell */}
+              <DashboardShell />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 

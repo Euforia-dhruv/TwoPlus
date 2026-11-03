@@ -41,6 +41,31 @@ function throwIf(error: { message: string } | null, fallback: string) {
   if (error) throw err(error.message || fallback);
 }
 
+// This project's PostgREST rejects aggregate functions ("PGRST123: Use of
+// aggregate functions is not allowed"), so a total is summed in the browser
+// from the rows themselves. A single `.limit(10_000)` would then silently
+// under-report a busy gym: 200 visits a day is 36,000 rows in six months, and
+// the sum would quietly stop at ten thousand. Page until a short page arrives
+// instead. Callers must order by a unique column so pages cannot overlap.
+const PAGE_SIZE = 1000;
+
+async function selectAll<T>(
+  fetchPage: (from: number, to: number) => PromiseLike<{
+    data: unknown;
+    error: { message: string } | null;
+  }>,
+  fallback: string,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await fetchPage(from, from + PAGE_SIZE - 1);
+    throwIf(error, fallback);
+    const page = (data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) return rows;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Onboarding
 // ---------------------------------------------------------------------------
@@ -956,36 +981,51 @@ export async function loadMonthlyReports(
   const since = `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, "0")}-01`;
 
   const [payments, expenses, attendance, members] = await Promise.all([
-    supabase
-      .from("payments")
-      .select("amount_minor, status, paid_on")
-      .eq("organization_id", orgId)
-      .gte("paid_on", since)
-      .limit(10_000),
-    supabase
-      .from("expenses")
-      .select("amount_minor, expense_date")
-      .eq("organization_id", orgId)
-      .gte("expense_date", since)
-      .limit(10_000),
-    supabase
-      .from("attendance")
-      .select("check_in")
-      .eq("organization_id", orgId)
-      .gte("check_in", since)
-      .limit(10_000),
-    supabase
-      .from("members")
-      .select("joined_on")
-      .eq("organization_id", orgId)
-      .gte("joined_on", since)
-      .limit(10_000),
+    selectAll<{ amount_minor: number; status: string; paid_on: string }>(
+      (from, to) =>
+        supabase
+          .from("payments")
+          .select("id, amount_minor, status, paid_on")
+          .eq("organization_id", orgId)
+          .gte("paid_on", since)
+          .order("id")
+          .range(from, to),
+      "Could not load payment reports",
+    ),
+    selectAll<{ amount_minor: number; expense_date: string }>(
+      (from, to) =>
+        supabase
+          .from("expenses")
+          .select("id, amount_minor, expense_date")
+          .eq("organization_id", orgId)
+          .gte("expense_date", since)
+          .order("id")
+          .range(from, to),
+      "Could not load expense reports",
+    ),
+    selectAll<{ check_in: string }>(
+      (from, to) =>
+        supabase
+          .from("attendance")
+          .select("id, check_in")
+          .eq("organization_id", orgId)
+          .gte("check_in", since)
+          .order("id")
+          .range(from, to),
+      "Could not load attendance reports",
+    ),
+    selectAll<{ joined_on: string }>(
+      (from, to) =>
+        supabase
+          .from("members")
+          .select("id, joined_on")
+          .eq("organization_id", orgId)
+          .gte("joined_on", since)
+          .order("id")
+          .range(from, to),
+      "Could not load membership reports",
+    ),
   ]);
-
-  throwIf(payments.error, "Could not load payment reports");
-  throwIf(expenses.error, "Could not load expense reports");
-  throwIf(attendance.error, "Could not load attendance reports");
-  throwIf(members.error, "Could not load membership reports");
 
   const buckets: ReportMonth[] = Array.from({ length: months }, (_, i) => {
     const day = new Date(first);
@@ -1003,28 +1043,21 @@ export async function loadMonthlyReports(
   const byMonth = new Map(buckets.map((b) => [b.month, b]));
   const monthOf = (iso: string) => iso.slice(0, 7);
 
-  for (const p of (payments.data ?? []) as {
-    amount_minor: number;
-    status: string;
-    paid_on: string;
-  }[]) {
+  for (const p of payments) {
     const bucket = byMonth.get(monthOf(p.paid_on));
     if (!bucket) continue;
     if (p.status === "paid") bucket.collectedMinor += p.amount_minor;
     if (p.status === "pending") bucket.pendingMinor += p.amount_minor;
   }
-  for (const e of (expenses.data ?? []) as {
-    amount_minor: number;
-    expense_date: string;
-  }[]) {
+  for (const e of expenses) {
     const bucket = byMonth.get(monthOf(e.expense_date));
     if (bucket) bucket.expensesMinor += e.amount_minor;
   }
-  for (const a of (attendance.data ?? []) as { check_in: string }[]) {
+  for (const a of attendance) {
     const bucket = byMonth.get(monthOf(a.check_in));
     if (bucket) bucket.visits += 1;
   }
-  for (const m of (members.data ?? []) as { joined_on: string }[]) {
+  for (const m of members) {
     const bucket = byMonth.get(monthOf(m.joined_on));
     if (bucket) bucket.newMembers += 1;
   }
@@ -1046,22 +1079,27 @@ export async function loadDashboardStats(org: OrgContext): Promise<DashboardStat
     .slice(0, 10);
 
   const [
-    membersRes,
+    members,
     activeMembershipsRes,
     expiringRes,
     expiredRes,
     attendanceRes,
-    paidRes,
-    pendingRes,
-    expensesRes,
+    paidRows,
+    pendingRows,
+    expenseRows,
     enquiriesRes,
     classesRes,
   ] = await Promise.all([
-    supabase
-      .from("members")
-      .select("id, status")
-      .eq("organization_id", orgId)
-      .limit(10_000),
+    selectAll<{ status: string }>(
+      (from, to) =>
+        supabase
+          .from("members")
+          .select("id, status")
+          .eq("organization_id", orgId)
+          .order("id")
+          .range(from, to),
+      "Could not load member statistics",
+    ),
     supabase
       .from("member_memberships")
       .select("id", { count: "exact", head: true })
@@ -1085,25 +1123,40 @@ export async function loadDashboardStats(org: OrgContext): Promise<DashboardStat
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .gte("check_in", `${todayStr}T00:00:00`),
-    supabase
-      .from("payments")
-      .select("amount_minor")
-      .eq("organization_id", orgId)
-      .eq("status", "paid")
-      .gte("paid_on", monthStart)
-      .limit(10_000),
-    supabase
-      .from("payments")
-      .select("amount_minor")
-      .eq("organization_id", orgId)
-      .eq("status", "pending")
-      .limit(10_000),
-    supabase
-      .from("expenses")
-      .select("amount_minor")
-      .eq("organization_id", orgId)
-      .gte("expense_date", monthStart)
-      .limit(10_000),
+    selectAll<{ amount_minor: number }>(
+      (from, to) =>
+        supabase
+          .from("payments")
+          .select("id, amount_minor")
+          .eq("organization_id", orgId)
+          .eq("status", "paid")
+          .gte("paid_on", monthStart)
+          .order("id")
+          .range(from, to),
+      "Could not load payment statistics",
+    ),
+    selectAll<{ amount_minor: number }>(
+      (from, to) =>
+        supabase
+          .from("payments")
+          .select("id, amount_minor")
+          .eq("organization_id", orgId)
+          .eq("status", "pending")
+          .order("id")
+          .range(from, to),
+      "Could not load payment statistics",
+    ),
+    selectAll<{ amount_minor: number }>(
+      (from, to) =>
+        supabase
+          .from("expenses")
+          .select("id, amount_minor")
+          .eq("organization_id", orgId)
+          .gte("expense_date", monthStart)
+          .order("id")
+          .range(from, to),
+      "Could not load expense statistics",
+    ),
     supabase
       .from("enquiries")
       .select("id", { count: "exact", head: true })
@@ -1117,13 +1170,8 @@ export async function loadDashboardStats(org: OrgContext): Promise<DashboardStat
       .gte("starts_at", new Date().toISOString()),
   ]);
 
-  const members = (membersRes.data ?? []) as { status: string }[];
-  throwIf(membersRes.error, "Could not load member statistics");
-  throwIf(paidRes.error, "Could not load payment statistics");
-  throwIf(expensesRes.error, "Could not load expense statistics");
-
-  const sumMinor = (rows: { amount_minor: number }[] | null) =>
-    (rows ?? []).reduce((acc, r) => acc + r.amount_minor, 0);
+  const sumMinor = (rows: { amount_minor: number }[]) =>
+    rows.reduce((acc, r) => acc + r.amount_minor, 0);
 
   return {
     totalMembers: members.length,
@@ -1132,9 +1180,9 @@ export async function loadDashboardStats(org: OrgContext): Promise<DashboardStat
     expiringSoon: expiringRes.count ?? 0,
     expiredMemberships: expiredRes.count ?? 0,
     attendanceToday: attendanceRes.count ?? 0,
-    monthCollectionsMinor: sumMinor(paidRes.data),
-    pendingPaymentsMinor: sumMinor(pendingRes.data),
-    monthExpensesMinor: sumMinor(expensesRes.data),
+    monthCollectionsMinor: sumMinor(paidRows),
+    pendingPaymentsMinor: sumMinor(pendingRows),
+    monthExpensesMinor: sumMinor(expenseRows),
     newEnquiries: enquiriesRes.count ?? 0,
     upcomingClasses: classesRes.count ?? 0,
   };
