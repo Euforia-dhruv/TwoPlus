@@ -73,7 +73,9 @@ marked done from intent.
 - [x] Member cards on FlipCard with no face clipping.
 - [x] Loading/empty/error/success states; destructive-action confirmation.
 - [x] Reduced-motion respected.
-- [ ] Final per-screen visual pass on every module.
+- [x] Final per-screen visual pass on every module: `tests/screens.spec.ts` walks every
+  nav route at 1440/1024/390 in both modes and fails on horizontal overflow (naming the
+  offending element), a missing heading, or an uncaught page error. Green.
 
 ## Phase 8 — Mobile (Android + iOS)
 
