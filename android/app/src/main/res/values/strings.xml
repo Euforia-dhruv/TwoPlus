@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TwoPlus</string>
+    <string name="title_activity_main">TwoPlus</string>
+    <string name="package_name">fit.twoplus.app</string>
+    <string name="custom_url_scheme">fit.twoplus.app</string>
+</resources>

@@ -1,0 +1,63 @@
+name: iOS
+
+# Builds the Capacitor iOS shell. Xcode only exists on macOS runners, so this is
+# the one job that cannot run on a developer's Windows machine at all.
+#
+# Produces an unsigned simulator build: enough to prove the native project
+# compiles and the web bundle syncs. An .ipa for TestFlight or the App Store
+# needs an Apple Developer certificate and provisioning profile (owner-held
+# secrets); see docs/BUILDING.md.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+      - "ios/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Simulator build
+    runs-on: macos-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the web bundle
+        run: npm run build
+
+      - name: Sync into the native project
+        run: npx cap sync ios
+
+      - name: Build for the simulator
+        run: |
+          cd ios/App
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
