@@ -669,7 +669,14 @@ export async function updateStaffMember(
   patch: Partial<
     Pick<
       StaffMember,
-      "name" | "phone" | "email" | "job_role" | "employment_status"
+      | "name"
+      | "phone"
+      | "email"
+      | "job_role"
+      | "employment_status"
+      // Written by an owner or manager to tie this record to a real login, so
+      // the trainer's own schedule can match it. Null unlinks.
+      | "user_id"
     >
   >,
 ): Promise<void> {

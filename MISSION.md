@@ -51,7 +51,10 @@ marked done from intent.
 ## Phase 5 — Trainer workspace
 
 - [~] Trainers see assigned members, plans, progress, notes.
-- [ ] Trainer-specific scheduling view.
+- [x] Trainer-specific scheduling view: a trainer sees only their own classes, matched
+  through `staff.user_id` (`f61f4b0`). Owners/managers link a login to an employee row in
+  Edit employee; unlinked trainers get an empty list plus the reason, never the whole org's
+  schedule. Schedule class now records a trainer at all (previously always "Unassigned").
 - [x] Trainer role cannot escalate to owner/admin (`org_has_role` enforced server-side).
 
 ## Phase 6 — Gym operations

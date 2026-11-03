@@ -563,6 +563,11 @@ export default function App() {
   // Client-side guard for the controls only: the write itself is enforced by the
   // "org update owner" RLS policy, so staff edits still fail server-side.
   const isOwner = org?.role === "owner"
+  // The employee record linked to the signed-in login. Only a trainer's view is
+  // scoped by it, but resolving it here keeps one lookup as the single source.
+  const myStaff = session
+    ? staffList.find((s) => s.user_id === session.user.id)
+    : undefined
   useEffect(() => {
     const next = org ? themeFromOrg(org.organization) : DEFAULT_THEME
     setTheme(next)
@@ -624,10 +629,21 @@ export default function App() {
             ]),
           }))
         } else if (active === "Classes & PT") {
-          const [rows, bookings] = await Promise.all([
+          const [allRows, bookings] = await Promise.all([
             api.listClasses(orgId),
             api.listClassBookings(orgId),
           ])
+          // A trainer sees the classes they are assigned to, matched through
+          // staff.user_id. Owners, managers and front desk still see everything.
+          // An unlinked trainer gets an empty list, never the whole org's.
+          // shortcut: classes with no trainer stay invisible to trainers; give
+          // them a claim action if unassigned shifts ever pile up.
+          const rows =
+            org.role !== "trainer"
+              ? allRows
+              : myStaff
+                ? allRows.filter((r) => r.trainer_id === myStaff.id)
+                : []
           setClasses(rows)
           setClassBookings(bookings)
           const fmt = (iso: string) =>
@@ -834,7 +850,7 @@ export default function App() {
     }
     loadModule()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, org, members.length, moduleTick, enquiryList, reminders, roster])
+  }, [active, org, members.length, moduleTick, enquiryList, reminders, roster, staffList.length])
   useEffect(() => {
     const main = mainRef.current
     if (!main) return
@@ -1890,7 +1906,15 @@ export default function App() {
                         ))}
                     </tbody>
                   </table>
-                  {!(records[active] || []).length && <div className="empty">No records yet. Use the add button to create your first entry.</div>}
+                  {!(records[active] || []).length && (
+                    <div className="empty">
+                      {active === "Classes & PT" && org?.role === "trainer"
+                        ? myStaff
+                          ? "No classes are assigned to you yet."
+                          : "Your login is not linked to an employee record, so no schedule can be shown. Ask the owner to link it under Trainers & staff."
+                        : "No records yet. Use the add button to create your first entry."}
+                    </div>
+                  )}
                 </div>
                 <div className="table-footer">
                   <span>All records · {branch}</span>
@@ -2818,6 +2842,12 @@ export default function App() {
                         capacity: Number(String(data.get("capacity") || "20")) || 20,
                         duration_minutes:
                           Number(String(data.get("duration") || "60")) || 60,
+                        trainer_id:
+                          String(data.get("trainer") || "") ||
+                          // A trainer scheduling a class must not create one they
+                          // then cannot see, so an unassigned shift defaults to
+                          // whoever is booking it.
+                          (org?.role === "trainer" ? (myStaff?.id ?? null) : null),
                       })
                       setModal("")
                       notify("Class scheduled")
@@ -2960,7 +2990,12 @@ export default function App() {
                       const patch: Partial<
                         Pick<
                           StaffMember,
-                          "name" | "phone" | "email" | "job_role" | "employment_status"
+                          | "name"
+                          | "phone"
+                          | "email"
+                          | "job_role"
+                          | "employment_status"
+                          | "user_id"
                         >
                       > = {}
                       for (const key of ["name", "phone", "email", "job_role"] as const) {
@@ -2970,6 +3005,10 @@ export default function App() {
                       const nextStatus = String(data.get("status") || "")
                       if (nextStatus === "active" || nextStatus === "inactive") {
                         patch.employment_status = nextStatus
+                      }
+                      const nextLogin = String(data.get("login") || "")
+                      if (nextLogin) {
+                        patch.user_id = nextLogin === "none" ? null : nextLogin
                       }
                       if (!Object.keys(patch).length) {
                         throw new Error("Change at least one field")
@@ -3506,6 +3545,19 @@ export default function App() {
                       Duration (minutes)
                       <Input name="duration" type="number" min="15" step="15" required defaultValue={60} />
                     </label>
+                    <label>
+                      Trainer
+                      <Select name="trainer" defaultValue="">
+                        <option value="">Unassigned</option>
+                        {staffList
+                          .filter((s) => s.job_role === "Trainer")
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </Select>
+                    </label>
                   </>
                 ) : modal === "Create plan" ? (
                   <>
@@ -3812,6 +3864,23 @@ export default function App() {
                           <option value="inactive">Inactive</option>
                         </Select>
                       </label>
+                    </div>
+                    <label>
+                      Linked login
+                      <Select name="login" defaultValue="">
+                        <option value="">Keep current login</option>
+                        <option value="none">Not linked</option>
+                        {roster.map((r) => (
+                          <option key={r.user_id} value={r.user_id}>
+                            {r.full_name || r.email} · {r.role}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <div className="integration-note">
+                      <Icon name="settings" size={15} />
+                      Linking an employee to their login is what shows a trainer
+                      only the classes assigned to them.
                     </div>
                   </>
                 ) : modal === "Change role" ? (

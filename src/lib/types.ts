@@ -184,6 +184,9 @@ export type StaffMember = {
   id: string;
   organization_id: string;
   branch_id: string | null;
+  // Set when the employee record is linked to a real login; that link is how a
+  // trainer is matched to their own schedule.
+  user_id: string | null;
   name: string;
   phone: string;
   email: string | null;
