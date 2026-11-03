@@ -227,7 +227,7 @@ marked done from intent.
 
 ## Phase 20 — Final report
 
-- [ ] Deliverables A–F written with real results.
+- [x] Deliverables A–F written with real results. `docs/FINAL-REPORT.md`, written against `3ea2ca7`. A: the three surfaces, tenancy through `org_has_role()` (the same call that makes suspension read-only), and the offline queue with stable intent keys and the 50-entry cap. B: every gate with its number — `tsc -b` and `build` exit 0, `npm run lint` clean apart from pre-existing warnings, 30 Playwright tests passing in 2.9 min, `node scripts/rls-audit.mjs` reporting 38 tables all with RLS / 30 with policies / 8 closed by design, gitleaks over 144 commits with no leaks (the 3 real secrets found by a directory scan live only in gitignored `.env.local` and `tests/.auth/state.json` and were never committed), semgrep 290 rules over 540 files with 17 findings (14 mutable action tags, 3 in a vendored skills directory), trivy 0 critical/high, `npm audit --omit=dev` 0 with 7 moderate build-time transitives, Lighthouse 99/100/100 on `/login` and 96/100/100 on `/`, and the bundle cut from one 1,647 kB file to 20 chunks with three.js loaded only on `/login`. C: the four build targets, why the desktop shell uses `app://bundle`, and `release.yml`'s smoke-check gate plus `SHA256SUMS` over 29 files. D: photos, export, `delete_my_account()` and the owner refusal. E: `docs/OPERATIONS.md`, and the rule that a restore is reserved for destroyed data. F: every blocked item with the human action named, the deliberately-not-built list, the three modules with no storage, and the two small inconsistencies (`1.0.0` versus native `1.0`; no member-app screenshots or feature graphic).
 
 ---
 
