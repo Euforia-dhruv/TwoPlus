@@ -19,6 +19,8 @@ import {
   uploadProgressPhoto,
   deleteProgressPhoto,
   saveMyMeasurement,
+  exportMyData,
+  deleteMyAccount,
   type BookableClass,
   type MyDietPlan,
   type MyMeasurement,
@@ -28,6 +30,7 @@ import {
 } from "@/lib/member-api"
 import { formatDate, formatMoney } from "@/lib/types"
 import { Badge } from "@/components/kit"
+import { HoldButton } from "@/components/HoldButton"
 import { CACHE, cachedRead, submitOrQueue, useOutbox } from "@/lib/member-sync"
 import { clearCache } from "@/lib/offline-cache"
 import { WorkoutLogger, WorkoutHistory } from "./member-workout"
@@ -71,6 +74,10 @@ export default function Member() {
   const [classes, setClasses] = useState<BookableClass[]>([])
   const [photos, setPhotos] = useState<ProgressPhoto[]>([])
   const [busyClass, setBusyClass] = useState<string | null>(null)
+  // Phase 18: your data. Export is a download; deletion needs a hold.
+  const [exporting, setExporting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [dataError, setDataError] = useState("")
 
   // Every list falls back to its last good copy, and any fallback raises the
   // banner once instead of each section guessing separately.
@@ -145,6 +152,36 @@ export default function Member() {
       setClaimError(err instanceof Error ? err.message : "Could not link your account")
     } finally {
       setClaiming(false)
+    }
+  }
+
+  // Downloading is the whole export: the file is built in the browser from the
+  // member's own rows, so no server job has to be polled.
+  const handleExport = async () => {
+    setExporting(true)
+    setDataError("")
+    try {
+      await exportMyData()
+    } catch (err) {
+      setDataError(err instanceof Error ? err.message : "Could not build your export")
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // Deletion erases the training history and the login itself, so afterwards
+  // there is nothing left to sign back into. The session is cleared locally
+  // either way; the row is already gone server-side by then.
+  const handleDelete = async () => {
+    setDeleting(true)
+    setDataError("")
+    try {
+      await deleteMyAccount()
+      clearCache()
+      await signOut()
+    } catch (err) {
+      setDataError(err instanceof Error ? err.message : "Could not delete your account")
+      setDeleting(false)
     }
   }
 
@@ -463,6 +500,41 @@ export default function Member() {
               </div>
             ))
           )}
+        </Section>
+
+        <Section title="Your data">
+          <p className="mb-muted">
+            Download everything this app holds about you, or remove your account
+            for good.
+          </p>
+          <div className="mb-data-actions">
+            <button
+              className="btn"
+              disabled={exporting || deleting}
+              onClick={() => void handleExport()}
+            >
+              {exporting ? "Preparing…" : "Download my data"}
+            </button>
+          </div>
+          {/* Deleting is irreversible, so it needs a hold rather than a click.
+              The form exists because HoldButton submits the form it sits in. */}
+          <form
+            className="mb-danger"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleDelete()
+            }}
+          >
+            <p className="mb-muted">
+              Deleting removes your training log, measurements, bookings, photos
+              and this sign-in. Payments and invoices stay with your gym, because
+              they are its financial records.
+            </p>
+            <HoldButton disabled={deleting || exporting}>
+              {deleting ? "Deleting…" : "Hold to delete my account"}
+            </HoldButton>
+          </form>
+          {dataError && <p className="mb-error">{dataError}</p>}
         </Section>
       </main>
     </div>

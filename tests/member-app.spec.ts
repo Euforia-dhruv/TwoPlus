@@ -43,6 +43,7 @@ test("member app renders with no uncaught errors", async ({ page }) => {
       "Measurements",
       "Attendance",
       "Payments",
+      "Your data",
     ]) {
       await expect(
         page.locator(".mb-card h2", { hasText: new RegExp(`^${heading}$`) }),

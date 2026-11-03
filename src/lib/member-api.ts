@@ -50,6 +50,7 @@ export async function getMyMemberships(
 export async function getMyPayments(
   orgId: string,
   memberId: string,
+  limit = 50,
 ): Promise<Payment[]> {
   const { data, error } = await getSupabase()
     .from("payments")
@@ -57,7 +58,7 @@ export async function getMyPayments(
     .eq("organization_id", orgId)
     .eq("member_id", memberId)
     .order("paid_on", { ascending: false })
-    .limit(50);
+    .limit(limit);
   throwIf(error, "Could not load your payments");
   return (data ?? []) as Payment[];
 }
@@ -240,6 +241,7 @@ export type MyMeasurement = {
 export async function getMyMeasurements(
   orgId: string,
   memberId: string,
+  limit = 10,
 ): Promise<MyMeasurement[]> {
   const { data, error } = await getSupabase()
     .from("fitness_measurements")
@@ -247,7 +249,7 @@ export async function getMyMeasurements(
     .eq("organization_id", orgId)
     .eq("member_id", memberId)
     .order("measured_on", { ascending: false })
-    .limit(10);
+    .limit(limit);
   throwIf(error, "Could not load your measurements");
   return (data ?? []) as MyMeasurement[];
 }
@@ -586,6 +588,7 @@ export type ProgressPhoto = {
 export async function getMyProgressPhotos(
   orgId: string,
   memberId: string,
+  limit = 24,
 ): Promise<ProgressPhoto[]> {
   const { data, error } = await getSupabase()
     .from("member_progress_photos")
@@ -593,7 +596,7 @@ export async function getMyProgressPhotos(
     .eq("organization_id", orgId)
     .eq("member_id", memberId)
     .order("taken_on", { ascending: false })
-    .limit(24);
+    .limit(limit);
   throwIf(error, "Could not load your progress photos");
 
   const rows = (data ?? []) as Omit<ProgressPhoto, "url">[];
@@ -653,6 +656,98 @@ export async function deleteProgressPhoto(
     .eq("id", photo.id);
   throwIf(error, "Could not delete that photo");
   await getSupabase().storage.from(PROGRESS_BUCKET).remove([photo.storage_path]);
+}
+
+// ---------------------------------------------------------------------------
+// Your data
+// ---------------------------------------------------------------------------
+
+// The list getters cap themselves so the member app stays fast. An export must
+// not: a member asking for their data gets all of it, not the last page.
+const EXPORT_LIMIT = 100_000;
+
+// Everything the member app holds about the caller, in one file. Deliberately
+// JSON rather than a zipped spreadsheet: photos are signed URLs that expire, so
+// the file records which photos exist instead of pretending to contain them.
+export async function exportMyData(): Promise<void> {
+  const member = await getMyMember();
+  if (!member) throw err("No member record is linked to this account");
+  const orgId = member.organization_id;
+  const memberId = member.id;
+
+  const [
+    memberships,
+    payments,
+    attendance,
+    sessions,
+    workoutPlans,
+    dietPlans,
+    measurements,
+    photos,
+  ] = await Promise.all([
+    getMyMemberships(orgId, memberId),
+    getMyPayments(orgId, memberId, EXPORT_LIMIT),
+    getMyAttendance(orgId, memberId, EXPORT_LIMIT),
+    getMyWorkoutSessions(memberId, EXPORT_LIMIT),
+    getMyWorkoutPlans(orgId, memberId),
+    getMyDietPlans(orgId, memberId),
+    getMyMeasurements(orgId, memberId, EXPORT_LIMIT),
+    getMyProgressPhotos(orgId, memberId, EXPORT_LIMIT),
+  ]);
+
+  const payload = {
+    exported_at: new Date().toISOString(),
+    about:
+      "This is a copy of what TwoPlus holds about you. Photos are listed with their dates and notes, not embedded.",
+    profile: {
+      first_name: member.first_name,
+      last_name: member.last_name,
+      email: member.email,
+      phone: member.phone,
+      date_of_birth: member.date_of_birth,
+      gender: member.gender,
+      address: member.address,
+      emergency_contact_name: member.emergency_contact_name,
+      emergency_contact_phone: member.emergency_contact_phone,
+      member_since: member.joined_on,
+      status: member.status,
+    },
+    memberships,
+    payments,
+    attendance,
+    workouts: sessions,
+    workout_plans: workoutPlans,
+    diet_plans: dietPlans,
+    measurements,
+    // Signed URLs are dropped: they expire, and a file full of dead links is
+    // worse than a list that says what the photos were.
+    progress_photos: photos.map(({ url: _url, ...rest }) => rest),
+  };
+
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `twoplus-my-data-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// Ends the relationship: identity and health data are erased, the sign-in is
+// deleted, and money records stay attached to an anonymised row. The work
+// happens in one database function (0016) so it cannot half-apply.
+export async function deleteMyAccount(): Promise<{
+  member_erased: boolean;
+  photos_removed: number;
+}> {
+  const { data, error } = await getSupabase().rpc("delete_my_account");
+  if (error) {
+    // The function refuses gym owners with a readable sentence; surface it
+    // rather than the generic fallback.
+    throw err(error.message || "Could not delete your account");
+  }
+  return data as { member_erased: boolean; photos_removed: number };
 }
 
 export { personalRecords } from "./workout-stats";
