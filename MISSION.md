@@ -188,8 +188,8 @@ marked done from intent.
 
 - [x] 16 Playwright tests green (auth, contrast, member app, studio nav, workout stats).
 - [x] Unit tests for workout stats.
-- [ ] Owner journey end-to-end (create member → assign → renew → attendance).
-- [ ] Security journey tests (cross-gym denied).
+- [x] Owner journey end-to-end (create member → assign → renew → attendance). `tests/owner-journey.spec.ts` drives add member, plan assignment, profile open, renewal (re-reads "Valid until" after a reload), check-in, and archives the member it created. Passed 2/2.
+- [x] Security journey tests (cross-gym denied). `tests/security-journey.spec.ts`: 15 tenant tables queried with the signed-in token against a foreign `organization_id` return zero rows, with positive controls proving the same token reads its own gym; anonymous RPC calls to `platform_admin_role`/`is_platform_admin`/`admin_platform_metrics` return 401; a signed-out visitor to `/super-admin` lands on `/login` and never renders `.admin-rail`. Passed 4/4.
 
 ## Phase 15 — Repository cleanup
 
