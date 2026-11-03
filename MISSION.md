@@ -113,9 +113,18 @@ marked done from intent.
 
 ## Phase 10 — Offline
 
-- [ ] Cached reads for workout/diet/schedule/profile.
-- [ ] Queued mutations with stable operation IDs and duplicate protection.
-- [ ] Pending-sync state surfaced in the UI.
+- [x] Cached reads for workout/diet/schedule/profile. `src/lib/offline-cache.ts` writes through
+      to `localStorage` on every successful read and falls back to the last good copy on failure.
+      `src/pages/Member.tsx` caches member, memberships, payments, attendance, workouts, diets,
+      measurements, sessions and classes. Progress-photo URLs are deliberately not cached
+      (signed URLs expire).
+- [x] Queued mutations with stable operation IDs and duplicate protection. `src/lib/sync-queue.ts`
+      keys each intent (`workout:<member>:<date>`, `measure:...`, `class-book:...`) so a repeat
+      replaces the pending copy instead of stacking; every queued write is idempotent
+      server-side. Replay stops at the first failure and caps at 50 rather than dropping edits.
+- [x] Pending-sync state surfaced in the UI. `src/pages/member-sync-panel.tsx` shows the queue,
+      the offline notice and stale-data state; it drains automatically on reconnect.
+      Tests: `tests/outbox.spec.ts` (6 green).
 
 ## Phase 11 — Backend hardening
 

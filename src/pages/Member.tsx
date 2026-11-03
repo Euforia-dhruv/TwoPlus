@@ -28,8 +28,11 @@ import {
 } from "@/lib/member-api"
 import { formatDate, formatMoney } from "@/lib/types"
 import { Badge } from "@/components/kit"
+import { CACHE, cachedRead, submitOrQueue, useOutbox } from "@/lib/member-sync"
+import { clearCache } from "@/lib/offline-cache"
 import { WorkoutLogger, WorkoutHistory } from "./member-workout"
 import { ClassSchedule, MeasurementForm, ProgressGallery } from "./member-extras"
+import { PendingSync } from "./member-sync-panel"
 import "./member.css"
 
 type MemberRow = NonNullable<Awaited<ReturnType<typeof getMyMember>>>
@@ -53,6 +56,9 @@ export default function Member() {
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [claimError, setClaimError] = useState("")
+  // True when at least one section is showing a copy saved while offline.
+  const [stale, setStale] = useState(false)
+  const outbox = useOutbox()
 
   // Linked data, loaded after the member row resolves.
   const [memberships, setMemberships] = useState<Awaited<ReturnType<typeof getMyMemberships>>>([])
@@ -66,23 +72,39 @@ export default function Member() {
   const [photos, setPhotos] = useState<ProgressPhoto[]>([])
   const [busyClass, setBusyClass] = useState<string | null>(null)
 
+  // Every list falls back to its last good copy, and any fallback raises the
+  // banner once instead of each section guessing separately.
+  const loadList = useCallback(
+    async <T,>(cacheKey: string, fn: () => Promise<T[]>): Promise<T[]> => {
+      const r = await cachedRead<T[]>(cacheKey, fn, [])
+      if (r.stale) setStale(true)
+      return r.data
+    },
+    [],
+  )
+
   const loadMember = useCallback(async () => {
     setLoading(true)
-    const m = await getMyMember().catch(() => null)
-    setMember(m)
+    setStale(false)
+    const m = await cachedRead<MemberRow | null>(CACHE.member, getMyMember, null)
+    if (m.stale) setStale(true)
+    setMember(m.data)
     setLoading(false)
-    if (!m) return
-    const orgId = m.organization_id
+    if (!m.data) return
+    const orgId = m.data.organization_id
+    const id = m.data.id
     const [ms, ps, att, wo, di, me, ws, cl, ph] = await Promise.all([
-      getMyMemberships(orgId, m.id).catch(() => []),
-      getMyPayments(orgId, m.id).catch(() => []),
-      getMyAttendance(orgId, m.id).catch(() => []),
-      getMyWorkoutPlans(orgId, m.id).catch(() => []),
-      getMyDietPlans(orgId, m.id).catch(() => []),
-      getMyMeasurements(orgId, m.id).catch(() => []),
-      getMyWorkoutSessions(m.id).catch(() => []),
-      getBookableClasses(orgId, m.id).catch(() => []),
-      getMyProgressPhotos(orgId, m.id).catch(() => []),
+      loadList(CACHE.memberships, () => getMyMemberships(orgId, id)),
+      loadList(CACHE.payments, () => getMyPayments(orgId, id)),
+      loadList(CACHE.attendance, () => getMyAttendance(orgId, id)),
+      loadList(CACHE.workouts, () => getMyWorkoutPlans(orgId, id)),
+      loadList(CACHE.diets, () => getMyDietPlans(orgId, id)),
+      loadList(CACHE.measurements, () => getMyMeasurements(orgId, id)),
+      loadList(CACHE.sessions, () => getMyWorkoutSessions(id)),
+      loadList(CACHE.classes, () => getBookableClasses(orgId, id)),
+      // Photos need a signed URL per row, so they are never shown from cache:
+      // an expired link is worse than an honest empty state.
+      getMyProgressPhotos(orgId, id).catch(() => []),
     ])
     setMemberships(ms)
     setPayments(ps)
@@ -93,11 +115,24 @@ export default function Member() {
     setSessions(ws)
     setClasses(cl)
     setPhotos(ph)
-  }, [])
+  }, [loadList])
 
   useEffect(() => {
     void loadMember()
   }, [loadMember])
+
+  // A drained outbox changes server state, so re-read rather than trusting the
+  // optimistic screen. Queued writes already left the outbox by this point.
+  const drain = useCallback(async () => {
+    const result = await outbox.drain()
+    if (result.sent > 0) await loadMember()
+  }, [outbox, loadMember])
+
+  const handleSignOut = () => {
+    // The cache holds a member's training and payment history; sign-out clears it.
+    clearCache()
+    void signOut()
+  }
 
   const handleClaim = async () => {
     setClaiming(true)
@@ -127,7 +162,7 @@ export default function Member() {
       <div className="mb-shell">
         <header className="mb-header">
           <span className="mb-brand">TwoPlus</span>
-          <button className="mb-signout" onClick={() => void signOut()}>Sign out</button>
+          <button className="mb-signout" onClick={handleSignOut}>Sign out</button>
         </header>
         <main className="mb-main">
           <Section title="No member account linked">
@@ -149,7 +184,7 @@ export default function Member() {
     <div className="mb-shell">
       <header className="mb-header">
         <span className="mb-brand">TwoPlus</span>
-        <button className="mb-signout" onClick={() => void signOut()}>Sign out</button>
+        <button className="mb-signout" onClick={handleSignOut}>Sign out</button>
       </header>
       <main className="mb-main">
         <section className="mb-hero">
@@ -158,6 +193,14 @@ export default function Member() {
           {member.phone && <p className="mb-muted">{member.phone}</p>}
           {member.joined_on && <p className="mb-muted">Member since {formatDate(member.joined_on)}</p>}
         </section>
+
+        <PendingSync
+          ops={outbox.ops}
+          online={outbox.online}
+          flushing={outbox.flushing}
+          stale={stale}
+          onSync={() => void drain()}
+        />
 
         <Section title="Membership">
           {activeMembership ? (
@@ -200,7 +243,7 @@ export default function Member() {
             <WorkoutLogger
               plans={workouts}
               onSave={async (input) => {
-                await logWorkout({
+                const payload = {
                   organizationId: member.organization_id,
                   memberId: member.id,
                   planId: input.planId,
@@ -209,7 +252,19 @@ export default function Member() {
                   durationMinutes: input.durationMinutes,
                   note: input.note,
                   sets: input.sets,
+                }
+                // One key per training day: re-logging the same day replaces the
+                // pending write instead of queuing a second one.
+                await submitOrQueue({
+                  key: `workout:${member.id}:${input.performedOn}`,
+                  kind: "workout",
+                  label: `Workout on ${formatDate(input.performedOn)}`,
+                  payload,
+                  run: async () => {
+                    await logWorkout(payload)
+                  },
                 })
+                outbox.refresh()
                 setSessions(await getMyWorkoutSessions(member.id).catch(() => []))
               }}
             />
@@ -233,9 +288,18 @@ export default function Member() {
             onBook={(id) => {
               if (!member) return
               setBusyClass(id)
-              void bookClass(id)
+              void submitOrQueue({
+                key: `class-book:${member.id}:${id}`,
+                kind: "class-book",
+                label: `Booking for ${classes.find((c) => c.id === id)?.name ?? "a class"}`,
+                payload: id,
+                run: () => bookClass(id),
+              })
                 .then(() => getBookableClasses(member.organization_id, member.id))
-                .then(setClasses)
+                .then((next) => {
+                  setClasses(next)
+                  outbox.refresh()
+                })
                 .catch((err) =>
                   window.alert(err instanceof Error ? err.message : "Could not book that class"),
                 )
@@ -245,9 +309,18 @@ export default function Member() {
               if (!member) return
               if (!window.confirm("Cancel your booking for this class?")) return
               setBusyClass(id)
-              void cancelClassBooking(id)
+              void submitOrQueue({
+                key: `class-cancel:${member.id}:${id}`,
+                kind: "class-cancel",
+                label: `Cancellation for ${classes.find((c) => c.id === id)?.name ?? "a class"}`,
+                payload: id,
+                run: () => cancelClassBooking(id),
+              })
                 .then(() => getBookableClasses(member.organization_id, member.id))
-                .then(setClasses)
+                .then((next) => {
+                  setClasses(next)
+                  outbox.refresh()
+                })
                 .catch((err) =>
                   window.alert(err instanceof Error ? err.message : "Could not cancel that booking"),
                 )
@@ -322,7 +395,7 @@ export default function Member() {
         <Section title="Measurements">
           <MeasurementForm
             onSave={async (v) => {
-              await saveMyMeasurement({
+              const payload = {
                 orgId: member.organization_id,
                 memberId: member.id,
                 measuredOn: v.measuredOn,
@@ -331,7 +404,17 @@ export default function Member() {
                 waistCm: v.waistCm,
                 chestCm: v.chestCm,
                 notes: v.notes,
+              }
+              // The server upserts on (member, day), so the key matches exactly:
+              // a second entry for the same day corrects the pending one.
+              await submitOrQueue({
+                key: `measure:${member.id}:${v.measuredOn}`,
+                kind: "measurement",
+                label: `Measurements for ${formatDate(v.measuredOn)}`,
+                payload,
+                run: () => saveMyMeasurement(payload),
               })
+              outbox.refresh()
               setMeasurements(await getMyMeasurements(member.organization_id, member.id))
             }}
           />
