@@ -84,8 +84,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     items: [
       item("enquiries", "Enquiries", "userPlus"),
       item("follow-ups", "Follow-ups", "clipboard"),
-      item("offers-referrals", "Offers & referrals", "gift"),
-      item("feedback", "Feedback", "sparkles"),
       item("reports", "Reports", "chart"),
       item("marketplace", "Marketplace", "shop"),
     ],
