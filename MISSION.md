@@ -132,7 +132,13 @@ marked done from intent.
 - [x] `SECURITY DEFINER` functions pinned `search_path`.
 - [x] Storage buckets private except `workspace-media` (public by design).
 - [!] Rate limiting: none at the app layer; must be configured at the edge (documented).
-- [ ] Migration + backup/restore runbook.
+- [x] Migration + backup/restore runbook: `docs/OPERATIONS.md` (apply order, the
+      "never edit live schema" rule, session-pooler `pg_dump`, why `auth` is dumped,
+      scratch-project restore, the four restore verification queries, single-row
+      recovery, rollback matrix). `scripts/rls-audit.mjs` proves the claim the runbook
+      tells a human to check: 38 tables, 38 with RLS, 30 with policies, 8 closed to the
+      API by design (named with reasons), exit 0. The restore steps are **unverified** —
+      no database password or access token in this environment.
 
 ## Phase 12 — Security audit
 
