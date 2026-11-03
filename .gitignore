@@ -43,3 +43,6 @@ test-results
 playwright-report
 # The suite's saved login. Never commit a session token.
 tests/.auth
+# Desktop build output (npm run desktop:package) and its generated icon.
+release
+build

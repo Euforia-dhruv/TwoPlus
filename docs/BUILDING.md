@@ -64,9 +64,43 @@ would make a release build load code from a laptop.
 
 Mixed content is off. The app only ever talks to Supabase over HTTPS.
 
+## Windows desktop
+
+Electron, not Tauri: Tauri needs a Rust toolchain, and this machine has none.
+
+```bash
+npm run desktop          # build, then run the shell
+npm run desktop:smoke    # build, then check the shell mounts and routes
+npm run desktop:package  # build, render the icon, emit release/TwoPlus-win32-x64/
+```
+
+`electron/main.js` serves `dist/` over a custom `app://bundle` origin. That is
+deliberate: the renderer uses `BrowserRouter`, and a `file://` origin breaks
+history routing and gives every route an opaque origin, which kills
+`localStorage`. A registered standard, secure scheme keeps both working, so
+`/app/overview/overview` loads and refreshes like it does on the web.
+
+The shell is hardened the way the web build is: `contextIsolation` on,
+`nodeIntegration` off, `sandbox` on, a single-instance lock, no preload script,
+and the same CSP as `vercel.json` applied to the packaged HTML. Navigation away
+from the app opens in the system browser instead. `--smoke-check` loads `/`,
+then a deep link, and exits non-zero if either fails to mount, which is what CI
+and a release check should run.
+
+`npm run desktop:package` writes `release/` (git-ignored) containing
+`TwoPlus.exe` plus its Electron runtime, with `build/icon.ico` generated from
+`public/favicon.svg` by `scripts/make-icon.mjs`. Only `dist/`, `electron/`, and
+`package.json` are packed, so the archive is about 2 MB rather than the 87 MB it
+was when the whole repo (including `.env.local`) rode along.
+
+**Not wired:** code signing and an installer. An unsigned `.exe` trips
+SmartScreen for end users, and a real installer (Squirrel or NSIS) plus a
+signing certificate are owner-held decisions. Distribution is currently a
+folder you copy.
+
 ## What is deliberately not wired
 
-- Code signing (Android keystore, Apple certificate): no keys exist, and none
-  should be committed.
+- Code signing (Android keystore, Apple certificate, Windows certificate): no
+  keys exist, and none should be committed.
 - Store metadata, screenshots, and submission: owner authorization required.
-- A desktop `.exe`: see Phase 9 in `MISSION.md`.
+- A Windows installer and auto-update: owner decision, needs a signing cert.

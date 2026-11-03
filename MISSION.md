@@ -81,15 +81,35 @@ marked done from intent.
 
 - [!] **Cannot build here**: no java, no gradle, no Android SDK, no macOS/Xcode.
 - [x] Capacitor architecture decision documented (reuse the web app in a native shell).
-- [ ] Capacitor project scaffold + config committed.
-- [ ] Android build workflow (GitHub Actions, needs runner with SDK).
-- [ ] iOS build workflow (requires macOS runner).
+- [x] Capacitor project scaffold + config committed (`1971c9f`): `capacitor.config.ts`
+  (appId `fit.twoplus.app`, `webDir: dist`, no committed `server.url`, mixed content off)
+  plus `android/` and `ios/` native projects. `npx cap sync android` copies the real
+  `dist/` bundle into the native project, proven in output. Docs: `docs/BUILDING.md`.
+- [x] Android build workflow (`.github/workflows/android.yml`): JDK 21 + Android SDK, builds
+  the web bundle, `cap sync`, `gradlew assembleDebug`, uploads the APK artifact.
+  **Prepared but not built here** — no JDK/SDK on this machine, so CI is the proof path.
+- [x] iOS build workflow (`.github/workflows/ios.yml`): `macos-latest`, simulator build
+  with `CODE_SIGNING_ALLOWED=NO`. **Prepared but not built here** — Xcode is macOS-only.
 
 ## Phase 9 — Desktop (Windows)
 
-- [ ] Architecture decision (Electron vs Tauri: Tauri needs Rust, absent here).
-- [ ] Project scaffold, icon, metadata.
-- [ ] Production `.exe` build attempt.
+- [x] Architecture decision: **Electron**, not Tauri. Tauri needs the Rust
+  toolchain; this machine has no `rustc`/`cargo`, Electron is JS-only.
+- [x] Project scaffold, icon, metadata. `electron/main.js` serves `dist/` over a
+  custom `app://bundle` scheme (a `file://` origin would break `BrowserRouter`
+  and `localStorage`), with `contextIsolation` on, `nodeIntegration` off,
+  `sandbox` on, single-instance lock, and the same CSP as `vercel.json`.
+  `package.json` gained `main`, `productName`, `description`, `author`, and
+  `desktop` / `desktop:smoke` / `desktop:icon` / `desktop:package` scripts.
+  `scripts/make-icon.mjs` renders `public/favicon.svg` into a 7-size
+  `build/icon.ico` using the Chromium Playwright already installed.
+- [x] Production `.exe` built **and run here**: `npm run desktop:package` emits
+  `release/TwoPlus-win32-x64/TwoPlus.exe` (Electron 45.2.1, x64, 250 MB with
+  runtime, 2.05 MB `app.asar`). Packaged binary passes `--smoke-check`: mounts
+  `app://bundle/` and routes a deep link to `/app/overview/overview`, exit 0.
+  Version metadata is real (`ProductName`/`CompanyName` `TwoPlus`,
+  `FileVersion 1.0.0`, `Copyright (C) 2026 TwoPlus`), not the packager default.
+  **Not wired:** code signing and an installer (owner-held certificate).
 
 ## Phase 10 — Offline
 
