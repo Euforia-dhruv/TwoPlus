@@ -195,9 +195,9 @@ marked done from intent.
 
 - [x] `.gitignore` correct; build artifacts not tracked.
 - [x] Scratch scripts removed from git.
-- [ ] README rewrite (setup, architecture, desktop/mobile builds, security).
-- [ ] Issue/PR templates, security policy, contribution guide, changelog.
-- [ ] License: **requires owner decision**, not chosen unilaterally.
+- [x] README rewrite (setup, architecture, desktop/mobile builds, security). `README.md` rewritten around the three surfaces, all 15 migrations, the offline design, the four build targets, the real test inventory, and the known gaps. Every referenced path was checked to exist; the stale "modules without tables" list was corrected against `src/lib/navigation.ts` and the migration files (Payroll, Marketplace and Community are the ones with no table).
+- [x] Issue/PR templates, security policy, contribution guide, changelog. `.github/ISSUE_TEMPLATE/bug_report.md`, `.github/pull_request_template.md`, `SECURITY.md` (scope, the database-is-the-boundary model, accepted risks), `CONTRIBUTING.md` (gates, migration rules, RLS review questions), `CHANGELOG.md` (1.0.0).
+- [x] License: **requires owner decision**, not chosen unilaterally. No `LICENSE` added. `LICENSE-DECISION.md` states that the code is currently all-rights-reserved, lays out the realistic options (proprietary, MIT/Apache-2.0, AGPL-3.0, BUSL), what each affects, and the exact four steps to close it once the owner chooses. The README's License section points there.
 
 ## Phase 16 — CI/CD
 
