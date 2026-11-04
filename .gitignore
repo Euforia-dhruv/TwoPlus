@@ -41,6 +41,12 @@ android/keystore.properties
 supabase/.temp
 .vercel
 
+# One-off browser probes. Keep them out of the repo: they were written to answer
+# a single audit question and are not maintained. scripts/shots.mjs is the
+# supported capture tool, and scripts/_a11y-probe.mjs is cited by docs/AUDIT.md.
+scripts/_*.mjs
+!scripts/_a11y-probe.mjs
+
 # Playwright screenshots and reports
 screenshots
 # Design review captures (re-generate with scripts/shots.mjs)
