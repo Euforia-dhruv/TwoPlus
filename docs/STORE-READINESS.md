@@ -108,15 +108,16 @@ Ready:
 - [x] Data-safety answers derived from the actual schema
 - [x] CI builds an APK and an iOS simulator build on every push, so a native
       regression is caught before submission
-- [x] Unsigned signed-artifact workflow, checksums, and a smoke test exist
-      (`.github/workflows/release.yml`)
+- [x] Host builds a signed Android APK and AAB from a keystore kept outside the
+      repo (`android/keystore.properties`, gitignored). Both artifacts sit in
+      `release/mobile/` with checksums; certificate `CN=TwoPlus`
 
 Prepared, human action required:
 
-- [ ] Generate an Android upload keystore, keep it out of git, add
-      `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` as
-      secrets, and switch the Gradle job from `assembleDebug` to
-      `bundleRelease`
+- [ ] Add the existing keystore and its passwords to the repository secrets
+      (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) and
+      switch the Gradle job from `assembleDebug` to `bundleRelease`, so CI
+      publishes the same signed build this host produces
 - [ ] Apple Developer Program membership, distribution certificate, provisioning
       profile, and an archive uploaded through Xcode or Transporter
 - [ ] Capture the phone and tablet screenshot sets, including the member app
@@ -129,14 +130,29 @@ Blocked, and why:
 
 - **Store accounts** do not exist. Creating them costs money and binds the owner
   legally, so it is not something this repo can or should do.
-- **Signing credentials** do not exist and must never be committed.
+- **The Android signing key** exists but lives outside the repo
+  (`D:\TwoPlus\keys\twoplus-release.jks`) and must stay out of git. Its passwords
+  are held by the owner, so only this host can produce a signed build until they
+  are added to CI secrets.
 - **Submission itself** needs the owner's explicit authorization. Publishing
   under someone else's developer account is an agreement, not a build step.
 
 ## What this phase did not do
 
-No AAB or IPA was produced here, and no store has accepted a build. The
-Android debug APK was produced (`android/app/build/outputs/apk/debug/app-debug.apk`,
-5,038,783 bytes) with JDK 21 and Android SDK 36; it is unsigned debug output, not a
-store artifact. A signed release AAB needs the owner's keystore, and an IPA needs
-macOS with Xcode. `docs/BUILDING.md` records the exact commands.
+A signed Android APK and AAB were produced here and no store has accepted either.
+JDK 21 and Android SDK 36 built them from the project keystore:
+
+| Artifact | Path | Size | SHA-256 |
+| --- | --- | --- | --- |
+| APK | `release/mobile/TwoPlus-1.0-android.apk` | 3,994,291 B | `BB5FC06D…3F8B9A1` |
+| AAB | `release/mobile/TwoPlus-1.0-android.aab` | 3,851,921 B | `EEA376E4…DD9ED9` |
+
+`apksigner verify --print-certs` reports signer `CN=TwoPlus, O=TwoPlus, C=IN`
+(fingerprint `4e:08:dc:00:…:d7`); `aapt2 dump badging` reports `fit.twoplus.app`,
+versionCode 1, minSdk 24, targetSdk 36, `INTERNET` as the only permission. Nothing
+was installed on a physical device: `adb devices` is empty, so the APK is verified
+as a signed package, not as a working install.
+
+Remaining gaps: an IPA needs macOS with Xcode, and both listings need the Play
+Console and App Store Connect records plus the owner's authorization to submit.
+`docs/BUILDING.md` records the exact commands.

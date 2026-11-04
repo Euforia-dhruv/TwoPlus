@@ -32,16 +32,42 @@ on Windows with JDK 21 (Adoptium 21.0.13.9) and Android SDK 36 / build-tools 36.
 and produced a 5,038,783-byte debug APK. `android/local.properties` holds the SDK
 path and is gitignored.
 
-**Release build:** needs a keystore you generate and keep. Never commit it.
+**Release build.** A keystore exists for this project and lives *outside* the repo,
+at `D:\TwoPlus\keys\twoplus-release.jks` (alias `twoplus`, RSA 4096, CN=TwoPlus).
+Its password is not written down anywhere in the repository, by design. Losing it
+means the Play Console can never accept an update under the same app id, so back it
+up somewhere durable before the first upload.
 
-```bash
-keytool -genkey -v -keystore twoplus-release.keystore \
-  -alias twoplus -keyalg RSA -keysize 2048 -validity 10000
+`android/keystore.properties` points Gradle at it and is gitignored:
+
+```properties
+storeFile=D:/TwoPlus/keys/twoplus-release.jks
+storePassword=…
+keyAlias=twoplus
+keyPassword=…
 ```
 
-CI (`.github/workflows/android.yml`) produces an unsigned debug APK on every push
-to master. A signed `.aab` for Play Console additionally needs the keystore and
-its passwords as repository secrets, plus the owner's decision to publish.
+`android/app/build.gradle` reads that file only if it exists, so a clone without it
+still assembles, just unsigned. With it present:
+
+```bash
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleRelease   # -> app/build/outputs/apk/release/app-release.apk
+./gradlew bundleRelease     # -> app/build/outputs/bundle/release/app-release.aab
+```
+
+Both were run on this host (JDK 21, Android SDK 36): APK 3,994,291 bytes, AAB
+3,851,921 bytes, certificate `CN=TwoPlus`, package `fit.twoplus.app`, versionCode 1,
+targetSdk 36, `INTERNET` as the only permission. Copies sit in `release/mobile/`.
+`apksigner verify --print-certs` needs `JAVA_HOME` on `PATH` or it fails with
+"JAVA_HOME is not set".
+
+CI (`.github/workflows/android.yml`) still produces an unsigned debug APK on every
+push, because the keystore is not in the repository and should not be. To have CI
+sign, add the keystore and its passwords as repository secrets and switch the job to
+`bundleRelease`; that is a publishing decision, not a build step.
 
 ## iOS
 

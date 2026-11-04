@@ -79,12 +79,17 @@ marked done from intent.
 
 ## Phase 8 — Mobile (Android + iOS)
 
-- [x] **Android debug APK built on this host**: JDK 21 (Adoptium 21.0.13.9) and Android
-  SDK 36 with build-tools 36.0.0 installed, then `npm run build` -> `cap sync android`
-  -> `gradlew assembleDebug`, all exit 0. Output
-  `android/app/build/outputs/apk/debug/app-debug.apk`, 5,038,783 bytes, SHA-256
-  `77C8A71E4C5F834F8D5A8F57FE2455E037F871AC73F716F5C656442BB9BF3BE1`. Unsigned debug
-  artifact only; a release build still needs an owner keystore.
+- [x] **Signed Android APK and AAB built on this host** (`497d7a5`): JDK 21 (Adoptium
+  21.0.13.9), Android SDK 36 / build-tools 36.0.0, Gradle 8.14.3. `gradlew
+  assembleRelease` and `gradlew bundleRelease` both exit 0. Outputs
+  `app-release.apk` 3,994,291 bytes (SHA-256 `BB5FC06D…3F8B9A1`) and `app-release.aab`
+  3,851,921 bytes (SHA-256 `EEA376E4…DD9ED9`), copied to `release/mobile/`.
+  `apksigner verify --print-certs` reports signer `CN=TwoPlus`; `aapt2 dump badging`
+  reports `fit.twoplus.app`, versionCode 1, minSdk 24, targetSdk 36, `INTERNET` only.
+  The keystore lives outside the repo (`D:\TwoPlus\keys\twoplus-release.jks`) and
+  `android/keystore.properties` is gitignored, so a clone still assembles unsigned.
+  Not installed on a device: `adb devices` is empty. An earlier debug APK
+  (5,038,783 bytes, `77C8A71E…3BE1`) still comes from `assembleDebug`.
 - [~] **iOS cannot build here**: `xcodebuild` needs macOS, so CI is the only path.
 - [x] Capacitor architecture decision documented (reuse the web app in a native shell).
 - [x] Capacitor project scaffold + config committed (`1971c9f`): `capacitor.config.ts`
@@ -214,7 +219,13 @@ marked done from intent.
 
 - [x] `.github/workflows/ci.yml` runs install, lint, typecheck, build, tests.
 - [x] Release workflow with versioned artifacts and checksums. `.github/workflows/release.yml` triggers on `v*` tags (and manually), builds on `windows-latest`, packages the desktop app, runs `--smoke-check` against the packaged `.exe` and **fails the release if it exits non-zero**, writes `artifacts/twoplus-web-<version>.zip` and `artifacts/twoplus-desktop-win32-x64-<version>.zip`, hashes every archive with `scripts/checksums.mjs`, and publishes them to a GitHub release with `SHA256SUMS` attached. Version comes from `package.json` (currently 1.0.0). Checksum script proven locally: `node scripts/checksums.mjs dist` -> 29 files, exit 0.
-- [!] Signing wiring: **blocked, no keys exist**. Android keystore, Apple distribution certificate plus provisioning profile, and a Windows code-signing certificate are owner-held credentials and must never be committed. The release workflow therefore ships unsigned archives and says so in the release body. Wiring is a documented 3-step change in `docs/BUILDING.md` once the owner supplies secrets.
+- [~] Signing wiring: the **Android** half exists (`497d7a5`) — keystore generated, Gradle
+  `signingConfigs.release` wired, signed APK and AAB produced. It stays out of git, so
+  CI still builds unsigned until the same keystore and passwords are added as repository
+  secrets. The **Apple** distribution certificate plus provisioning profile and the
+  **Windows** code-signing certificate do not exist; both are owner-held credentials that
+  must never be committed, so the release workflow ships unsigned desktop archives and
+  says so in the release body. Steps in `docs/BUILDING.md`.
 
 ## Phase 17 — Store readiness
 
