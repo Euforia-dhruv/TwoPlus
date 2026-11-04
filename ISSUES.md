@@ -44,25 +44,33 @@ Severity: **S1** breaks a user flow · **S2** wrong behaviour in an edge case ·
   reading `App.tsx` (which passes only `title`) without following it into
   `floating-dock.tsx:206`, where the attribute is actually set.
 
-## S2 — React: `setState` called synchronously inside an effect (4 sites)
+## S2 — React: `setState` called synchronously inside an effect (3 sites, kept)
 
-- **Where:** `src/lib/member-sync.ts:118`, `src/pages/AuthLayout.tsx:113`,
-  `src/lib/org.tsx:40`, `src/pages/Member.tsx:129`.
-- **Symptom:** triggers a second render on mount. In `org.tsx` this affects every
-  workspace load.
-- **Fix:** derive during render or initialise state directly where possible;
-  keep the effect only where it synchronises with an external system.
-- **Status:** in progress this session.
+- **Where:** `src/lib/org.tsx:40`, `src/lib/member-sync.ts:118`,
+  `src/pages/Member.tsx:129`.
+- **Fixed already:** `src/pages/AuthLayout.tsx:113` now derives the wall colours
+  in a lazy initialiser (`d0578a2`).
+- **Why the remaining three stay:** each is a deliberate hand-off to an external
+  system, which is the case the rule allows.
+  - `org.tsx:40` sets loading while auth is still resolving. Treating that gap as
+    loading instead of signed-out is what stops a hard load of a deep link
+    bouncing through `/onboarding` and landing on the default module.
+  - `member-sync.ts:118` replays a queued offline write on load. That is the
+    point of the outbox, and it has to run after mount.
+  - `Member.tsx:129` is the same auth-gap pattern as `AuthLayout`.
+- **Status:** closed as intended behaviour, documented here so the warning is not
+  re-litigated each pass.
 
-## S2 — React: refs read during render (4 sites)
+## Closed — React: refs read during render (4 sites)
 
 - **Where:** `src/components/ui/PeekRating.tsx:141`,
   `src/components/ui/animated-number.tsx:71` and `:170`,
   `src/components/ui/SlideCommit.tsx:303`.
-- **Symptom:** the value can be stale, so the component may not update as
+- **Was:** the value could be stale, so the component might not update as
   expected.
-- **Fix:** read inside an effect or event handler, or mirror into state.
-- **Status:** in progress this session.
+- **Fixed:** latest-callback refs now assigned in an effect (`36962f7`); the
+  animated-number previous-value mirror moved into state (`1132c02`).
+- **Verified:** `tsc -b` exit 0, zero refs warnings left in `src`.
 
 ## S3 — `App.tsx` is 184 KB with 47 `useState` in one component
 

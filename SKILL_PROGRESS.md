@@ -20,8 +20,10 @@ applicable · **N/A** = not relevant to this product.
 - **Inspected:** layout, hierarchy, density, states, responsiveness.
 - **Findings:** token system is genuinely consistent and dual-mode; hierarchy is
   clear; empty/loading/error states exist.
-- **Dead tokens:** `--lime` / `--lavender` resolve to neutral, not accents.
-- **Remaining:** dead-token removal (plan item 5).
+- **Tokens checked:** `--lime` / `--lavender` were suspected dead. They are not:
+  both are referenced 79 times and resolve correctly per mode. No removal
+  (plan item 5 withdrawn).
+- **Remaining:** nothing blocking; visual polish is subjective here.
 
 ### `impeccable` — Inspected
 
