@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
+import { Suspense, lazy, useState, type ReactNode } from "react";
 import { Icon } from "@/icons";
 import "./auth.css";
 
@@ -106,14 +106,16 @@ export function AuthLayout({
 
 // The wall reads its two colours from the active theme tokens so it rides
 // along with every design language instead of hardcoding white/blue.
+// Computed once in a lazy initialiser: the tokens are already on :root by the
+// time this renders, so an effect would only cost an extra paint.
 function useWallColors() {
-  const [colors, setColors] = useState<{ base: string; high: string } | null>(null);
-  useEffect(() => {
+  const [colors] = useState(() => {
+    if (typeof document === "undefined") return null;
     const cs = getComputedStyle(document.documentElement);
-    setColors({
+    return {
       base: cs.getPropertyValue("--app-bg").trim() || "#0b1012",
       high: cs.getPropertyValue("--lime").trim() || "#36d6c0",
-    });
-  }, []);
+    };
+  });
   return colors;
 }
