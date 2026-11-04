@@ -205,9 +205,9 @@ is no second implementation to keep in sync, and `capacitor.config.ts`
 deliberately has no `server.url`: a committed dev-server URL would make a
 release build load code from a laptop.
 
-Code signing (Android keystore, Apple certificate, Windows certificate), store
-submissions, and a Windows installer are not wired. Each needs credentials the
-owner holds.
+Android builds are signed from a keystore kept outside the repo. Apple and
+Windows signing, store submissions, and a Windows installer are not wired; each
+needs credentials the owner holds.
 
 ## Security
 

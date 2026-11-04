@@ -71,5 +71,6 @@ this point.
 - Nine modules render but have no storage; their create actions are disabled.
 - Privacy policy and terms are drafts; data export and account deletion are not
   implemented.
-- Code signing, store submission and a Windows installer need owner-held
-  credentials.
+- Apple and Windows code signing, store submission and a Windows installer need
+  owner-held credentials. Android builds are already signed from a keystore kept
+  outside the repo.

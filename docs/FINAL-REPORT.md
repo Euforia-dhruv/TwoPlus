@@ -204,7 +204,7 @@ This is the honest half of the report. Each item names the human action.
 | --- | --- |
 | Backup restore rehearsal | Set `PGPASSWORD` from Dashboard → Settings → Database and run one dump plus one restore into a scratch project. The procedure exists and has never been executed |
 | Migration `0016_account_deletion.sql` | Apply it. Written and reviewed, not pushed: no `SUPABASE_ACCESS_TOKEN` or database password on this host |
-| Code signing | Supply an Android keystore, an Apple distribution certificate plus profile, and a Windows code-signing certificate. None exist and none may be committed |
+| Code signing | The Android keystore exists outside the repo and signed builds work; supply an Apple distribution certificate plus profile and a Windows code-signing certificate. None of these may be committed |
 | Store submission | Create Play Console and App Store Connect accounts (both cost money and bind the owner legally), then authorize submission |
 | Legal review | Send `/privacy`, `/terms` and `docs/PRIVACY-LIFECYCLE.md` to counsel for DPDP Act review. A product cannot self-certify this |
 | License | Choose one. `LICENSE-DECISION.md` lays out the options and the four steps; until then the code is all-rights-reserved by default |

@@ -129,7 +129,7 @@ folder you copy.
 
 ## What is deliberately not wired
 
-- Code signing (Android keystore, Apple certificate, Windows certificate): no
-  keys exist, and none should be committed.
+- Code signing for Apple and Windows: no certificate exists, and none should be
+  committed. The Android keystore does exist, outside the repo (see Android above).
 - Store metadata, screenshots, and submission: owner authorization required.
 - A Windows installer and auto-update: owner decision, needs a signing cert.
