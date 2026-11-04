@@ -55,6 +55,26 @@ without the role gets `403`.
 through the same role check, so owners and staff can still sign in and read
 history.
 
+## Deployment requirements
+
+These are properties of the Supabase project, not of this repository. They
+cannot be tested by the suite, so they are listed here to be checked when a
+project is created or restored.
+
+- **"Confirm email" must be ON** (Authentication → Providers → Email) with a
+  working SMTP sender. `claim_member_account()` reads `email_confirmed_at` from
+  `auth.users` and treats a confirmed address as proof the caller owns it. With
+  autoconfirm on, GoTrue stamps that column at signup, so the check proves
+  nothing and any account could claim a member row by registering the gym's
+  address. Migration `0011_harden_member_claim.sql` depends on this; the
+  invite-code claim noted there would remove the dependency.
+- **Email provider rate limits stay enabled.** The app throttles repeat
+  credential attempts in the browser (`src/lib/attempt-limit.ts`), but that is a
+  UI brake the user can clear. The server-side quota is the actual control.
+- **RLS stays enabled on every table.** `scripts/rls-audit.mjs` checks the live
+  database for this; a table added without a policy is readable by nobody at
+  best and unprotected at worst.
+
 ## Automated checks in CI
 
 - **gitleaks** over full history on every push and pull request. A secret that
