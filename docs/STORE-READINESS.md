@@ -14,14 +14,13 @@ that does not exist).
 | --- | --- | --- |
 | App id | `fit.twoplus.app` | `capacitor.config.ts`, `android/app/build.gradle` (`applicationId`), `ios/App/App.xcodeproj` (`PRODUCT_BUNDLE_IDENTIFIER`) |
 | Display name | TwoPlus | `android/app/src/main/res/values/strings.xml`, `CFBundleDisplayName` |
-| Version | `1.0.0` in `package.json`; Android `versionCode 1` / `versionName "1.0"`; iOS `CURRENT_PROJECT_VERSION 1` / `MARKETING_VERSION "1.0"` | — |
+| Version | `1.0.0` in `package.json`; Android `versionCode 1` / `versionName "1.0.0"`; iOS `CURRENT_PROJECT_VERSION 1` / `MARKETING_VERSION "1.0.0"` | - |
 | Icon 1024 px | present | `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` (1024x1024), Android mipmaps present |
 | Web assets | `dist/` synced into both native projects by `npx cap sync` | `.github/workflows/android.yml`, `ios.yml` |
 
-**Version drift to fix before the first submission:** `package.json` says
-`1.0.0`, both native projects say `1.0`. Stores compare the native values, so
-bump all three together when you cut a release, and raise `versionCode` /
-`CURRENT_PROJECT_VERSION` by one every upload.
+**Version numbering at submission:** all three now say `1.0.0`. Stores compare
+the native values, so bump them together when you cut a release, and raise
+`versionCode` / `CURRENT_PROJECT_VERSION` by one on every upload.
 
 ## Permissions and declarations
 
@@ -145,12 +144,13 @@ JDK 21 and Android SDK 36 built them from the project keystore:
 
 | Artifact | Path | Size | SHA-256 |
 | --- | --- | --- | --- |
-| APK | `release/mobile/TwoPlus-1.0-android.apk` | 3,994,291 B | `BB5FC06D…3F8B9A1` |
-| AAB | `release/mobile/TwoPlus-1.0-android.aab` | 3,851,921 B | `EEA376E4…DD9ED9` |
+| APK | `release/mobile/TwoPlus-1.0-android.apk` | 3,994,295 B | `587351D5…2A80EC7` |
+| AAB | `release/mobile/TwoPlus-1.0-android.aab` | 3,851,939 B | `1309F45B…078A28C` |
 
 `apksigner verify --print-certs` reports signer `CN=TwoPlus, O=TwoPlus, C=IN`
 (fingerprint `4e:08:dc:00:…:d7`); `aapt2 dump badging` reports `fit.twoplus.app`,
-versionCode 1, minSdk 24, targetSdk 36, `INTERNET` as the only permission. Nothing
+versionCode 1, versionName `1.0.0`, minSdk 24, targetSdk 36, `INTERNET` as the only
+permission. Nothing
 was installed on a physical device: `adb devices` is empty, so the APK is verified
 as a signed package, not as a working install.
 

@@ -79,13 +79,14 @@ marked done from intent.
 
 ## Phase 8 — Mobile (Android + iOS)
 
-- [x] **Signed Android APK and AAB built on this host** (`497d7a5`): JDK 21 (Adoptium
-  21.0.13.9), Android SDK 36 / build-tools 36.0.0, Gradle 8.14.3. `gradlew
-  assembleRelease` and `gradlew bundleRelease` both exit 0. Outputs
-  `app-release.apk` 3,994,291 bytes (SHA-256 `BB5FC06D…3F8B9A1`) and `app-release.aab`
-  3,851,921 bytes (SHA-256 `EEA376E4…DD9ED9`), copied to `release/mobile/`.
+- [x] **Signed Android APK and AAB built on this host** (`497d7a5`, rebuilt at versionName
+  `1.0.0`): JDK 21 (Adoptium 21.0.13.9), Android SDK 36 / build-tools 36.0.0, Gradle
+  8.14.3. `gradlew assembleRelease` and `gradlew bundleRelease` both exit 0. Outputs
+  `app-release.apk` 3,994,295 bytes (SHA-256 `587351D5…2A80EC7`) and `app-release.aab`
+  3,851,939 bytes (SHA-256 `1309F45B…078A28C`), copied to `release/mobile/`.
   `apksigner verify --print-certs` reports signer `CN=TwoPlus`; `aapt2 dump badging`
-  reports `fit.twoplus.app`, versionCode 1, minSdk 24, targetSdk 36, `INTERNET` only.
+  reports `fit.twoplus.app`, versionCode 1, versionName 1.0.0, minSdk 24, targetSdk 36,
+  `INTERNET` only.
   The keystore lives outside the repo (`D:\TwoPlus\keys\twoplus-release.jks`) and
   `android/keystore.properties` is gitignored, so a clone still assembles unsigned.
   Not installed on a device: `adb devices` is empty. An earlier debug APK

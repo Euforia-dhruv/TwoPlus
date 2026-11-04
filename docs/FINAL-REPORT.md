@@ -138,7 +138,7 @@ Four targets from one bundle (`docs/BUILDING.md`):
 | --- | --- | --- |
 | Web | `npm run build` | Verified. `vercel.json` holds the SPA rewrite and the security headers |
 | Windows desktop | `npm run desktop:package` | **Built and run here.** `TwoPlus.exe` exits 0 on `--smoke-check` |
-| Android | `npx cap sync android` + Gradle | **Built and verified here.** Signed APK 3,994,291 B and AAB 3,851,921 B, signer `CN=TwoPlus` |
+| Android | `npx cap sync android` + Gradle | **Built and verified here.** Signed APK 3,994,295 B and AAB 3,851,939 B at versionName 1.0.0, signer `CN=TwoPlus` |
 | iOS | `npx cap sync ios` + `xcodebuild` | CI only; needs macOS |
 
 The desktop shell serves `dist/` over a privileged `app://bundle` origin rather
@@ -227,7 +227,6 @@ This is the honest half of the report. Each item names the human action.
 
 **Known small inconsistencies, named rather than hidden:**
 
-- `package.json` says version `1.0.0` while both native projects say `1.0`.
 - No member-app screenshots and no 1024×500 feature graphic exist, so store
   listings cannot be completed even if accounts existed.
 

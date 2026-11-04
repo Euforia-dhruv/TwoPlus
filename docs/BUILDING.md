@@ -58,9 +58,10 @@ cd android
 ./gradlew bundleRelease     # -> app/build/outputs/bundle/release/app-release.aab
 ```
 
-Both were run on this host (JDK 21, Android SDK 36): APK 3,994,291 bytes, AAB
-3,851,921 bytes, certificate `CN=TwoPlus`, package `fit.twoplus.app`, versionCode 1,
-targetSdk 36, `INTERNET` as the only permission. Copies sit in `release/mobile/`.
+Both were run on this host (JDK 21, Android SDK 36): APK 3,994,295 bytes, AAB
+3,851,939 bytes, certificate `CN=TwoPlus`, package `fit.twoplus.app`, versionCode 1,
+versionName `1.0.0`, targetSdk 36, `INTERNET` as the only permission. Copies sit in
+`release/mobile/`.
 `apksigner verify --print-certs` needs `JAVA_HOME` on `PATH` or it fails with
 "JAVA_HOME is not set".
 
