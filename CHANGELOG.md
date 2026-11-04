@@ -4,6 +4,38 @@ Notable changes, newest first. Versions follow the desktop binary, which is the
 only artifact that carries a version number today; the web build is deployed
 from `master` and has no separate release cadence.
 
+## Unreleased
+
+A codebase audit, with the fixes it turned up. No user-facing feature changed.
+
+### Fixed
+
+- The mobile header used a 246 px column on a 390 px screen, because the shell
+  kept its desktop rail gutter below the breakpoint. A category with five items
+  (Finance) was clipped at both edges with no way to reach the rest. The gutter
+  now resets on small screens and the category strip scrolls.
+- `scripts/shots.mjs` had been capturing the public marketing page and
+  reporting success, because it targeted navigation that no longer exists. It
+  now signs in, navigates by route, and exits non-zero on a page error or
+  overflow.
+- Refs were read and written during render in the flip card, the animated
+  counter, the rating pill and the commit slider. That is undefined behaviour
+  under React's concurrent renderer; all four now derive from state or update in
+  an effect.
+
+### Changed
+
+- `framer-motion` was installed alongside `motion`, which is the same library
+  and already the one in use. Seven files imported the duplicate; they now import
+  `motion/react` and the extra package is gone, trimming the dependency tree.
+
+### Added
+
+- `AUDIT.md`, `IMPLEMENTATION_PLAN.md`, `SKILL_PROGRESS.md` and `ISSUES.md`,
+  recording what was measured, what was fixed, and what is knowingly left.
+- The native member app under `mobile/` is now tracked. It previously had no
+  version history at all.
+
 ## 1.0.0
 
 First version that is complete enough to run a gym on, and the first with a
