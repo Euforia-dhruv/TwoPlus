@@ -198,13 +198,13 @@ screen at three widths.
 | --- | --- |
 | Type safety | Sound; 2 trivial `any` |
 | Build | Green |
-| Tests | 41/42 green, 1 known flake |
+| Tests | 42/42 green (the earlier failure was a load-timing flake) |
 | Animation | Unified to one system (fixed) |
-| Design tokens | Real and dual-mode; 2 dead aliases |
-| Accessibility | Good overall; icon-only dock is the gap |
-| React correctness | 8 real lint findings |
+| Design tokens | Real and dual-mode; no dead aliases |
+| Accessibility | No gap found; the dock was already labelled |
+| React correctness | Refs bugs fixed; 6 documented intentional warnings |
 | Maintainability | `App.tsx` at 184 KB is the main risk |
-| Schema | Live drift blocks member photos |
+| Schema | Live drift blocks member photos (owner-blocked) |
 | Verification | Screenshot harness repaired |
 
 Nothing in this audit recommends replacing any part of the stack. Every
