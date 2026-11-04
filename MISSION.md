@@ -40,7 +40,7 @@ marked done from intent.
 
 ## Phase 4 — Member fitness app
 
-- [x] Onboarding and account linking via hardened `claim_member_account` (verified email, single match, compare-and-set).
+- [x] Onboarding and account linking via hardened `claim_member_account` (verified email, single match, compare-and-set). Routing was fixed in `b82c701`: an invited member who had confirmed their email but not yet linked landed on `/app`, which bounced them into the gym-setup form, so the claim screen was unreachable. `homePathFor()` in `src/lib/member-api.ts` now sends staff to `/app`, a linked member to `/member`, and only an account whose signup carried a gym name to `/onboarding`; signing up with a blank gym name is allowed for members. 6 tests in `tests/home-path.spec.ts`.
 - [x] Dashboard from real records.
 - [x] Workout: plans, logging, history, personal records (`workout-stats.ts`).
 - [~] Nutrition: plans and diet diary present; macro data shown only when recorded.
