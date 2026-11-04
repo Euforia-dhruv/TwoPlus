@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { useAuth } from "@/lib/auth"
 import {
   getMyAttendance,
@@ -205,6 +206,10 @@ export default function Member() {
           <Section title="No member account linked">
             <p>The sign-in you used is not linked to a member record in any gym yet.</p>
             <p>Ask your gym to invite you by email, then come back here and link it.</p>
+            <p className="mb-muted">
+              Here to set up your own gym instead?{" "}
+              <Link className="mb-link" to="/onboarding">Create a workspace</Link>.
+            </p>
             {claimError && <p className="mb-error">{claimError}</p>}
             <button className="mb-primary" disabled={claiming} onClick={() => void handleClaim()}>
               {claiming ? "Linking…" : "Link my gym account"}
