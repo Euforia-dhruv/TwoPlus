@@ -2952,11 +2952,20 @@ html[data-mode="light"] .app-side-floating-dock {
 }
 
 @media (max-width: 720px) {
+  /* A wide category (Finance has five items) cannot fit a 390px header. Let the
+     middle column take the leftover space and scroll, instead of sizing to its
+     content and spilling past the header on both sides. */
   .unified-header {
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 8px;
     padding: 8px 10px;
     margin: 10px 12px 16px;
+  }
+
+  /* The dock becomes a single 40px button on mobile, so the 96px rail gutter
+     only squeezes the header. */
+  .app {
+    padding: 10px 12px 24px;
   }
 
   .app-side-nav ~ .main-shell {
@@ -2965,6 +2974,21 @@ html[data-mode="light"] .app-side-floating-dock {
 
   .uh-nav {
     gap: 6px;
+    justify-self: stretch;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .uh-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* The strip is one unbroken pill; let it keep its intrinsic width so the
+     scroll container has something to scroll rather than squashing the tabs. */
+  .uh-nav > * {
+    flex: 0 0 auto;
   }
 }
 
