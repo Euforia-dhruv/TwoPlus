@@ -249,8 +249,10 @@ and the document says so where it matters.
   and staff rather than as their own records.
 - **Monitoring:** no error-tracking service is connected. The platform health
   panel reports database reachability and states that monitoring is absent.
-- **Legal:** privacy policy and terms are drafts pending review; data export and
-  account deletion are not implemented.
+- **Legal:** privacy policy and terms are drafts pending review. Data export and
+  account deletion are implemented in the member app, but the migration that
+  makes deletion atomic (`0016_account_deletion.sql`) is written and not yet
+  applied to the live database.
 
 ## Project documents
 

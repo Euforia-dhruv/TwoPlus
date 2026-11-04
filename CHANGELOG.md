@@ -68,9 +68,10 @@ this point.
 ### Known gaps
 
 - No payment gateway, no SMS or email provider, no error tracking.
-- Nine modules render but have no storage; their create actions are disabled.
-- Privacy policy and terms are drafts; data export and account deletion are not
-  implemented.
+- Three modules render but have no storage (Payroll, Marketplace, Community);
+  their create actions are disabled.
+- Privacy policy and terms are drafts pending legal review; data export and
+  account deletion are implemented but the deletion migration is unapplied.
 - Apple and Windows code signing, store submission and a Windows installer need
   owner-held credentials. Android builds are already signed from a keystore kept
   outside the repo.
