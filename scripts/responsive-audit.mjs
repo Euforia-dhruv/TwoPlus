@@ -81,12 +81,14 @@ const probe = () => {
 
     // An element sticking past the right edge, or pushed off the left.
     if (r.right > vw + 1 || r.left < -1) {
-      // Ignore children of a deliberate horizontal scroller.
+      // Ignore children of a deliberate horizontal scroller, or of a clipping
+      // wrapper: either way they cannot widen the page.
+      const CONTAINED = ["auto", "scroll", "hidden", "clip"];
       let p = el.parentElement;
       let inScroller = false;
       while (p) {
         const pcs = getComputedStyle(p);
-        if (pcs.overflowX === "auto" || pcs.overflowX === "scroll") { inScroller = true; break; }
+        if (CONTAINED.includes(pcs.overflowX)) { inScroller = true; break; }
         p = p.parentElement;
       }
       if (!inScroller) {
