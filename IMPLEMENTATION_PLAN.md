@@ -77,18 +77,33 @@ risk the working flows the tests cover.
 
 ### 8. Migrations on the live database — BLOCKED ON OWNER APPROVAL
 
-`members.photo_url` is missing, so saving a member photo fails. One idempotent
-line:
+Two migrations are missing, not one. Probing the live database object by object
+(rather than trusting `schema_migrations`, which records only `0001`-`0003`)
+showed every migration except these two is already applied:
 
-```sql
-alter table public.members add column if not exists photo_url text;
-```
+| Missing | Effect today |
+| --- | --- |
+| `0005` — `members.photo_url` | Saving a member with a photo URL fails |
+| `0016` — `delete_my_account()` | The member app's "delete my account" cannot work |
 
-- **Blocked because:** it writes to the live database. Requires explicit
-  approval.
-- **Also outstanding:** only 3 of 16 migrations are recorded, so the history is
-  inaccurate and the next `db push` is unreliable. Reconciling that needs a
-  decision on whether the remaining migrations are already fully applied.
+- **Dry-run done:** both were applied inside a single transaction against live and
+  rolled back, so nothing was written. `0005` adds the column; `0016` creates the
+  function, revokes it from `public`, grants it to `authenticated` only, and
+  `has_function_privilege('authenticated', ...)` then reads `t`. Both apply
+  cleanly.
+- **Blocked because:** applying them writes to the live database. Requires
+  explicit approval. The exact commands are:
+
+  ```bash
+  psql "$LIVE_POOLER_URL" -f supabase/migrations/0005_member_photos.sql
+  psql "$LIVE_POOLER_URL" -f supabase/migrations/0016_account_deletion.sql
+  ```
+
+- **Also outstanding:** only 3 of 16 migrations are recorded in
+  `supabase_migrations.schema_migrations`, so the history is inaccurate and the
+  next `db push` is unreliable. `0005` and `0016` are the only two whose objects
+  are genuinely absent, so recording all sixteen as applied is defensible, but
+  that is an owner decision, not an audit one.
 
 ## Not planned, with reasons
 

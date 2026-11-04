@@ -148,16 +148,32 @@ are recorded in `supabase_migrations.schema_migrations`, yet all 38 public table
 and `organizations.theme_style` exist. Later migrations were applied by hand
 without being recorded.
 
-**Consequence, proven:** `members.photo_url` is ABSENT from the live database
-although `0005_member_photos.sql` adds it. `src/lib/api.ts` writes `photo_url`
-when it is non-empty (`createMember:160`, `updateMember:196`) and `App.tsx:2643`
-and `:2878` pass it through, so **saving a member with a photo URL fails today**
-with "Could not create the member" / "Could not update the member". The
-empty-photo case is guarded, which is why this has gone unnoticed.
+**Measured precisely.** Probing the live database object by object, rather than
+trusting `schema_migrations`, shows every migration is already applied except two:
 
-The fix is one idempotent line, `alter table public.members add column if not
-exists photo_url text;`, and it needs owner approval because it writes to the
-live database. Not applied during this audit.
+| Missing | Effect today |
+| --- | --- |
+| `0005` — `members.photo_url` | Saving a member with a photo URL fails |
+| `0016` — `delete_my_account()` | The member app's "delete my account" cannot work |
+
+**Consequence, proven (0005):** `members.photo_url` is ABSENT from the live
+database although `0005_member_photos.sql` adds it. `src/lib/api.ts` writes
+`photo_url` when it is non-empty (`createMember:160`, `updateMember:196`) and
+`App.tsx:2643` and `:2878` pass it through, so **saving a member with a photo URL
+fails today** with "Could not create the member" / "Could not update the
+member". The empty-photo case is guarded, which is why this has gone unnoticed.
+
+**Consequence (0016):** `delete_my_account()` does not exist, so the member app's
+self-erasure action cannot complete. This is the one that matters legally under
+the DPDP Act, not cosmetically: the app offers a delete control that cannot work.
+
+**Dry-run done:** both were applied inside a single transaction against the live
+database and rolled back, so nothing was written. `0005` adds the column. `0016`
+creates the function, revokes it from `public`, grants it to `authenticated` only,
+and `has_function_privilege('authenticated', ...)` reads `t`. Both apply cleanly.
+
+Both need owner approval because they write to the live database. Not applied
+during this audit.
 
 **Finding F2 (data safety, good).** The restore procedure in `docs/OPERATIONS.md`
 was rehearsed into a scratch project and found three real defects in its own
