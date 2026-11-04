@@ -35,7 +35,6 @@ export default function Signup() {
     const pwProblem = passwordProblem(password);
     if (pwProblem) next.password = pwProblem;
     if (confirm !== password) next.confirm = "Passwords do not match.";
-    if (gymName.trim().length < 2) next.gym = "Enter your gym or business name.";
     if (!terms) next.terms = "Please accept the terms to continue.";
     setErrors(next);
     setFormError("");
@@ -69,8 +68,9 @@ export default function Signup() {
       }
       clearAttempts(attemptKey);
       if (data.session) {
-        // Email confirmation disabled (common in local dev) — go straight to onboarding.
-        navigate("/onboarding", { replace: true });
+        // Email confirmation disabled (common in local dev). /home reads the
+        // gym name off this signup and picks the workspace or the claim screen.
+        navigate("/home", { replace: true });
       } else {
         setNotice(
           "Account created. Check your inbox to verify your email, then sign in.",
@@ -121,14 +121,17 @@ export default function Signup() {
           {errors.email && <span className="auth-field-error">{errors.email}</span>}
         </label>
         <label className="auth-field">
-          Gym / business name
+          Gym / business name <span style={{ fontWeight: 400 }}>(optional)</span>
           <input
             className="input"
             value={gymName}
             onChange={(e) => setGymName(e.target.value)}
             placeholder="e.g. CoreFit Studio"
           />
-          {errors.gym && <span className="auth-field-error">{errors.gym}</span>}
+          <span className="auth-field-hint">
+            Leave this blank if your gym already added you and you are here to link
+            your account.
+          </span>
         </label>
         <label className="auth-field">
           Password

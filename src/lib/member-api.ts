@@ -312,8 +312,28 @@ export async function claimMyMemberAccount(): Promise<string | null> {
 //
 // Staff come first: someone can be both a gym admin and a member of that same
 // gym, and sending them to the member app would hide their whole workspace
-// behind a role check they already pass. Only an account with no workspace
-// role at all lands in the member app.
+// behind a role check they already pass.
+//
+// An account with no workspace role is not necessarily a finished member: an
+// invited member who confirmed their email still has no member row until they
+// claim one. Sending those people to /app bounced them into the "set up your
+// gym" form, so the claim screen was unreachable on the normal path. /member
+// already handles both states (linked data, or the claim prompt), which makes it
+// the right bucket for every non-staff account.
+export function homePathFor(state: {
+  staffReadFailed: boolean;
+  isStaff: boolean;
+  hasMemberRow: boolean;
+  gymName?: string | null;
+}): string {
+  // A failed read must not silently demote a staff account to the member app.
+  if (state.staffReadFailed || state.isStaff) return "/app";
+  if (state.hasMemberRow) return "/member";
+  // Created through the signup form with a gym name, so a workspace is still
+  // waiting to be finished rather than a member record waiting to be claimed.
+  return state.gymName ? "/onboarding" : "/member";
+}
+
 export async function myHomePath(): Promise<string> {
   const { data: user } = await getSupabase().auth.getUser();
   if (!user.user) return "/login";
@@ -325,12 +345,13 @@ export async function myHomePath(): Promise<string> {
     .eq("user_id", user.user.id)
     .limit(1);
 
-  // A failed read must not silently demote a staff account to the member app.
-  if (error) return "/app";
-  if (staffRows?.length) return "/app";
-
-  const member = await getMyMember().catch(() => null);
-  return member ? "/member" : "/app";
+  const member = error ? null : await getMyMember().catch(() => null);
+  return homePathFor({
+    staffReadFailed: !!error,
+    isStaff: !!staffRows?.length,
+    hasMemberRow: !!member,
+    gymName: (user.user.user_metadata as { gym_name?: string } | undefined)?.gym_name,
+  });
 }
 
 // --- Workout logging (migration 0012) ---------------------------------------
