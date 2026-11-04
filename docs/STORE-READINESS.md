@@ -80,7 +80,7 @@ member record, subject to the retention notes in `docs/PRIVACY-AND-RETENTION.md`
 | App icon 1024 | ready | same mark as the desktop ICO, generated from `public/favicon.svg` |
 | Feature graphic (1024x500) | blocked | not produced; needs a design decision |
 | Phone screenshots | prepared | `screenshots/board-390-*.png` are real captures at 390x844 of the workspace. Play Store needs a phone set and a separate tablet set; App Store needs 1290x2796 and 1242x2688 |
-| Member-app screenshots | blocked | the member app is the part a member installs; store screenshots should show it, and none are captured yet |
+| Member-app screenshots | prepared | `scripts/storeshots.mjs` captures the member app at the four sizes the stores demand (1080x1920, 1600x2560, 1290x2796, 1242x2688). It needs an account linked to a member record; run against one and it writes `screenshots/store/`. The signed-in test account is not linked, so it refuses to shoot the claim prompt instead of shipping that as a listing image |
 | Store description | prepared | see below |
 | Privacy policy URL | prepared | `/privacy` exists in the app; a public URL is required and the copy still needs counsel review |
 
@@ -120,7 +120,8 @@ Prepared, human action required:
       publishes the same signed build this host produces
 - [ ] Apple Developer Program membership, distribution certificate, provisioning
       profile, and an archive uploaded through Xcode or Transporter
-- [ ] Capture the phone and tablet screenshot sets, including the member app
+- [ ] Run `node scripts/storeshots.mjs` against a login linked to a member
+      record, then capture the tablet set of the workspace
 - [ ] Produce a 1024x500 feature graphic
 - [ ] Publish the privacy policy at a stable public URL and put it in both
       listings
