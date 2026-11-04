@@ -55,8 +55,15 @@ this point.
 - Staff accounts now link to the login that owns them, so a trainer's schedule
   shows their classes rather than every class in the gym.
 - Deep links survive a hard reload.
-- The member-app home redirect picks the right surface for an account that is
-  both staff and member.
+- An invited member who confirms their email now lands on the claim screen. They
+  have no member row until they claim one, and the old redirect sent them to the
+  workspace, which bounced them into the "set up your gym" form, leaving the only
+  screen that can link their account unreachable. The gym name on signup is
+  optional now, and the home redirect is a tested pure function rather than
+  inline branches.
+- The sign-in, sign-up and password-reset screens lock one address for 60 s after
+  5 failed attempts, instead of letting a stuck button or a shared tablet
+  hammer the auth endpoint.
 
 ### Security
 
