@@ -9,6 +9,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  // The owner journey writes real rows through six UI steps and needs ~30 s on a
+  // cold dev server, which is Playwright's default budget exactly. Give the whole
+  // suite room instead of tuning one spec that is already near the line.
+  timeout: 120_000,
   reporter: [["list"]],
   use: { baseURL, trace: "retain-on-failure" },
   projects: [
