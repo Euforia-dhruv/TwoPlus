@@ -1,6 +1,5 @@
 import { useState } from "react";
 import FlipCard from "@/components/ui/FlipCard";
-import { Badge } from "@/components/kit";
 import { Icon } from "@/icons";
 
 export type MemberCardData = {
@@ -52,73 +51,51 @@ export function MemberCard({
 
   const stop = (event: React.MouseEvent) => event.stopPropagation();
 
-  // Faces hold only content: the outer .member-card keeps the border, glass
-  // background and hover lift, so the flip happens inside the card surface.
+  // Two full-bleed faces. The front is the photo with the name over it; the
+  // back is the record. Both fill the same portrait box, so the flip reads as
+  // one card turning over rather than two panels swapping.
+  // Front: name at the top, the photo full bleed, two quiet facts at the foot.
+  // Back: the same name and a short record, nothing else.
   const front = (
-    <>
-      <div className="member-card-photo">
-        {showPhoto ? (
-          <img
-            src={member.photo}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setPhotoBroken(true)}
-          />
-        ) : (
-          <span className="member-card-fallback">{initials(member.name)}</span>
-        )}
-        <Badge>{member.status}</Badge>
-        <div className="member-card-scrim" />
-      </div>
+    <div className="member-card-face member-card-face--front">
+      {showPhoto ? (
+        <img
+          src={member.photo}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setPhotoBroken(true)}
+        />
+      ) : (
+        <span className="member-card-fallback">{initials(member.name)}</span>
+      )}
+      <div className="member-card-scrim" />
 
-      <div className="member-card-body">
-        <strong title={member.name}>{member.name}</strong>
-        <small>{member.email === "—" ? member.phone : member.email}</small>
+      <strong className="member-card-title" title={member.name}>
+        {member.name}
+      </strong>
 
-        <div className="member-card-rows">
-          <span>
-            <Icon name="clipboard" size={13} />
-            {member.plan}
-          </span>
-          <span className={member.status === "Expired" ? "is-overdue" : ""}>
-            <Icon name="calendar" size={13} />
-            {member.expires === "—" ? "No active membership" : `Ends ${member.expires}`}
-          </span>
-          {hasDues && (
-            <span className="is-due">
-              <Icon name="wallet" size={13} />
-              {member.due} due
-            </span>
-          )}
-        </div>
+      <div className="member-card-front-foot">
+        <span>{member.plan}</span>
+        <span>{member.status}</span>
       </div>
-    </>
+    </div>
   );
 
   const back = (
-    <div className="member-card-body member-card-back-body">
-      <strong title={member.name}>{member.name}</strong>
-      <small>
-        {member.status} · {member.plan}
-      </small>
+    <div className="member-card-face member-card-face--back">
+      <strong className="member-card-title" title={member.name}>
+        {member.name}
+      </strong>
 
       <div className="member-card-rows">
+        <span className={member.status === "Expired" ? "is-overdue" : ""}>
+          <Icon name="calendar" size={13} />
+          {member.expires === "—" ? "No active membership" : `Ends ${member.expires}`}
+        </span>
         <span>
           <Icon name="mobile" size={13} />
           {member.phone}
-        </span>
-        <span>
-          <Icon name="message" size={13} />
-          {member.email}
-        </span>
-        <span>
-          <Icon name="calendar" size={13} />
-          {member.joined ? `Joined ${member.joined}` : "Join date not set"}
-        </span>
-        <span>
-          <Icon name="members" size={13} />
-          {member.trainer}
         </span>
         <span className={hasDues ? "is-due" : ""}>
           <Icon name="wallet" size={13} />
@@ -141,9 +118,11 @@ export function MemberCard({
         background="transparent"
         color="inherit"
         shadow={false}
-        glare={false}
+        glare
+        glareOpacity={0.16}
         hoverScale={1}
-        tiltMax={6}
+        tilt
+        tiltMax={8}
         stiffness={170}
         damping={20}
       />
@@ -218,9 +197,7 @@ export function MemberCard({
 export function MemberCardSkeleton() {
   return (
     <div className="member-card is-skeleton" aria-hidden="true">
-      <div className="member-card-photo" />
-      <div className="member-card-body">
-        <span className="skeleton-line wide" />
+      <div className="member-card-skeleton-face">
         <span className="skeleton-line" />
         <span className="skeleton-line short" />
       </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, type Variants } from "motion/react"
 import { cn } from "@/lib/utils"
 
 function AnimatedNumber({ value, className }: { value: number, className?: string }) {
@@ -187,7 +187,7 @@ function AnimatedScore({ value, duration = 0.2, className }: { value: number, du
 
 function ScoreContainer({ number, variants, duration = 0.7 }: {
     number: string,
-    variants: any,
+    variants: Variants,
     duration?: number
 }) {
     const cached = React.useMemo(() => (

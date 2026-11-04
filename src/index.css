@@ -1647,116 +1647,105 @@ html[data-mode="light"] .badge.red {
   background: color-mix(in srgb, var(--lime) 12%, transparent);
 }
 
-/* FlipCard ships as a fixed-size inline-block (300x400 by default) because its
-   faces are absolutely positioned. The grid needs auto width and a height driven
-   by content, so the fixed box is neutralised here and the card supplies the
-   surface instead of the component. The actions row stays outside the flip. */
+/* FlipCard ships a fixed 300x400 box because its faces are absolute. The grid
+   wants auto width, so the height comes from an aspect ratio and both faces
+   fill it. The actions row stays outside the flip. */
 .member-card-flipcard {
   display: block !important;
   width: auto !important;
   height: auto !important;
   max-width: none !important;
-  min-height: 214px;
+  aspect-ratio: 4 / 5;
 }
 
-/* Front face: photo band over the detail rows, laid out like the old card. */
-.member-card-flipcard > div > div:first-child {
+/* One card turning over: both faces fill the same portrait box. */
+.member-card-face {
   display: flex;
   flex-direction: column;
-}
-
-.member-card-back-body {
-  gap: 4px;
-  padding-bottom: 2px;
-}
-
-.member-card-photo {
-  position: relative;
-  height: 104px;
-  background: var(--field);
+  height: 100%;
   overflow: hidden;
 }
 
-.member-card-photo img {
+.member-card-face--front img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* Avatar initials on a neutral glass plate. The five per-member hue tones that
-   used to live here were the only random colour left in the app; a name reads
-   fine without one, and the design language has no decorative accents. */
+/* Avatar initials fill the frame when a member has no photo. */
 .member-card-fallback {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
-  width: 100%;
-  height: 100%;
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--text-2);
-  background: transparent;
-}
-
-.member-card-fallback.tone-0,
-.member-card-fallback.tone-1,
-.member-card-fallback.tone-2,
-.member-card-fallback.tone-3,
-.member-card-fallback.tone-4 {
-  background: transparent;
 }
 
 .member-card-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 55%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.34), transparent 42%, rgba(0, 0, 0, 0.72));
   pointer-events: none;
 }
 
-/* The chip sits on the photo and stays dark in both modes, so its label is
-   always white. html[data-mode] outranks the light-mode badge overrides. */
-html[data-mode] .member-card-photo .badge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
+/* Title sits over the top of the image, like the reference card. */
+.member-card-title {
+  position: relative;
   z-index: 2;
-  border-color: rgba(255, 255, 255, 0.28);
-  background: rgba(8, 14, 16, 0.64);
+  padding: 12px 13px 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
   color: #fff;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.member-card-body {
+/* Two quiet facts at the foot, one left, one right. */
+.member-card-front-foot {
+  position: relative;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 11px 12px 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 13px;
   min-width: 0;
 }
 
-.member-card-body strong {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+.member-card-front-foot span {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.72);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.member-card-body small {
-  font-size: 11px;
-  color: var(--text-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.member-card-face--back {
+  padding: 12px 13px;
+}
+
+/* The back repeats the title in the card's own ink, then the short record. */
+.member-card-face--back .member-card-title {
+  padding: 0 0 9px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text);
 }
 
 .member-card-rows {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  margin-top: 8px;
+  min-width: 0;
 }
 
 .member-card-rows span {
@@ -1874,20 +1863,23 @@ html[data-mode] .member-card-photo .badge {
   pointer-events: none;
 }
 
+/* Skeleton keeps the real card's portrait box so the grid does not jump when
+   the members arrive. */
+.member-card-skeleton-face {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 7px;
+  aspect-ratio: 4 / 5;
+  padding: 12px;
+}
+
 .skeleton-line {
   display: block;
   height: 10px;
   width: 70%;
   border-radius: 5px;
   background: var(--hairline-2);
-  margin-bottom: 7px;
-}
-
-.skeleton-line.wide {
-  width: 88%;
-  height: 104px;
-  margin: 0;
-  border-radius: 0;
 }
 
 .skeleton-line.short {

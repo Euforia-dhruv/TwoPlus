@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'motion/react'
 import qrcode from 'qrcode-generator' // MIT, © Kazuhiko Arase
 
 // ShareSheet: local QR generation, no API keys or external images.

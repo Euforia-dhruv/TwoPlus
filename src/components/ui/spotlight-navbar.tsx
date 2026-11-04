@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { animate } from "framer-motion";
+import { animate } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
