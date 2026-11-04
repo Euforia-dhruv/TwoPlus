@@ -144,8 +144,8 @@ JDK 21 and Android SDK 36 built them from the project keystore:
 
 | Artifact | Path | Size | SHA-256 |
 | --- | --- | --- | --- |
-| APK | `release/mobile/TwoPlus-1.0-android.apk` | 3,994,295 B | `587351D5…2A80EC7` |
-| AAB | `release/mobile/TwoPlus-1.0-android.aab` | 3,851,939 B | `1309F45B…078A28C` |
+| APK | `release/mobile/TwoPlus-1.0-android.apk` | 3,994,559 B | `F708EB2F…20B9981` |
+| AAB | `release/mobile/TwoPlus-1.0-android.aab` | 3,852,217 B | `A48198B4…D749F17` |
 
 `apksigner verify --print-certs` reports signer `CN=TwoPlus, O=TwoPlus, C=IN`
 (fingerprint `4e:08:dc:00:…:d7`); `aapt2 dump badging` reports `fit.twoplus.app`,
