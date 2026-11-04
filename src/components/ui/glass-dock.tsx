@@ -266,7 +266,7 @@ const MorphingIcon = ({ type, isActive, onClick, onMouseEnter }: { type: string,
     };
 
     const handleMouseEnter = () => {
-        onMouseEnter && onMouseEnter();
+        onMouseEnter?.();
         if (type === 'home') animateHome();
         else if (type === 'blog') animateBlog();
         else if (type === 'marker') animateMarker();

@@ -61,8 +61,10 @@ test("the fallback is announced and is not the loading splash", () => {
 
   // role=alert, without aria-live: screen readers interrupt for an alert, which
   // is right for a crash and wrong for every ordinary "loading" splash.
-  expect((field?.props as { role?: string }).role).toBe("alert");
-  expect((field?.props as { "aria-live"?: string })["aria-live"]).toBeUndefined();
+  expect(field).toBeDefined();
+  const props = field!.props as { role?: string; "aria-live"?: string };
+  expect(props.role).toBe("alert");
+  expect(props["aria-live"]).toBeUndefined();
 });
 
 test("no error means children pass straight through", () => {

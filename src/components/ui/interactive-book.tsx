@@ -73,13 +73,16 @@ export default function InteractiveBook({
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowRight') nextPage();
-            if (e.key === 'ArrowLeft') prevPage();
-            if (e.key === 'Escape') handleCloseBook();
+            if (e.key === 'ArrowRight') setCurrentPageIndex((p) => Math.min(pages.length - 1, p + 1));
+            if (e.key === 'ArrowLeft') setCurrentPageIndex((p) => Math.max(-1, p - 1));
+            if (e.key === 'Escape') {
+                setIsOpen(false);
+                setCurrentPageIndex(-1);
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, currentPageIndex]);
+    }, [isOpen, pages.length]);
 
     return (
         <div

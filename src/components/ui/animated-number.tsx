@@ -168,14 +168,12 @@ function AnimatedScore({ value, duration = 0.2, className }: { value: number, du
     }
 
     const variants = value >= prevValueRef.current ? forwards : backwards
-    const direction = value >= prevValueRef.current ? "forwards" : "backwards"
 
     return (
         <div className={cn("relative flex justify-center items-center py-1 px-2 w-full rounded-md", className)}>
             <motion.div layout="size" className='w-fit flex justify-center items-center'>
                 {value.toString().split("").map((number, index) => (
                     <ScoreContainer
-                        direction={direction}
                         duration={duration}
                         variants={variants}
                         number={number}
@@ -187,11 +185,10 @@ function AnimatedScore({ value, duration = 0.2, className }: { value: number, du
     )
 }
 
-function ScoreContainer({ number, variants, duration = 0.7, direction }: {
+function ScoreContainer({ number, variants, duration = 0.7 }: {
     number: string,
     variants: any,
-    duration?: number,
-    direction: string
+    duration?: number
 }) {
     const cached = React.useMemo(() => (
         <div className='relative'>
@@ -210,7 +207,7 @@ function ScoreContainer({ number, variants, duration = 0.7, direction }: {
                 </motion.div>
             </AnimatePresence>
         </div>
-    ), [number, direction, variants, duration])
+    ), [number, variants, duration])
 
     return <React.Fragment>{cached}</React.Fragment>
 }
