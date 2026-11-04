@@ -77,7 +77,7 @@ logical dump before every migration and keep it off the machine.
 # session pooler host, not the direct db host: direct connections are IPv6-only
 export PGPASSWORD='<database password from Dashboard > Settings > Database>'
 pg_dump "postgresql://postgres.qhxgqyzrzqxwvriugnya@aws-0-eu-west-1.pooler.supabase.com:5432/postgres" \
-  --schema=public --schema=auth --no-owner --no-privileges \
+  --schema=public --schema=auth --no-owner \
   --format=custom --file=backup-$(date +%Y%m%d-%H%M).dump
 ```
 
@@ -85,6 +85,12 @@ pg_dump "postgresql://postgres.qhxgqyzrzqxwvriugnya@aws-0-eu-west-1.pooler.supab
 - `auth` is included deliberately: without it, members keep their member rows but
   lose the identity that proves the row is theirs, and every member has to be
   re-linked by hand.
+- **Do not pass `--no-privileges`.** It drops every GRANT and REVOKE from the
+  dump, and the REVOKEs are load-bearing: without them a restore leaves
+  `authenticated` with `EXECUTE` on `promote_to_platform_admin`, which is a
+  privilege escalation. It also leaves every table ungranted, so the app reads
+  nothing even though the rows are there. Verified the hard way; see the notes
+  under Restore.
 - Storage objects are **not** in the dump. They live in S3 and need the separate
   procedure below.
 
@@ -111,20 +117,51 @@ the same provider that hosts the database is not a backup against that provider.
 Never restore over the live database. Restore into a scratch project and prove
 the data is there, then decide.
 
+The scratch project's pooler host may not know the tenant yet. If the pooler
+rejects the ref with `tenant/user ... not found`, connect to the direct host
+instead: `postgresql://postgres@db.<scratch-ref>.supabase.co:5432/postgres`.
+That is the one case where the direct host is usable; it is not used for the
+live project because direct connections there are IPv6-only.
+
+Restore order matters. The dump contains a trigger on `auth.users` that calls
+`public.handle_new_user()`, so `auth` must land **before** `public`. Within
+`auth`, `identities`, `sessions` and `refresh_tokens` are FK children of
+`users`, and `pg_restore` replays tables alphabetically, so `users` has to be
+pinned first.
+
 ```bash
-# 1. new empty Supabase project
-npx supabase link --project-ref <scratch-ref>
+# 1. new empty Supabase project, schema reset to a known state
+psql "$SCRATCH_URL" -c 'drop schema if exists public cascade;
+  create schema public;
+  grant all on schema public to postgres, anon, authenticated, service_role;'
+psql "$SCRATCH_URL" -c 'delete from auth.users;'
 
-# 2. schema first, so the data lands in tables that already have RLS
-pg_restore --schema-only --no-owner --no-privileges --dbname "$SCRATCH_URL" backup.dump
+# 2. auth data, with users pinned ahead of its children
+pg_restore -l backup.dump | grep 'TABLE DATA auth ' > auth.toc
+# then edit auth.toc so the auth.users line comes first, and place
+# auth.identities, auth.sessions, auth.refresh_tokens, auth.mfa_amr_claims
+# immediately after it, before the rest
+pg_restore -L auth.toc --data-only --no-owner --dbname "$SCRATCH_URL" backup.dump
 
-# 3. data, in one transaction per table so one bad table does not stop the rest
-pg_restore --data-only --no-owner --no-privileges --disable-triggers \
-  --dbname "$SCRATCH_URL" backup.dump
+# 3. public, schema and data in one pass
+pg_restore --schema=public --no-owner --dbname "$SCRATCH_URL" backup.dump
 ```
 
-`--disable-triggers` is required because the audit triggers fire on restored
-rows and would attribute history to the restoring role.
+Notes that cost real time to discover:
+
+- **One pass for `public`**, not `--schema-only` then `--data-only`. Splitting
+  them creates every foreign key before any row is copied, so children load
+  before parents and the COPY fails. The single pass replays FKs after COPY.
+- **`--disable-triggers` does not work here.** It needs superuser, and Supabase's
+  `postgres` role is not superuser. It fails silently in the sense that the
+  restore continues with triggers armed; do not rely on it. The single-pass
+  order above is what actually solves the FK ordering.
+- **Two errors are expected and benign** in step 3: `permission denied to change
+  default privileges`, because the dump records default ACLs owned by
+  `supabase_admin` and `postgres` may not alter those. Everything else should
+  report zero errors.
+- Do not point `drop schema` and the restore at the same connection while
+  anything else is connected; a live client will hold the schema open.
 
 ### Restore verification
 
@@ -144,11 +181,32 @@ select count(*) from public.members where user_id is not null
 select count(*) from public.members m
   where not exists (select 1 from public.organizations o where o.id = m.organization_id);
 -- must be 0
+
+-- 5. the restore kept its grants and its revokes
+select count(*) from information_schema.role_table_grants
+  where table_schema = 'public' and grantee = 'authenticated';  -- must match source
+select has_function_privilege('authenticated', 'public.promote_to_platform_admin(text,text)', 'execute');
+-- must be false
 ```
 
 Then log in to the scratch deployment as a real owner and as a real member and
 open the dashboard and the member app. A row count does not prove a policy works;
 a signed-in session does.
+
+For a policy check without a browser, impersonate a user at the database level
+and confirm the counts come back scoped, then roll back:
+
+```sql
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims',
+  json_build_object('sub', '<user-uuid>', 'role', 'authenticated')::text, true);
+select count(*) from public.organizations;  -- 1 for a single-org user
+select count(*) from public.members;        -- only that org's members
+rollback;
+```
+
+A user with no organization must get `0` from every one of those selects.
 
 ### Restoring one deleted row
 
