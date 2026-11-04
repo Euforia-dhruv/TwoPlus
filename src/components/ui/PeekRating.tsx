@@ -137,8 +137,13 @@ const PeekRating: React.FC<PeekRatingProps> = ({
     paint();
     onPreview?.(index === null ? null : index + 1);
   };
+  // Latest-callback cache for the visibility handler below. Assigned in an
+  // effect, not during render: writing a ref mid-render is what React warns
+  // about, and the handler only needs the value once an event fires.
   const setHoverRef = useRef(setHover);
-  setHoverRef.current = setHover;
+  useEffect(() => {
+    setHoverRef.current = setHover;
+  });
 
   const measure = () => {
     const row = rowRef.current;

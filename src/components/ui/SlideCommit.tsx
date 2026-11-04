@@ -300,7 +300,13 @@ const SlideCommit: React.FC<SlideCommitProps> = ({
     if (x.get() >= TRAVEL) commit(false);
     else if (g.moved) goHome(velocityOf(g.hist));
   };
-  live.current = { move, up };
+  // The window-level pointer listeners registered in `down` read the latest
+  // handlers through this ref. Assigning it in an effect keeps it out of the
+  // render phase; the listeners only ever run after a pointer event, by which
+  // time the effect has run.
+  useEffect(() => {
+    live.current = { move, up };
+  });
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (disabled || phase === 'pending' || phase === 'done') return;
