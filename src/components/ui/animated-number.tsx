@@ -64,20 +64,21 @@ function RenderStrip({ eleHeight, value }: { eleHeight: string | null, value: st
     const heightInNumber = Number.parseInt(eleHeight?.replace("px", "") || "48")
     const negative = heightInNumber * -1
     const pos = heightInNumber
-    const prev = useRef(value)
-
     // Convert string values to numbers for comparison
     const currentVal = parseInt(value)
-    const prevVal = parseInt(prev.current)
 
-    // Calculate direction based on value change
-    const diff = prevVal - currentVal
-    const dir = currentVal > prevVal ? pos * diff * -1 : negative * diff
-
-    // Update ref after calculation
-    useEffect(() => {
-        prev.current = value
-    }, [value])
+    // Direction of travel comes from the previous digit. Both the previous value
+    // and the computed offset live in state and are updated during render, the
+    // documented way to derive from a changed prop, so neither is a ref read
+    // inside render and the offset survives the re-render that follows.
+    const [prev, setPrev] = useState(value)
+    const [dir, setDir] = useState(0)
+    if (prev !== value) {
+        const prevVal = parseInt(prev)
+        const diff = prevVal - currentVal
+        setDir(currentVal > prevVal ? pos * diff * -1 : negative * diff)
+        setPrev(value)
+    }
 
     return (
         <AnimatePresence mode='wait'>
@@ -120,11 +121,11 @@ function RenderStrip({ eleHeight, value }: { eleHeight: string | null, value: st
 
 // Score-style animated number with color feedback
 function AnimatedScore({ value, duration = 0.2, className }: { value: number, duration?: number, className?: string }) {
-    const prevValueRef = useRef(value)
-
-    useEffect(() => {
-        prevValueRef.current = value
-    }, [value])
+    // Direction is derived from the previous value while rendering, so it has to
+    // be state: a ref read here would be the refs-during-render that React warns
+    // about, and the read has to survive until the variant is chosen below.
+    const [prevValue, setPrevValue] = useState(value)
+    if (prevValue !== value) setPrevValue(value)
 
     const colors = {
         negative: "#37ff1a",
@@ -167,7 +168,7 @@ function AnimatedScore({ value, duration = 0.2, className }: { value: number, du
         }
     }
 
-    const variants = value >= prevValueRef.current ? forwards : backwards
+    const variants = value >= prevValue ? forwards : backwards
 
     return (
         <div className={cn("relative flex justify-center items-center py-1 px-2 w-full rounded-md", className)}>
