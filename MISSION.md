@@ -118,8 +118,8 @@ marked done from intent.
   `scripts/make-icon.mjs` renders `public/favicon.svg` into a 7-size
   `build/icon.ico` using the Chromium Playwright already installed.
 - [x] Production `.exe` built **and run here**: `npm run desktop:package` emits
-  `release/TwoPlus-win32-x64/TwoPlus.exe` (Electron 45.2.1, x64, 250 MB with
-  runtime, 2.05 MB `app.asar`). Packaged binary passes `--smoke-check`: mounts
+  `release/TwoPlus-win32-x64/TwoPlus.exe` (Electron 45.2.1, x64, 249,827,328 B with
+  runtime, 2,181,241 B `app.asar`). Packaged binary passes `--smoke-check`: mounts
   `app://bundle/` and routes a deep link to `/app/overview/overview`, exit 0.
   Version metadata is real (`ProductName`/`CompanyName` `TwoPlus`,
   `FileVersion 1.0.0`, `Copyright (C) 2026 TwoPlus`), not the packager default.
