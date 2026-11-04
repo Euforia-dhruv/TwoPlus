@@ -138,7 +138,7 @@ Four targets from one bundle (`docs/BUILDING.md`):
 | --- | --- | --- |
 | Web | `npm run build` | Verified. `vercel.json` holds the SPA rewrite and the security headers |
 | Windows desktop | `npm run desktop:package` | **Built and run here.** `TwoPlus.exe` exits 0 on `--smoke-check` |
-| Android | `npx cap sync android` + Gradle | **Built and verified here.** Debug APK, 5,038,783 bytes |
+| Android | `npx cap sync android` + Gradle | **Built and verified here.** Signed APK 3,994,291 B and AAB 3,851,921 B, signer `CN=TwoPlus` |
 | iOS | `npx cap sync ios` + `xcodebuild` | CI only; needs macOS |
 
 The desktop shell serves `dist/` over a privileged `app://bundle` origin rather

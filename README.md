@@ -192,7 +192,8 @@ a missing account rather than on a missing feature.
   and the security headers (CSP, HSTS, nosniff, frame denial, referrer policy,
   permission policy).
 - **Android:** `npm run build && npx cap sync android`, then Gradle. Needs JDK 21
-  and the Android SDK. CI builds an unsigned debug APK.
+  and the Android SDK. This host builds a signed APK and AAB from a keystore kept
+  outside the repo; CI builds an unsigned debug APK because it has no keystore.
 - **iOS:** `npx cap sync ios`, then `xcodebuild`. Needs macOS and Xcode, so CI
   does it on `macos-latest`.
 - **Windows:** `npm run desktop:package` produces `release/TwoPlus-win32-x64/`.
