@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "TwoPlus",
+    "slug": "twoplus-member",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "twoplus",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0B0D"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "fit.twoplus.member",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TwoPlus records the route of your runs and walks so you can see distance and pace.",
+        "NSCameraUsageDescription": "TwoPlus uses the camera so you can take progress photos and scan food barcodes.",
+        "NSPhotoLibraryUsageDescription": "TwoPlus reads photos you pick so you can attach progress pictures.",
+        "NSMotionUsageDescription": "TwoPlus reads step and activity data to fill your daily movement ring."
+      }
+    },
+    "android": {
+      "package": "fit.twoplus.member",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0B0B0D"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "ACTIVITY_RECOGNITION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TwoPlus reads photos you pick so you can attach progress pictures."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "TwoPlus records the route of your runs and walks."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
