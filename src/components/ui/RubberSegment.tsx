@@ -347,7 +347,7 @@ const RubberSegment: React.FC<RubberSegmentProps> = ({
       aria-disabled={disabled || undefined}
       data-equal={equalSlots ? '' : undefined}
       data-draggable={draggable && !disabled ? '' : undefined}
-      className={`group relative inline-grid grid-flow-col auto-cols-auto align-middle select-none touch-pan-y [font-family:inherit] [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] p-[var(--rs-inset)] rounded-[var(--rs-radius)] [background:var(--rs-track)] data-[equal]:auto-cols-[minmax(0,1fr)] data-[held]:cursor-grabbing aria-disabled:pointer-events-none aria-disabled:opacity-50${className ? ` ${className}` : ''}`}
+      className={`rubber-segment group relative inline-grid grid-flow-col auto-cols-auto align-middle select-none touch-pan-y [font-family:inherit] [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] p-[var(--rs-inset)] rounded-[var(--rs-radius)] [background:var(--rs-track)] data-[equal]:auto-cols-[minmax(min-content,1fr)] data-[held]:cursor-grabbing aria-disabled:pointer-events-none aria-disabled:opacity-50${className ? ` ${className}` : ''}`}
       style={
         {
           '--rs-track': trackColor,
@@ -389,7 +389,7 @@ const RubberSegment: React.FC<RubberSegmentProps> = ({
         </button>
       ))}
       <motion.div
-        className="pointer-events-none absolute inset-[var(--rs-inset)] grid grid-flow-col auto-cols-auto group-data-[equal]:auto-cols-[minmax(0,1fr)] [background:var(--rs-thumb)] [color:var(--rs-ink-active)]"
+        className="pointer-events-none absolute inset-[var(--rs-inset)] grid grid-flow-col auto-cols-auto group-data-[equal]:auto-cols-[minmax(min-content,1fr)] [background:var(--rs-thumb)] [color:var(--rs-ink-active)]"
         aria-hidden="true"
         style={{ clipPath }}
       >

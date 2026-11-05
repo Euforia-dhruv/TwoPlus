@@ -1069,6 +1069,35 @@ select.input {
   display: none;
 }
 
+/* Member status strip: five labels plus counts is wider than a phone. The
+   scroller is a wrapper, not the segment itself: RubberSegment's highlight
+   overlay is sized to its own box, so scrolling the segment desynchronises the
+   thumb from the buttons. Scrolling the parent keeps the segment at content
+   width and the two in step. */
+.directory-tabs-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.directory-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.directory-tabs {
+  min-width: max-content;
+}
+
+/* The unlayered `button { padding: 0 }` reset outranks Tailwind's layered
+   utilities, so the segment's own px-[var(--rs-pad)] never lands and each
+   button ends up narrower than the highlight span behind it. Restore the value
+   the component already computes, for every segment, not just this strip. */
+.rubber-segment > button {
+  padding-left: var(--rs-pad);
+  padding-right: var(--rs-pad);
+}
+
 .tabs button {
   display: flex;
   align-items: center;
@@ -2897,15 +2926,29 @@ html[data-mode="light"] .app-side-floating-dock {
   color: var(--text-2);
 }
 
-@media (max-width: 720px) {
+/* Tailwind's md breakpoint is 768px and the dock swaps its desktop rail for a
+   mobile button exactly there. Match it, or the rail box is empty and
+   positioned for the 721-767px window too. */
+@media (max-width: 767px) {
   /* A wide category (Finance has five items) cannot fit a 390px header. Let the
      middle column take the leftover space and scroll, instead of sizing to its
      content and spilling past the header on both sides. */
   .unified-header {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
     gap: 8px;
     padding: 8px 10px;
     margin: 10px 12px 16px;
+  }
+
+  /* Below md the vertical dock renders its mobile button instead, so the fixed
+     rail box is empty but still positioned. Park it in the header's reserved
+     first column (34-82px). Top-align rather than centre: the header is 64px
+     tall on Overview and 100px when a section nav wraps, so a fixed centre
+     offset would fall outside one of them. */
+  .app-side-nav {
+    left: 38px;
+    top: 32px;
+    transform: none;
   }
 
   /* The dock becomes a single 40px button on mobile, so the 96px rail gutter

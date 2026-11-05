@@ -1352,8 +1352,9 @@ export default function App() {
                 ]}
               />
               <section className="directory">
-                <RubberSegment
-                  className="directory-tabs"
+                <div className="directory-tabs-scroll">
+                  <RubberSegment
+                    className="directory-tabs"
                   items={[
                     "All members",
                     "Active",
@@ -1386,6 +1387,7 @@ export default function App() {
                   textColor="var(--text-3)"
                   activeTextColor="var(--text)"
                 />
+                </div>
                 <div className="table-toolbar">
                   <div className="search-field">
                     <Icon name="search" size={17} />

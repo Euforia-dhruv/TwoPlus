@@ -66,11 +66,48 @@ test("every module renders cleanly at every width", async ({ page }) => {
               offenders.push(`${el.tagName.toLowerCase()}${cls ? "." + cls.split(/\s+/)[0] : ""}`);
             }
           }
+
+          // A segment button whose text is wider than the button is squashed,
+          // even when the strip itself fits the viewport.
+          const clipped: string[] = [];
+          for (const el of Array.from(
+            document.querySelectorAll("[role=radiogroup] button"),
+          )) {
+            if (el.scrollWidth > Math.ceil(el.getBoundingClientRect().width) + 1) {
+              clipped.push(el.textContent?.trim().slice(0, 20) || el.className.slice(0, 20));
+            }
+          }
+
+          // Below md the vertical rail renders a mobile button instead, so its
+          // box is empty but still positioned. It must sit inside the header,
+          // not float over the page. Above md the real rail is outside it by
+          // design, so only check the mobile state.
+          let stray = "";
+          const dock = document.querySelector(".app-side-nav");
+          const header = document.querySelector(".unified-header");
+          const mobileDock = document.querySelector(".app-side-mobile");
+          const mobileShown =
+            mobileDock && getComputedStyle(mobileDock).display !== "none";
+          if (mobileShown && dock && header) {
+            const d = dock.getBoundingClientRect();
+            const h = header.getBoundingClientRect();
+            if (d.width > 0 && d.height > 0) {
+              const inside =
+                d.left >= h.left - 2 &&
+                d.right <= h.right + 2 &&
+                d.top >= h.top - 2 &&
+                d.bottom <= h.bottom + 2;
+              if (!inside) stray = "nav rail sits outside the header";
+            }
+          }
+
           return {
             scrollW: root.scrollWidth,
             clientW: root.clientWidth,
             mainRight: box ? box.right : null,
             offenders: offenders.slice(0, 4),
+            clipped: clipped.slice(0, 4),
+            strayDock: stray,
           };
         });
 
@@ -80,6 +117,13 @@ test("every module renders cleanly at every width", async ({ page }) => {
             `${tag}: horizontal overflow ${m.scrollW} > ${m.clientW}${m.offenders.length ? ` (${m.offenders.join(", ")})` : ""}`,
           );
         }
+        // Geometry can be clean and still unreadable: a flexed segment can
+        // squash its own labels, and the fixed nav box can sit outside the
+        // header it is supposed to live in. Neither shows up as overflow.
+        if (m.clipped.length) {
+          problems.push(`${tag}: clipped segment label (${m.clipped.join(", ")})`);
+        }
+        if (m.strayDock) problems.push(`${tag}: ${m.strayDock}`);
       }
     }
 
