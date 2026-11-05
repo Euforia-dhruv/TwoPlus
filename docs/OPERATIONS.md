@@ -238,7 +238,11 @@ a rebuild and redeploy, not a config change. Budget for that in the outage.
 
 - No scheduled logical dump. The nightly physical backup is the only automatic
   one, and it is whole-project.
-- No restore rehearsal schedule. This runbook has not been executed against a
-  scratch project because no database password or access token is available in
-  this environment; the commands are unverified.
+- No restore rehearsal schedule. The runbook was rehearsed once, on 2026-11-04,
+  into scratch project `lmhpbpalgcbccbyybemt`: 38/38 tables, zero row-count
+  mismatches, 108 policies and 266 grants intact, no orphaned members, and policy
+  scoping checked by impersonating real users. That rehearsal found and fixed
+  three defects in this document; see `docs/RESTORE-REHEARSAL.md`. It has not
+  been repeated since, so treat the first restore after a schema change as
+  unproven.
 - No off-site copy configured. Someone has to choose the bucket.
