@@ -20,6 +20,7 @@ const SIZES = [
   { tag: "1440", width: 1440, height: 900 },
   { tag: "1024", width: 1024, height: 800 },
   { tag: "390", width: 390, height: 844 },
+  { tag: "320", width: 320, height: 740 },
 ];
 
 test("every module renders cleanly at every width", async ({ page }) => {

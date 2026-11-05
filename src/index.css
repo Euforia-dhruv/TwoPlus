@@ -1,5 +1,5 @@
 ﻿/* Tailwind v4: theme tokens + utilities only. Preflight is intentionally
-   skipped â€” this app ships its own reset and token set, so Tailwind adds
+   skipped — this app ships its own reset and token set, so Tailwind adds
    classes without touching anything else. Unlayered app rules still win over
    Tailwind's layered utilities. */
 @layer theme, base, components, utilities;
@@ -11,7 +11,7 @@
 @custom-variant dark (&:where(html[data-mode="dark"] *));
 
 /* ============================================================================
-   TwoPlus â€” dashboard stylesheet
+   TwoPlus — dashboard stylesheet
    One layer, one token set. Every rule here is for markup that renders: the
    class list was extracted from src/*.tsx, and retired pages (channels, chat,
    product, plans, growth) were deleted rather than carried forward.

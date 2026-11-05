@@ -495,7 +495,7 @@ export async function recordPayment(
 // Marks an already-recorded pending payment as received. There is no gateway:
 // staff confirm the money arrived, and this only changes what the workspace says.
 // RLS limits payment updates to owner, manager and finance, so a receptionist
-// gets a policy error rather than a silent no-op â€” hence the zero-row check.
+// gets a policy error rather than a silent no-op — hence the zero-row check.
 export async function settlePayment(
   paymentId: string,
   input: { method: PaymentMethod; paid_on?: string },

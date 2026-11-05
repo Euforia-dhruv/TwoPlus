@@ -1,18 +1,18 @@
 # TwoPlus final report
 
-Written against `3ea2ca7`. Every figure here was produced by a command on this
+Written against `5480fe1`. Every figure here was produced by a command on this
 machine, not estimated. Where something is unverified, it says so in the sentence
 that claims it.
 
 | | |
 | --- | --- |
 | Repository | `github.com/Euforia-dhruv/TwoPlus`, branch `master` |
-| Commits | 155 |
-| Application code | 24,627 lines across `src/**/*.{ts,tsx,css}` |
+| Commits | 192 |
+| Application code | 24,711 lines across `src/**/*.{ts,tsx,css}` |
 | Migrations | 16 (`0001_init.sql` … `0016_account_deletion.sql`) |
 | Database tables | 38, all with RLS enabled, 30 with explicit policies, 8 closed to the API by design |
-| Automated tests | 30 passing in 2.9 minutes |
-| Build | `tsc -b && vite build`, exit 0, 4.07 s |
+| Automated tests | 42 passing in 3.4 minutes |
+| Build | `tsc -b && vite build`, exit 0, 9.1 s |
 
 ---
 
@@ -58,11 +58,11 @@ grow past 50 entries rather than silently dropping the oldest.
 
 ```
 npx tsc -b        exit 0
-npm run build     exit 0, 4.07 s
+npm run build     exit 0, 9.1 s
 npm run lint      pre-existing warnings only
 ```
 
-**Test suite.** One clean run, 42 tests, 3.0 minutes:
+**Test suite.** One clean run with real credentials, 42 tests, 3.4 minutes:
 
 ```
 npx playwright test    42 passed
@@ -202,8 +202,7 @@ This is the honest half of the report. Each item names the human action.
 
 | Item | Human action required |
 | --- | --- |
-| Backup restore rehearsal | Set `PGPASSWORD` from Dashboard → Settings → Database and run one dump plus one restore into a scratch project. The procedure exists and has never been executed |
-| Migration `0016_account_deletion.sql` | Apply it. Written and reviewed, not pushed: no `SUPABASE_ACCESS_TOKEN` or database password on this host |
+| Migration `0005_member_photos.sql` and `0016_account_deletion.sql` | Apply both. Written and reviewed, not pushed: no `SUPABASE_ACCESS_TOKEN` or database password on this host. `0005` is what makes saving a member photo work; `0016` is what makes "delete my account" work |
 | Code signing | The Android keystore exists outside the repo and signed builds work; supply an Apple distribution certificate plus profile and a Windows code-signing certificate. None of these may be committed |
 | Store submission | Create Play Console and App Store Connect accounts (both cost money and bind the owner legally), then authorize submission |
 | Legal review | Send `/privacy`, `/terms` and `docs/PRIVACY-LIFECYCLE.md` to counsel for DPDP Act review. A product cannot self-certify this |
