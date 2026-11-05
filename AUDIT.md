@@ -80,6 +80,15 @@ is set by the old screenshot harness and read by nothing: zero references in
 `src/`. Mode is `data-mode`; there is no style axis. Removed from the harness,
 left in the app alone because nothing reads it.
 
+**Finding B5 (one hardcoded floor, every route) — fixed.** A 27-route sweep at 16
+widths (`scripts/responsive-audit.mjs`) reported an identical 40 px overflow on
+every route, at 320 px only. The cause was not 27 layout bugs: `body` carried
+`min-width: 360px` (`index.css:39`), so at a 320 px viewport the body computed
+360 px wide and everything below it inherited the excess. Lowering the floor to
+320 px cleared all 27 routes at all 16 widths. The harness itself also needed a
+fix: it counted elements clipped inside an `overflow-hidden` wrapper as
+offenders, which flagged a decorative animated border line as a layout bug.
+
 **Not a finding.** Glassmorphism is deliberate brand direction for this product
 and is used throughout by design, not by accident.
 
@@ -205,7 +214,7 @@ screen at three widths.
 | React correctness | Refs bugs fixed; 6 documented intentional warnings |
 | Maintainability | `App.tsx` at 184 KB is the main risk |
 | Schema | Live drift blocks member photos (owner-blocked) |
-| Verification | Screenshot harness repaired |
+| Verification | Screenshot harness repaired; responsive sweep added (27 routes x 16 widths, clean) |
 
 Nothing in this audit recommends replacing any part of the stack. Every
 actionable item is a bounded fix.

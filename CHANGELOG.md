@@ -22,6 +22,9 @@ A codebase audit, with the fixes it turned up. No user-facing feature changed.
   counter, the rating pill and the commit slider. That is undefined behaviour
   under React's concurrent renderer; all four now derive from state or update in
   an effect.
+- `body` carried a 360 px `min-width`, so every screen overflowed a 320 px
+  viewport by exactly 40 px. The floor is now 320 px and all 27 routes are clean
+  at all 16 audited widths.
 
 ### Changed
 
